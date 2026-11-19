@@ -3,7 +3,7 @@
 // El usuario puede ajustar cualquiera (incremento, máquina, foto) o crear los suyos.
 import { CATALOG, type CatalogRow } from './catalog/exercises';
 import { MACHINES } from './catalog/machines';
-import { PATTERNS, type Pattern } from './catalog/patterns';
+import { PATTERNS, type Pattern, type PatternId } from './catalog/patterns';
 import type { Category, Equipment, ExerciseDef, ExerciseRow, ExType, Measure, Muscle } from './types';
 
 const SAFETY: Record<Equipment, string> = {
@@ -184,6 +184,25 @@ const BASE: ExerciseDef[] = [
   x('hanging_leg_raise', 'Elevación de piernas colgado', 'abs', ['forearms'], 'isolation', 'bodyweight', 1, ['Retroversión pélvica al subir', 'Baja sin balancearte'], ['Balanceo', 'Subir solo con flexores de cadera'], 'Piernas abajo hasta elevar la pelvis.'),
   x('plank', 'Plancha (reps = segundos ÷ 5)', 'abs', ['shoulders'], 'isolation', 'bodyweight', 1, ['Cuerpo en línea', 'Glúteos y abdomen apretados'], ['Cadera caída', 'Aguantar la respiración'], 'Isométrico: mantener la alineación.'),
 ];
+
+// Patrón de movimiento de los ejercicios base (los del catálogo ampliado ya lo declaran). Lo usan los iconos.
+const BASE_PATTERN: Record<string, PatternId> = {
+  chest_press_machine: 'press_h', chest_press_convergent: 'press_h', bench_press: 'press_h', incline_bench_press: 'press_incline', db_bench_press: 'press_h',
+  incline_db_press: 'press_incline', smith_incline_press: 'press_incline', pec_deck: 'fly', cable_crossover: 'fly', push_up: 'pushup', dips: 'dip',
+  lat_pulldown: 'pulldown', pull_up: 'pullup', seated_cable_row: 'row', machine_row: 'row', lever_row: 'row', barbell_row: 'row', db_row: 'row',
+  straight_arm_pulldown: 'pullover', back_extension: 'backext', shoulder_press_machine: 'press_oh', db_shoulder_press: 'press_oh', overhead_press: 'press_oh',
+  lateral_raise_db: 'raise_lat', lateral_raise_cable: 'raise_lat', lateral_raise_machine: 'raise_lat', reverse_pec_deck: 'raise_rear', face_pull: 'facepull',
+  barbell_curl: 'curl', db_curl: 'curl', incline_db_curl: 'curl', preacher_curl_machine: 'curl', cable_curl: 'curl', hammer_curl: 'curl_rev',
+  triceps_pushdown: 'tri_down', overhead_triceps_cable: 'tri_oh', skullcrusher: 'tri_lying', triceps_machine: 'tri_down', close_grip_bench: 'press_close',
+  dips_machine: 'dip', wrist_curl: 'wrist_flex', reverse_curl: 'curl_rev', squat: 'squat', hack_squat: 'squat', leg_press: 'legpress', smith_squat: 'squat',
+  bulgarian_split_squat: 'lunge', leg_extension: 'legext', romanian_deadlift: 'hinge', seated_leg_curl: 'legcurl', lying_leg_curl: 'legcurl',
+  hip_thrust: 'hipthrust', hip_thrust_machine: 'hipthrust', glute_kickback_cable: 'kickback', hip_abduction_machine: 'abduction',
+  standing_calf_raise: 'calf', seated_calf_raise: 'calf', leg_press_calf: 'calf', cable_crunch: 'crunch', ab_crunch_machine: 'crunch',
+  hanging_leg_raise: 'legraise', plank: 'plank',
+};
+const PATTERN_OF = new Map<string, PatternId>([...Object.entries(BASE_PATTERN), ...CATALOG.map((r) => [r.id, r.pattern] as [string, PatternId])]);
+/** Patrón de movimiento de un ejercicio de la biblioteca (indefinido en los ejercicios propios). */
+export const patternOf = (id: string): PatternId | undefined => PATTERN_OF.get(id);
 
 export const LIBRARY: ExerciseDef[] = [...BASE.map((b) => ({ ...b, ...PATCH[b.id] })), ...CATALOG.map(fromCatalog)];
 const BY_ID = new Map(LIBRARY.map((b) => [b.id, b]));

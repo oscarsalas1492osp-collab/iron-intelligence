@@ -24,7 +24,7 @@ export default function Science() {
       <p className="max-w-prose text-sm text-mute">
         El modelo 3D proviene de <a className="text-data underline" href="https://www.z-anatomy.com/" target="_blank" rel="noreferrer">Z-Anatomy</a>, en la versión para navegador de{' '}
         <a className="text-data underline" href="https://github.com/hpfrei/body-anatomy-3d-viewer" target="_blank" rel="noreferrer">hpfrei/body-anatomy-3d-viewer</a>, con licencia{' '}
-        <a className="text-data underline" href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. Para esta app se reagruparon sus mallas por grupo muscular y se quitaron estructuras internas; el archivo resultante se distribuye con la misma licencia.
+        <a className="text-data underline" href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. Para esta app se reagruparon sus mallas por grupo muscular y se quitaron estructuras internas; el archivo resultante se distribuye con la misma licencia. Al mostrarlo, la app da más relieve a cada grupo y adapta las proporciones a la figura elegida: la femenina es una adaptación de esa misma anatomía, no un modelo anatómico distinto.
         El mapa 2D usa la geometría de <a className="text-data underline" href="https://github.com/vulovix/body-muscles" target="_blank" rel="noreferrer">body-muscles</a> (Apache-2.0). La tipografía es Archivo (SIL Open Font License).
       </p>
     </div>

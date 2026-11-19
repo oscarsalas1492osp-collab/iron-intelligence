@@ -9,6 +9,7 @@ import { exerciseTones } from '../domain/heat';
 import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Chip, Empty, Field, H2, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { EquipmentArt, ExerciseThumb } from '../ui/EquipmentArt';
+import { ExerciseFigure } from '../ui/figure/ExerciseFigure';
 
 interface Filter { q: string; muscle: Muscle | null; eq: Equipment | null; cat: Category | null }
 const NO_FILTER: Filter = { q: '', muscle: null, eq: null, cat: null };
@@ -103,9 +104,11 @@ export function ExerciseDetail({ ex, onClose, onEdit }: { ex: ExerciseDef | null
   return (
     <Sheet open onClose={onClose} title={ex.name} wide>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[220px_1fr]">
-        <div className="relative h-72 md:h-80">
-          <BodyFigure tones={exerciseTones(ex.primary, ex.secondary)} className="absolute inset-0" />
-          <div className="absolute left-0 top-0"><ExerciseThumb ex={ex} size={68} /></div>
+        <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-center gap-3 md:grid-cols-1">
+          <div className="aspect-square overflow-hidden rounded-panel bg-card2">
+            {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <ExerciseFigure ex={ex} animate size={220} className="h-full w-full" />}
+          </div>
+          <div className="relative h-60 md:h-72"><BodyFigure tones={exerciseTones(ex.primary, ex.secondary)} className="absolute inset-0" /></div>
         </div>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -245,6 +248,7 @@ function MachineDetail({ m, all, onClose, onExercise, onEquipment }: { m: Machin
 
 function Machines({ all, onExercise, onEquipment }: { all: ExerciseDef[]; onExercise: (e: ExerciseDef) => void; onEquipment: (eq: Equipment) => void }) {
   const [q, setQ] = useState(''); const [zone, setZone] = useState<Zone | null>(null); const [open, setOpen] = useState<Machine | null>(null);
+  const byId = useMemo(() => new Map(all.map((e) => [e.id, e])), [all]);
   const list = useMemo(() => {
     const words = norm(q.trim()).split(/\s+/).filter(Boolean);
     return MACHINES.filter((m) => (!zone || m.zone === zone) && words.every((w) => norm(`${m.name} ${m.aka} ${m.models.join(' ')} ${musclesOf(m)} ${LOAD_LABEL[m.load]}`).includes(w)));
@@ -264,7 +268,7 @@ function Machines({ all, onExercise, onEquipment }: { all: ExerciseDef[]; onExer
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {list.filter((m) => m.zone === z).map((m) => (
               <button key={m.id} type="button" onClick={() => setOpen(m)} className="flex w-full items-center gap-3 rounded-panel bg-card p-2.5 text-left transition active:scale-[.99]">
-                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-ctl bg-card2"><EquipmentArt equipment={artOf(m)} size={44} /></div>
+                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-ctl bg-card2">{byId.get(m.ex[0]) ? <ExerciseFigure ex={byId.get(m.ex[0])!} size={56} /> : <EquipmentArt equipment={artOf(m)} size={44} />}</div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold leading-tight truncate">{m.name}</div>
                   <div className="wd-c text-sm text-mute truncate">{musclesOf(m)}</div>

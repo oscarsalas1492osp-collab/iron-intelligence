@@ -47,8 +47,8 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Copia de seguridad JSON, restauración, exportación CSV (formato Excel en español: `;` y coma decimal) | Completo |
 | Uso sin conexión (todas las pantallas se guardan en la primera apertura) y pantalla encendida durante la sesión | Completo |
 | Autenticación y sincronización con Supabase | Implementado; esquema aplicado y verificado; falta confirmar el primer inicio de sesión real |
-| Mapa corporal | Modelo anatómico 3D giratorio (carga diferida, ~1 MB) coloreado por grupo muscular, con respaldo 2D si no hay WebGL |
-| Ilustraciones | Una ilustración por **tipo de equipamiento** + figura 3D por ejercicio + foto propia. No hay animación individual por ejercicio |
+| Mapa corporal | Modelo anatómico 3D giratorio (carga diferida, ~1 MB) coloreado por grupo muscular, con figura masculina o femenina según el perfil y respaldo 2D (figura única) si no hay WebGL |
+| Ilustraciones | Un **icono por ejercicio**: maniquí articulado en la postura del movimiento, con el implemento y los músculos que trabajan encendidos; en la ficha se anima entre la postura inicial y la final. Las posturas se definen por patrón de movimiento (84 escenas para 448 ejercicios), no dibujadas una a una. Foto propia opcional |
 | Pruebas de interfaz | Con Testing Library sobre la app completa; no hay suite E2E en navegador dentro del repo |
 
 ## Arquitectura

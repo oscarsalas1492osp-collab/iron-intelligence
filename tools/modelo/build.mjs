@@ -19,7 +19,7 @@ const G = {
   biceps: [/^Biceps$/, /Biceps Brachii/, /^Brachialis/, /^Coracobrachialis/],
   triceps: [/^Triceps/, /^Anconeus/],
   forearms: [/^Brachioradialis/, /Extensor Carpi/, /Flexor Carpi/, /^Flexor Digitorum (Superficialis|Profundus)/, /Flexor Digitorum Superficialis/, /^Extensor Digitorum$/, /^Extensor Digiti Minimi/, /^Extensor Indicis/, /^Extensor Pollicis/, /^Abductor Pollicis Longus/, /^Flexor Pollicis Longus/, /^Palmaris Longus/, /Pronator/, /^Supinator/],
-  quads: [/^Quadriceps Femoris/],
+  quads: [/^Quadriceps Femoris/, /^Sartorius/],
   hamstrings: [/Biceps Femoris/, /^Semitendinosus/, /^Semimembranosus/],
   abductors: [/^Gluteus (Medius|Minimus)/],
   glutes: [/^Gluteus/],

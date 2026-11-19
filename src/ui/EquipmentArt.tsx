@@ -1,6 +1,7 @@
 // Ilustraciones vectoriales por tipo de equipamiento. Si el usuario subió una foto propia, se muestra la foto.
 import type { Equipment, ExerciseDef } from '../domain/types';
 import { EQUIPMENT_LABEL } from '../domain/muscles';
+import { ExerciseFigure } from './figure/ExerciseFigure';
 
 const S = { stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
 const A = { ...S, stroke: '#ff6a1a' };
@@ -89,11 +90,11 @@ export function EquipmentArt({ equipment, size = 56, className }: { equipment: E
   );
 }
 
-/** Miniatura de un ejercicio: foto del usuario si existe; si no, ilustración del equipamiento. */
-export function ExerciseThumb({ ex, size = 56 }: { ex: Pick<ExerciseDef, 'equipment' | 'photo' | 'name'>; size?: number }) {
+/** Miniatura de un ejercicio: foto del usuario si existe; si no, la figura en la postura del movimiento. */
+export function ExerciseThumb({ ex, size = 56, animate = false }: { ex: Pick<ExerciseDef, 'id' | 'primary' | 'secondary' | 'type' | 'equipment' | 'photo' | 'name'>; size?: number; animate?: boolean }) {
   return (
     <div className="shrink-0 grid place-items-center overflow-hidden rounded-ctl bg-card2" style={{ width: size, height: size }}>
-      {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <EquipmentArt equipment={ex.equipment} size={size * 0.78} />}
+      {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <ExerciseFigure ex={ex} size={size} animate={animate} />}
     </div>
   );
 }

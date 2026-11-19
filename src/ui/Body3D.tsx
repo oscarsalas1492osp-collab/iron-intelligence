@@ -3,33 +3,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ACESFilmicToneMapping, Box3, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshStandardMaterial,
-  PerspectiveCamera, Raycaster, Scene, SRGBColorSpace, Vector2, Vector3, WebGLRenderer, type Object3D,
+  PerspectiveCamera, Raycaster, Scene, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
 } from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { loadFigure, type Figure } from './bodyModel';
 import { COLD } from '../domain/heat';
 import { MUSCLES } from '../domain/muscles';
 import type { Muscle } from '../domain/types';
 import type { BodyProps } from './BodyMap';
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/musculos.glb`;
-let modelPromise: Promise<Object3D> | null = null;
-/** El modelo se descarga y decodifica una sola vez; cada vista usa una copia que comparte la geometría. */
-function loadModel(): Promise<Object3D> {
-  if (!modelPromise) {
-    const loader = new GLTFLoader();
-    loader.setMeshoptDecoder(MeshoptDecoder);
-    modelPromise = loader.loadAsync(MODEL_URL).then((g) => g.scene).catch((e) => { modelPromise = null; throw e; });
-  }
-  return modelPromise;
-}
-
 const isMuscle = (n: string): n is Muscle => (MUSCLES as string[]).includes(n);
 const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export interface Body3DProps extends BodyProps { onReady?: () => void; onError?: () => void; view?: 'front' | 'back' }
+export interface Body3DProps extends BodyProps { onReady?: () => void; onError?: () => void; view?: 'front' | 'back'; figure?: Figure }
 
-export default function Body3D({ tones, selected, onSelect, className, onReady, onError, view = 'front' }: Body3DProps) {
+export default function Body3D({ tones, selected, onSelect, className, onReady, onError, view = 'front', figure = 'male' }: Body3DProps) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<{ setTones(t: BodyProps['tones'], sel: Muscle | null | undefined): void; face(v: 'front' | 'back'): void } | null>(null);
   const cb = useRef({ onSelect, onReady, onError });
@@ -58,10 +45,11 @@ export default function Body3D({ tones, selected, onSelect, className, onReady, 
     const scene = new Scene();
     const camera = new PerspectiveCamera(26, 1, 0.1, 50);
     // Luz de taller: cenital fría, principal cálida desde delante y un contraluz azul que recorta el volumen.
-    scene.add(new HemisphereLight(0xe6ecf5, 0x23262b, 1.5));
-    const key = new DirectionalLight(0xfff1df, 2.6); key.position.set(2.2, 3, 4); scene.add(key);
-    const rim = new DirectionalLight(0x6fb0ff, 2.2); rim.position.set(-3, 2, -4); scene.add(rim);
-    const fill = new DirectionalLight(0xffffff, 0.5); fill.position.set(-3, 0.5, 3); scene.add(fill);
+    scene.add(new HemisphereLight(0xe6ecf5, 0x20242a, 1.35));
+    // La principal entra alta y de costado: las sombras bajo cada vientre muscular son las que dan el relieve.
+    const key = new DirectionalLight(0xfff1df, 3.3); key.position.set(2.6, 4.2, 3.2); scene.add(key);
+    const rim = new DirectionalLight(0x6fb0ff, 2.4); rim.position.set(-3, 2, -4); scene.add(rim);
+    const fill = new DirectionalLight(0xffffff, 0.7); fill.position.set(-3, 0.5, 3); scene.add(fill);
 
     const pivot = new Group();
     scene.add(pivot);
@@ -121,7 +109,7 @@ export default function Body3D({ tones, selected, onSelect, className, onReady, 
       if (changed || instant) request();
     };
 
-    loadModel().then((src) => {
+    loadFigure(figure).then((src) => {
       if (disposed) return;
       const model = src.clone(true);
       model.traverse((o) => {
@@ -202,7 +190,7 @@ export default function Body3D({ tones, selected, onSelect, className, onReady, 
       renderer.dispose();
       canvas.remove();
     };
-  }, []);
+  }, [figure]);
 
   useEffect(() => { api.current?.setTones(tones, selected); }, [tones, selected]);
   useEffect(() => { api.current?.face(view); }, [view]);
