@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { exportBackup, exportCsv, importBackup } from '../data/backup';
 import { db, setUserId } from '../data/db';
 import * as repo from '../data/repo';
-import { claimLocalData, fromRemote, syncAll, toRemote, type RemoteClient } from '../data/sync';
+import { authMessage, claimLocalData, fromRemote, syncAll, toRemote, type RemoteClient } from '../data/sync';
 import { resetDb } from './helpers';
 
 beforeEach(resetDb);
@@ -161,6 +161,23 @@ describe('historial, progresión y persistencia', () => {
     expect((await repo.getExercises()).some((e) => e.id === custom.id)).toBe(false);
   });
 
+  it('cambios rápidos y simultáneos del perfil no se pisan entre sí', async () => {
+    await Promise.all([repo.updateProfile({ name: 'Oscar' }), repo.updateProfile({ age: 34 }), repo.updateProfile({ halfRir: true }), repo.updateProfile({ priorityMuscles: ['chest'] })]);
+    expect(await repo.getProfile()).toMatchObject({ name: 'Oscar', age: 34, halfRir: true, priorityMuscles: ['chest'] });
+    await expect(repo.updateProfile({ age: 500 })).rejects.toThrow();
+    expect((await repo.getProfile()).age).toBe(34);
+  });
+
+  it('una rutina con un ejercicio propio ya eliminado inicia sin ese ejercicio', async () => {
+    const base = (await repo.getExercises())[0];
+    const custom = await repo.saveExercise({ ...base, id: '', name: 'Temporal', custom: true });
+    const r = await routineWith('chest_press_machine', custom.id);
+    await repo.deleteExercise(custom.id);
+    const s = await repo.startSession(r.id);
+    expect(s.exerciseIds).toEqual(['chest_press_machine']);
+    expect(await repo.getSessionSets(s.id)).toHaveLength(3);
+  });
+
   it('recuperación y peso corporal: un registro por día', async () => {
     const v = { sleepHours: 7, sleepQuality: 4, fatigue: 2, soreness: 2, motivation: 4, stress: 2 };
     await repo.saveRecovery(v, '2026-11-19');
@@ -175,8 +192,8 @@ describe('historial, progresión y persistencia', () => {
     const r = await routineWith('chest_press_machine');
     await logSession(r.id, () => ({ weight: 50, reps: 10, rir: 2 }));
     const csv = await exportCsv();
-    expect(csv.split('\n')).toHaveLength(4);
-    expect(csv).toMatch(/Press de pecho en máquina,1,50,10,2,8/);
+    expect(csv.split('\r\n')).toHaveLength(4);
+    expect(csv).toMatch(/Press de pecho en máquina;1;50;10;2;8/);
     const backup = JSON.stringify(await exportBackup());
     await Promise.all(db.tables.map((t) => t.clear()));
     expect(await repo.getDoneSets()).toHaveLength(0);
@@ -204,6 +221,14 @@ describe('sincronización', () => {
     };
     return { tables, client };
   }
+
+  it('los errores de autenticación y de red se muestran en español', () => {
+    expect(authMessage(new Error('Invalid login credentials'))).toMatch(/incorrectos/);
+    expect(authMessage(new Error('Email not confirmed'))).toMatch(/confirmado/);
+    expect(authMessage(new Error('User already registered'))).toMatch(/ya tiene una cuenta/);
+    expect(authMessage(new TypeError('Failed to fetch'))).toMatch(/conectar/);
+    expect(authMessage(new Error('email rate limit exceeded'))).toMatch(/espera/);
+  });
 
   it('convierte nombres de campo en ambos sentidos sin perder datos', () => {
     const row = { id: '1', userId: 'u', updatedAt: 5, dirty: 1, repMin: 8, exerciseIds: ['a'], targets: { a: { repMin: 8 } } };

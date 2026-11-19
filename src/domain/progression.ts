@@ -112,7 +112,7 @@ export function recommend(input: ProgInput): Recommendation {
     `Última sesión: ${kg(W)} × ${reps.join(', ')}`,
     avgRir != null ? `RIR medio declarado: ${avgRir.toFixed(1)} (objetivo ${rirGoal})` : 'RIR no registrado en la última sesión',
     `Rango objetivo: ${range} repeticiones`,
-    `Incremento mínimo disponible: ${kg(inc)} (${((inc / Math.max(W, 1)) * 100).toFixed(0)} % de la carga)`,
+    W > 0 ? `Incremento mínimo disponible: ${kg(inc)} (${((inc / W) * 100).toFixed(0)} % de la carga)` : `Sin carga externa; incremento mínimo disponible: ${kg(inc)}`,
   ];
   if (dropoff >= 0.25) factors.push(`Caída de repeticiones entre series: ${(dropoff * 100).toFixed(0)} %`);
   if (failRate > 0) factors.push(`Series al fallo en las últimas 2 sesiones: ${(failRate * 100).toFixed(0)} %`);
@@ -168,7 +168,17 @@ export function recommend(input: ProgInput): Recommendation {
       return finish({ ...base, action: 'hold', weight: W, practical: false,
         reason: `Llegaste al tope del rango, pero más cerca del fallo que tu objetivo (RIR ${avgRir.toFixed(1)} frente a ${rirGoal}). Repite ${kg(W)} hasta lograr las mismas repeticiones con el RIR objetivo; subir ahora probablemente te saque del rango.` }, conf);
     }
-    const rel = inc / Math.max(W, 1);
+    if (W === 0) {
+      // Sin carga externa (peso corporal): primero repeticiones, después lastre.
+      if (Math.min(...reps) < target.repMax + 2) {
+        return finish({ ...base, action: 'hold_add_reps', weight: 0, practical: true,
+          repGoal: `${target.sets} × ${target.repMax + 2} antes de añadir carga`,
+          reason: `Completaste el rango sin carga externa. Antes de añadir lastre, supera el tope en 2 repeticiones por serie; después añade ${kg(inc)} y vuelve a la parte baja del rango.` }, conf);
+      }
+      return finish({ ...base, action: 'increase', weight: inc, practical: true,
+        reason: `Superas con holgura el tope del rango sin carga externa. Añade ${kg(inc)} de lastre (o pasa a una variante más difícil) y vuelve a la parte baja del rango.` }, conf);
+    }
+    const rel = inc / W;
     if (rel > 0.1 && Math.min(...reps) < target.repMax + 2 && (avgRir == null || avgRir < target.rirMax + 1)) {
       return finish({ ...base, action: 'hold_add_reps', weight: W, practical: true,
         repGoal: `${target.sets} × ${target.repMax + 2} antes de subir`,

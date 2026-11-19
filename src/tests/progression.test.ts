@@ -103,6 +103,15 @@ describe('motor de progresión', () => {
     expect(low.reason).toMatch(/recuperación/);
   });
 
+  it('ejercicio sin carga externa (0 kg): primero repeticiones, luego lastre, sin porcentajes absurdos', () => {
+    const r = run([ses(1, 0, [12, 12, 12], [2, 1, 1])]);
+    expect(r.action).toBe('hold_add_reps');
+    expect(r.reason).not.toMatch(/%/);
+    const up = run([ses(1, 0, [14, 14, 14], [2, 1, 1])]);
+    expect(up.action).toBe('increase');
+    expect(up.weight).toBe(2.5);
+  });
+
   it('usa el peso más repetido como peso de trabajo (ignora series de aproximación)', () => {
     const s: PerfSession = { date: 1, sets: [{ weight: 30, reps: 12, rir: 5, failure: false, endReason: 'none' }, ...ses(1, 50, [10, 9, 9], [2, 1, 1]).sets] };
     expect(workWeight(s)).toBe(50);

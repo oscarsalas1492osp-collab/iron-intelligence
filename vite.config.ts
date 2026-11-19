@@ -1,9 +1,21 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
+/** Lista todos los archivos del build para que la app pueda guardarlos y abrir cualquier pantalla sin conexión. */
+function precacheManifest(): Plugin {
+  return {
+    name: 'precache-manifest',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const files = Object.keys(bundle).filter((f) => !f.endsWith('.map'));
+      this.emitFile({ type: 'asset', fileName: 'precache.json', source: JSON.stringify(files) });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), precacheManifest()],
   base: './',
   build: {
     rollupOptions: {

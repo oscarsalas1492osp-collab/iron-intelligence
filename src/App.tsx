@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { onLocalChange } from './data/repo';
-import { cloudEnabled, restoreAuth, scheduleSync, syncNow } from './data/sync';
+import { cloudEnabled, initAuth, scheduleSync, syncNow } from './data/sync';
 import { useUserId } from './hooks';
 import Assistant from './pages/Assistant';
 import Auth from './pages/Auth';
@@ -28,13 +28,9 @@ const SKIP_KEY = 'ii_skip_auth';
 
 export default function App() {
   const uid = useUserId();
-  const [ready, setReady] = useState(!cloudEnabled);
   const [skipped, setSkipped] = useState(() => { try { return localStorage.getItem(SKIP_KEY) === '1'; } catch { return false; } });
 
-  useEffect(() => {
-    if (!cloudEnabled) return;
-    restoreAuth().finally(() => setReady(true));
-  }, []);
+  useEffect(() => initAuth(), []);
 
   // Sincroniza al abrir, al recuperar conexión, al volver a la app y tras cada cambio local.
   useEffect(() => {
@@ -48,8 +44,6 @@ export default function App() {
     const t = setInterval(go, 60000);
     return () => { off(); window.removeEventListener('online', go); document.removeEventListener('visibilitychange', vis); clearInterval(t); };
   }, [uid]);
-
-  if (!ready) return <div className="grid h-full place-items-center text-mute text-sm">Cargando…</div>;
 
   return (
     <ErrorBoundary>

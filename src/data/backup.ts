@@ -30,7 +30,11 @@ export async function importBackup(text: string): Promise<{ imported: number; sk
   return { imported, skipped };
 }
 
-const csvCell = (v: unknown) => { const s = v == null ? '' : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+// Formato para Excel en español: separador ";" y coma decimal.
+const csvCell = (v: unknown) => {
+  const s = v == null ? '' : typeof v === 'number' ? String(v).replace('.', ',') : String(v);
+  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
 
 /** Una fila por serie completada. */
 export async function exportCsv(): Promise<string> {
@@ -42,10 +46,12 @@ export async function exportCsv(): Promise<string> {
   const head = ['fecha', 'sesion', 'ejercicio', 'serie', 'peso_kg', 'repeticiones', 'rir', 'rpe', 'fallo', 'motivo_fin', 'descanso_s', 'cumplio_minimo', 'nota'];
   const rows = sets.map((s) => {
     const se = sessions.get(s.sessionId)!;
-    return [new Date(se.startedAt).toISOString(), se.name, ex.get(s.exerciseId) ?? s.exerciseId, s.order + 1, s.weight, s.reps, s.rir ?? '', s.rpe ?? '', s.failure ? 'si' : 'no', s.endReason, s.restSec ?? '', s.metTarget ? 'si' : 'no', s.note].map(csvCell).join(',');
+    return [fmtLocal(se.startedAt), se.name, ex.get(s.exerciseId) ?? s.exerciseId, s.order + 1, s.weight, s.reps, s.rir ?? '', s.rpe ?? '', s.failure ? 'si' : 'no', s.endReason, s.restSec ?? '', s.metTarget ? 'si' : 'no', s.note].map(csvCell).join(';');
   });
-  return [head.join(','), ...rows].join('\n');
+  return [head.join(';'), ...rows].join('\r\n');
 }
+
+const fmtLocal = (ts: number) => { const d = new Date(ts); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 
 export function download(filename: string, content: string, type: string): void {
   const url = URL.createObjectURL(new Blob([content], { type }));

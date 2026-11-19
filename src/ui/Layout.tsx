@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useActiveSession, useSyncState } from '../hooks';
+import { cloudEnabled } from '../data/sync';
+import { useActiveSession, useSyncState, useUserId } from '../hooks';
 import { cx, Icon } from './components';
 
 const NAV = [
@@ -30,8 +31,10 @@ export default function Layout() {
   const active = useActiveSession();
   const sync = useSyncState();
   const { pathname } = useLocation();
-  const syncLabel = { local: 'Modo local', idle: 'Sincronizado', syncing: 'Sincronizando…', error: 'Error de sincronización', offline: 'Sin conexión' }[sync.status];
-  const dot = { local: '#8b919c', idle: '#2fd17a', syncing: '#3b9dff', error: '#ff3b30', offline: '#f5c542' }[sync.status];
+  const uid = useUserId();
+  const noAccount = cloudEnabled && uid === 'local';
+  const syncLabel = noAccount ? 'Sin cuenta · solo este dispositivo' : { local: 'Modo local', idle: sync.lastSync ? 'Sincronizado' : 'Pendiente de sincronizar', syncing: 'Sincronizando…', error: 'Sin sincronizar', offline: 'Sin conexión' }[sync.status];
+  const dot = noAccount ? '#8b919c' : { local: '#8b919c', idle: sync.lastSync ? '#2fd17a' : '#f5c542', syncing: '#3b9dff', error: '#ff3b30', offline: '#f5c542' }[sync.status];
   return (
     <div className="min-h-full md:flex">
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:border-r md:border-line md:bg-graphite md:p-4 md:sticky md:top-0 md:h-screen">

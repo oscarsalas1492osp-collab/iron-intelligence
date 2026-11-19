@@ -3,8 +3,8 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { download, exportBackup, exportCsv, importBackup } from '../data/backup';
 import { db } from '../data/db';
-import { saveProfile } from '../data/repo';
-import { cloudEnabled, signOut, supabase, syncNow } from '../data/sync';
+import { updateProfile } from '../data/repo';
+import { cloudEnabled, SESSION_EXPIRED, signOut, supabase, syncNow } from '../data/sync';
 import { ymd } from '../domain/calc';
 import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import type { Experience, Goal, Profile as P } from '../domain/types';
@@ -29,7 +29,7 @@ export default function Profile() {
   const [auth, setAuth] = useState(false);
   const lastBackup = useLiveQuery(() => db.meta.get(`lastBackup:${uid}`), [uid])?.value as number | undefined;
   const email = useLiveQuery(async () => (await supabase?.auth.getUser())?.data.user?.email ?? null, [uid]);
-  const set = (patch: Partial<P>) => run(() => saveProfile({ ...p, ...patch }));
+  const set = (patch: Partial<P>) => run(() => updateProfile(patch));
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const onImport = async (f: File) => {
@@ -86,7 +86,8 @@ export default function Profile() {
             ) : (
               <>
                 <div className="text-sm"><div className="font-semibold">{email ?? 'Cuenta conectada'}</div><div className="text-xs text-mute">{sync.status === 'error' ? `Error: ${sync.error}` : sync.status === 'syncing' ? 'Sincronizando…' : sync.status === 'offline' ? 'Sin conexión: se sincronizará al volver' : sync.lastSync ? `Última sincronización: ${new Date(sync.lastSync).toLocaleTimeString('es-CL')}` : 'Pendiente de sincronizar'}</div></div>
-                <div className="flex gap-2"><Btn icon="cloud" className="flex-1" onClick={() => run(syncNow, 'Sincronización solicitada')}>Sincronizar ahora</Btn><Btn variant="danger" onClick={() => run(signOut, 'Sesión cerrada')}>Cerrar sesión</Btn></div>
+                {sync.error === SESSION_EXPIRED && <Btn variant="primary" className="w-full" onClick={() => setAuth(true)}>Volver a iniciar sesión</Btn>}
+                <div className="flex gap-2"><Btn icon="cloud" className="flex-1" onClick={() => run(syncNow)}>Sincronizar ahora</Btn><Btn variant="danger" onClick={() => run(signOut, 'Sesión cerrada')}>Cerrar sesión</Btn></div>
               </>
             )}
           </Card>

@@ -45,6 +45,10 @@ export async function getProfile(): Promise<Profile> {
   return (await db.profiles.get(getUserId())) ?? defaultProfile();
 }
 export const saveProfile = (p: Profile) => save('profiles', { ...p, id: getUserId(), userId: getUserId() });
+/** Cambia solo los campos indicados, leyendo el perfil vigente dentro de una transacción. */
+export function updateProfile(patch: Partial<Profile>): Promise<Profile> {
+  return db.transaction('rw', db.profiles, async () => saveProfile({ ...(await getProfile()), ...patch }));
+}
 
 // ---------- Ejercicios ----------
 export async function getExercises(): Promise<ExerciseDef[]> {
@@ -158,7 +162,8 @@ export async function startSession(routineId: string | null): Promise<Session> {
   const exercises = await getExercises();
   const history = await getDoneSets();
   const routine = routineId ? await db.routines.get(routineId) : undefined;
-  const items = routineId ? await getItems(routineId) : [];
+  // Se omiten ejercicios que ya no existen (p. ej. uno propio eliminado después de armar la rutina).
+  const items = (routineId ? await getItems(routineId) : []).filter((i) => exercises.some((e) => e.id === i.exerciseId));
   const session: Session = {
     ...newBase(), routineId, name: routine?.name ?? 'Entrenamiento libre', startedAt: Date.now(), endedAt: null, status: 'active', pausedAt: null, pausedMs: 0, notes: '',
     exerciseIds: items.map((i) => i.exerciseId),

@@ -128,6 +128,7 @@ export const getSyncState = () => state;
 export const subscribeSync = (cb: () => void) => { subs.add(cb); return () => subs.delete(cb); };
 const setState = (p: Partial<SyncState>) => { state = { ...state, ...p }; subs.forEach((s) => s()); };
 
+export const SESSION_EXPIRED = 'La sesión caducó: vuelve a iniciar sesión para sincronizar. Tus datos siguen guardados en este dispositivo.';
 let running = false;
 export async function syncNow(): Promise<void> {
   const uid = getUserId();
@@ -136,10 +137,12 @@ export async function syncNow(): Promise<void> {
   running = true;
   setState({ status: 'syncing', error: null });
   try {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw new Error(SESSION_EXPIRED);
     await syncAll(supabaseRemote(supabase), uid);
     setState({ status: 'idle', lastSync: Date.now() });
   } catch (e) {
-    setState({ status: 'error', error: e instanceof Error ? e.message : 'Error de sincronización' });
+    setState({ status: 'error', error: e instanceof Error && e.message === SESSION_EXPIRED ? SESSION_EXPIRED : authMessage(e) });
   } finally {
     running = false;
   }
@@ -152,35 +155,73 @@ export function scheduleSync(delay = 2500): void {
   timer = setTimeout(() => void syncNow(), delay);
 }
 
+/** Traduce los errores de autenticación y de red a mensajes claros. */
+export function authMessage(e: unknown): string {
+  const m = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase();
+  if (m.includes('invalid login credentials')) return 'Correo o contraseña incorrectos';
+  if (m.includes('email not confirmed')) return 'Tu correo aún no está confirmado: abre el enlace que te enviamos y vuelve a entrar';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Ese correo ya tiene una cuenta: usa “Iniciar sesión”';
+  if (m.includes('password should be') || m.includes('weak password')) return 'La contraseña es demasiado débil: usa al menos 8 caracteres';
+  if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Demasiados intentos seguidos: espera un minuto y vuelve a probar';
+  if (m.includes('invalid') && m.includes('email')) return 'El correo no es válido';
+  if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor';
+  if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('fetch')) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo';
+  return e instanceof Error && e.message ? e.message : 'No se pudo completar la operación';
+}
+
+let adopting: Promise<void> = Promise.resolve();
+/** Asocia los datos locales a la cuenta y cambia de usuario. En serie, para que dos avisos simultáneos no se pisen. */
+function adopt(userId: string): Promise<void> {
+  adopting = adopting.then(async () => {
+    if (getUserId() === userId) return;
+    await claimLocalData(userId);
+    setUserId(userId);
+  });
+  return adopting;
+}
+
 export async function signIn(email: string, password: string): Promise<void> {
   if (!supabase) throw new Error('La sincronización en la nube no está configurada');
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) throw new Error(error?.message ?? 'No se pudo iniciar sesión');
-  await claimLocalData(data.user.id);
-  setUserId(data.user.id);
-  await syncNow();
+  let res;
+  try { res = await supabase.auth.signInWithPassword({ email, password }); } catch (e) { throw new Error(authMessage(e)); }
+  if (res.error || !res.data.user) throw new Error(authMessage(res.error ?? 'No se pudo iniciar sesión'));
+  await adopt(res.data.user.id);
+  void syncNow();
 }
 export async function signUp(email: string, password: string): Promise<'ok' | 'confirm'> {
   if (!supabase) throw new Error('La sincronización en la nube no está configurada');
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw new Error(error.message);
-  if (!data.session || !data.user) return 'confirm';
-  await claimLocalData(data.user.id);
-  setUserId(data.user.id);
-  await syncNow();
+  let res;
+  try {
+    res = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined } });
+  } catch (e) { throw new Error(authMessage(e)); }
+  if (res.error) throw new Error(authMessage(res.error));
+  // Supabase responde sin identidades cuando el correo ya existe (para no revelar cuentas).
+  if (res.data.user && res.data.user.identities && res.data.user.identities.length === 0) throw new Error(authMessage('already registered'));
+  if (!res.data.session || !res.data.user) return 'confirm';
+  await adopt(res.data.user.id);
+  void syncNow();
   return 'ok';
 }
 export async function signOut(): Promise<void> {
   await syncNow();
-  await supabase?.auth.signOut();
+  try { await supabase?.auth.signOut(); } catch { /* sin red: se cierra igual en este dispositivo */ }
   setUserId('local');
 }
-/** Restaura la sesión guardada al abrir la app. */
-export async function restoreAuth(): Promise<string | null> {
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
-  const uid = data.session?.user.id ?? null;
-  if (uid && getUserId() !== uid) setUserId(uid);
-  if (!uid && getUserId() !== 'local') setUserId('local');
-  return data.session?.user.email ?? null;
+
+/**
+ * Enlaza la sesión de Supabase con el usuario de la app.
+ *
+ * La identidad vive en el dispositivo (no se consulta a la red al abrir), así la app funciona sin
+ * conexión aunque el token haya caducado. Solo se vuelve a "sin cuenta" cuando Supabase confirma
+ * que la sesión terminó (SIGNED_OUT), nunca por un fallo de red.
+ */
+export function initAuth(): () => void {
+  if (!supabase) return () => {};
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') { if (getUserId() !== 'local') setUserId('local'); return; }
+    const id = session?.user?.id;
+    // Fuera del callback: la librería no admite llamadas propias mientras notifica el cambio.
+    if (id && id !== getUserId()) setTimeout(() => void adopt(id).then(() => syncNow()), 0);
+  });
+  return () => data.subscription.unsubscribe();
 }

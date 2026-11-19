@@ -9,7 +9,7 @@ Aplicación web (PWA) local-first: funciona sin conexión, guarda cada serie al 
 ```bash
 npm install
 npm run dev        # desarrollo en http://localhost:5173
-npm test           # 53 pruebas (unitarias, integración e interfaz)
+npm test           # 57 pruebas (unitarias, integración e interfaz)
 npm run build      # genera dist/ lista para desplegar (Vercel, Netlify, Cloudflare Pages, etc.)
 ```
 
@@ -44,7 +44,8 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Historial, calendario, edición/eliminación, gráficos por ejercicio, récords, 1RM estimado | Completo |
 | Recuperación y fatiga, peso corporal | Completo |
 | Asistente de análisis sobre el historial | Completo (motor determinista, no un modelo de lenguaje) |
-| Copia de seguridad JSON, restauración, exportación CSV | Completo |
+| Copia de seguridad JSON, restauración, exportación CSV (formato Excel en español: `;` y coma decimal) | Completo |
+| Uso sin conexión (todas las pantallas se guardan en la primera apertura) y pantalla encendida durante la sesión | Completo |
 | Autenticación y sincronización con Supabase | Implementado; esquema aplicado y verificado; falta confirmar el primer inicio de sesión real |
 | Ilustraciones | Una ilustración por **tipo de equipamiento** + mapa muscular por ejercicio + foto propia. No hay ilustración anatómica ni animación individual por ejercicio (el campo `photo` ya lo soporta) |
 | Pruebas de interfaz | Con Testing Library sobre la app completa; no hay suite E2E en navegador dentro del repo |

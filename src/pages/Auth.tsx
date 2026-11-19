@@ -13,7 +13,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
     setBusy(true);
     const r = await run(() => (mode === 'in' ? signIn(email.trim(), password).then(() => 'ok' as const) : signUp(email.trim(), password)));
     setBusy(false);
-    if (r === 'confirm') toast('Revisa tu correo para confirmar la cuenta y luego inicia sesión');
+    if (r === 'confirm') { toast('Cuenta creada. Abre el enlace que enviamos a tu correo y luego inicia sesión aquí.'); setMode('in'); }
     if (r === 'ok') { toast('Sesión iniciada. Tus datos se sincronizan.'); onDone?.(); }
   };
   return (

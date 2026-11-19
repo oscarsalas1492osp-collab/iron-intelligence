@@ -2,7 +2,7 @@
 // Los datos del usuario NO viven aquí: están en IndexedDB y se sincronizan con Supabase.
 const CACHE = 'iron-shell-v1';
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png'])));
   self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {
@@ -16,10 +16,10 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(req)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
         return res;
       })
-      .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+      // ignoreVary: los archivos se guardan también desde la página y sus cabeceras difieren de las de <script>.
+      .catch(() => caches.match(req, { ignoreVary: true }).then((r) => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });

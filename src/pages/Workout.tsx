@@ -282,6 +282,20 @@ function Active({ session }: { session: Session }) {
     if (rest && now >= rest.end) { setRest(null); try { navigator.vibrate?.([250, 120, 250]); } catch { /* sin vibración */ } toast('Descanso terminado'); }
   }, [now, rest]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Mantiene la pantalla encendida durante el entrenamiento (si el navegador lo permite).
+  useEffect(() => {
+    if (paused) return;
+    type Lock = { release(): Promise<void> };
+    const wl = (navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<Lock> } }).wakeLock;
+    if (!wl) return;
+    let lock: Lock | null = null; let cancelled = false;
+    const acquire = () => { wl.request('screen').then((l) => { if (cancelled) void l.release().catch(() => undefined); else lock = l; }).catch(() => undefined); };
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    acquire();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); void lock?.release().catch(() => undefined); };
+  }, [paused]);
+
   const done = sets.filter((s) => s.done).length;
   const curEx = current ? ex.get(current) : undefined;
   const idx = current ? ids.indexOf(current) : -1;
