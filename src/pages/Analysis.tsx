@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DAY, e1rm, weekStart } from '../domain/calc';
+import { hotTone, type Tones } from '../domain/heat';
 import { MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { trendOf } from '../domain/progression';
 import type { Muscle } from '../domain/types';
 import { inWeek, muscleVolume, rirDistribution, sessionsOf, tonnage, topContributors, weeklySeries } from '../domain/volume';
 import { useDoneSets, useExMap, useProfile } from '../hooks';
 import { BarC } from '../ui/charts';
-import { Btn, Card, Chip, Empty, H2, Stat, Title } from '../ui/components';
+import { BodyFigure } from '../ui/BodyFigure';
+import { Btn, Card, Chip, Empty, H2, Icon, Stat, Title } from '../ui/components';
 
-const RIR_COLORS = ['#ff3b30', '#ff6a1a', '#ff9f45', '#f5c542', '#3b9dff', '#5b6472'];
+// Misma escala de incandescencia que el selector de RIR.
+const RIR_COLORS = ['#ffe2a8', '#ffa63d', '#ff6a1a', '#c2412d', '#8a4a3a', '#4a505a'];
 
 export default function Analysis() {
   const sets = useDoneSets(); const ex = useExMap(); const profile = useProfile();
@@ -23,6 +26,8 @@ export default function Analysis() {
   const prev = useMemo(() => inWeek(all, start - 7 * DAY), [all, start]);
   const vol = useMemo(() => muscleVolume(week, ex, coef), [week, ex, coef]);
   const max = Math.max(1, ...vol.map((v) => v.fractional));
+  // En el análisis el color indica solo volumen de la semana elegida: más claro, más series.
+  const tones = useMemo(() => { const t: Tones = {}; for (const v of vol) if (v.fractional > 0) t[v.muscle] = hotTone(v.fractional / max); return t; }, [vol, max]);
   const dist = useMemo(() => rirDistribution(week), [week]);
   const evo = useMemo(() => weeklySeries(all, ex, coef, muscle, 8, now), [all, ex, coef, muscle]); // eslint-disable-line react-hooks/exhaustive-deps
   const top = useMemo(() => topContributors(week, ex, coef, muscle), [week, ex, coef, muscle]);
@@ -50,11 +55,17 @@ export default function Analysis() {
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Sesiones" value={sessionsN} />
           <Stat label="Series" value={week.length} sub={delta != null ? `${delta > 0 ? '+' : ''}${delta} % vs. semana previa` : undefined} />
-          <Stat label="Carga movida" value={`${(tonnage(week) / 1000).toFixed(1)} t`} color="#3b9dff" />
+          <Stat label="Carga movida" value={`${(tonnage(week) / 1000).toFixed(1)} t`} color="#5aa9ff" />
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div>
+          <div className="relative h-[320px] md:sticky md:top-6 md:h-[520px]">
+            <BodyFigure tones={tones} selected={muscle} onSelect={setMuscle} className="absolute inset-0" />
+          </div>
+          <p className="wd-c mt-1 text-center text-sm text-mute">Más claro, más series. Toca un músculo para elegirlo; arrastra para girar.</p>
+        </div>
         <div>
           <H2>Series por grupo muscular</H2>
           <Card>
@@ -62,8 +73,8 @@ export default function Analysis() {
               {vol.map((v) => (
                 <button type="button" key={v.muscle} onClick={() => setMuscle(v.muscle)} className="block w-full text-left" aria-label={`${MUSCLE_LABEL[v.muscle]}: ${v.direct} directas, ${v.indirect} indirectas`}>
                   <div className="mb-1 flex items-baseline justify-between text-sm">
-                    <span className={v.muscle === muscle ? 'font-bold text-white' : 'text-mute'}>{MUSCLE_LABEL[v.muscle]}{profile.priorityMuscles.includes(v.muscle) ? ' ★' : ''}</span>
-                    <span className="tnum text-xs text-mute"><b className="text-white">{v.direct}</b> dir. + {v.indirect} ind. · {v.days} día{v.days === 1 ? '' : 's'}</span>
+                    <span className={v.muscle === muscle ? 'font-bold text-chalk' : 'text-mute'}>{MUSCLE_LABEL[v.muscle]}{profile.priorityMuscles.includes(v.muscle) && <Icon name="star" size={13} className="ml-1.5 inline -translate-y-px text-fire" />}</span>
+                    <span className="tnum text-xs text-mute"><b className="text-chalk">{v.direct}</b> directas, {v.indirect} indirectas, {v.days} día{v.days === 1 ? '' : 's'}</span>
                   </div>
                   <div className="flex h-2 w-full overflow-hidden rounded-full bg-card2">
                     <div className="h-full bg-data transition-all duration-500" style={{ width: `${(v.direct / max) * 100}%` }} />
@@ -72,11 +83,9 @@ export default function Analysis() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-mute">Azul sólido: series directas. Azul tenue: series indirectas × {coef} (coeficiente configurable en <Link to="/perfil" className="text-data underline">Perfil</Link>). Es una convención de conteo, no una equivalencia exacta. ★ = grupo prioritario.</p>
+            <p className="mt-3 text-xs text-mute">Azul sólido: series directas. Azul tenue: series indirectas × {coef} (coeficiente configurable en <Link to="/perfil" className="text-data underline">Perfil</Link>). Es una convención de conteo, no una equivalencia exacta. La estrella marca tus grupos prioritarios.</p>
           </Card>
-        </div>
 
-        <div>
           <H2>Distribución por proximidad al fallo</H2>
           <Card>
             <div className="space-y-2">
@@ -96,7 +105,7 @@ export default function Analysis() {
             {trends.length ? <div className="space-y-1.5">{trends.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-3 text-sm">
                 <span className="truncate">{t.name}</span>
-                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#2fd17a' : t.trend === 'declining' ? '#ff6a1a' : '#8b919c' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
+                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#3ddc84' : t.trend === 'declining' ? '#ff6a1a' : '#9299a3' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
               </div>
             ))}</div> : <p className="text-sm text-mute">Se necesitan 3 o más sesiones por ejercicio.</p>}
             <p className="mt-3 text-xs text-mute">Cambio del 1RM estimado: últimas 2 sesiones frente a las 3 anteriores.</p>
@@ -105,14 +114,14 @@ export default function Analysis() {
       </div>
 
       <H2>Evolución semanal</H2>
-      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">{MUSCLES.map((m) => <Chip key={m} active={m === muscle} color="#3b9dff" onClick={() => setMuscle(m)}>{MUSCLE_LABEL[m]}</Chip>)}</div>
+      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">{MUSCLES.map((m) => <Chip key={m} active={m === muscle} color="#5aa9ff" onClick={() => setMuscle(m)}>{MUSCLE_LABEL[m]}</Chip>)}</div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
         <Card>
-          <BarC data={evo} x="label" bars={[{ key: 'direct', color: '#3b9dff', name: 'Directas', stack: 'a' }, { key: 'indirect', color: '#3b9dff66', name: `Indirectas × ${coef}`, stack: 'a' }]} />
+          <BarC data={evo} x="label" bars={[{ key: 'direct', color: '#5aa9ff', name: 'Directas', stack: 'a' }, { key: 'indirect', color: '#5aa9ff66', name: `Indirectas × ${coef}`, stack: 'a' }]} />
           <p className="mt-2 text-xs text-mute">Últimas 8 semanas de {MUSCLE_LABEL[muscle].toLowerCase()}. Más volumen se asocia con más hipertrofia con rendimientos decrecientes; súbelo de forma gradual y solo si te recuperas bien.</p>
         </Card>
         <Card>
-          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-mute">Qué ejercicios aportan · {offset === 0 ? 'esta semana' : label}</div>
+          <div className="label mb-2">Qué ejercicios aportan {offset === 0 ? 'esta semana' : `(${label})`}</div>
           {top.length ? <div className="space-y-2">{top.map((t) => <div key={t.id} className="flex items-center justify-between gap-2 text-sm"><span className="truncate">{t.name}</span><b className="tnum shrink-0">{t.sets}</b></div>)}</div> : <p className="text-sm text-mute">Sin series para este grupo en la semana seleccionada.</p>}
         </Card>
       </div>

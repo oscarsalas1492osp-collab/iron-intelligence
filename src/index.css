@@ -1,21 +1,65 @@
+@import '@fontsource-variable/archivo/standard.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+/*
+ * Tipografía: una sola familia (Archivo variable) usada por su eje de ancho.
+ *  - ancha y pesada  → cifras y títulos, como los números fundidos en un disco
+ *  - condensada      → rótulos y datos secundarios
+ *  - normal          → lectura
+ */
+:root { color-scheme: dark; --bg: #16181b; }
 html, body, #root { height: 100%; }
 body {
-  @apply bg-ink text-white antialiased;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  @apply bg-ink text-chalk antialiased;
+  font-family: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-stretch: 100%;
+  font-feature-settings: 'tnum' 0;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
-input, select, textarea { @apply bg-card2 border border-line rounded-xl px-3 py-2.5 text-white outline-none w-full; font-size: 16px; }
+/* Superficies del navegador: selección, cursor, foco y barras de desplazamiento con la paleta. */
+::selection { background: #ff6a1a; color: #16181b; }
+* { caret-color: #ff6a1a; scrollbar-color: #363b43 transparent; scrollbar-width: thin; }
+:focus-visible { outline: 2px solid #ff6a1a; outline-offset: 2px; border-radius: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #363b43; border-radius: 8px; }
+
+input, select, textarea {
+  @apply bg-card2 border border-line rounded-ctl px-3 py-2.5 text-chalk outline-none w-full;
+  font-size: 16px; font-family: inherit;
+}
+input::placeholder, textarea::placeholder { color: #7d8590; }
 input:focus, select:focus, textarea:focus { @apply border-fire; }
 input[type='range'] { @apply p-0 border-0 bg-transparent accent-fire; }
 input[type='file'] { @apply text-sm; }
-button { @apply select-none; touch-action: manipulation; }
-.tnum { font-variant-numeric: tabular-nums; }
+button { @apply select-none; touch-action: manipulation; font-family: inherit; }
+a { text-underline-offset: 3px; }
+
+@layer components {
+  /* Ejes de ancho */
+  .wd-x { font-stretch: 125%; }
+  .wd-w { font-stretch: 112%; }
+  .wd-c { font-stretch: 78%; }
+  /* Cifra estampada: ancha, pesada, de ancho fijo */
+  .num { font-stretch: 118%; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  /* Rótulo: condensado, en minúsculas, sin versalitas espaciadas */
+  .label { font-stretch: 78%; font-weight: 600; font-size: 0.8125rem; line-height: 1.2; color: #9299a3; letter-spacing: 0.01em; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  /* Moleteado (el agarre de una barra): solo en la acción principal */
+  .knurl { position: relative; overflow: hidden; }
+  .knurl::before, .knurl::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 30px; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(22, 24, 27, 0.28) 0 1.5px, transparent 1.5px 6px),
+      repeating-linear-gradient(-45deg, rgba(22, 24, 27, 0.28) 0 1.5px, transparent 1.5px 6px);
+  }
+  .knurl::before { left: 0; }
+  .knurl::after { right: 0; }
+  /* Lista con filetes: filas separadas por una línea, sin cajas */
+  .ruled > * + * { border-top: 1px solid #2c3037; }
+}
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 .safe-b { padding-bottom: env(safe-area-inset-bottom); }

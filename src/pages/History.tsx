@@ -46,10 +46,10 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
         {ids.map((id) => {
           const e = ex.get(id); const t = session.targets[id];
           return (
-            <div key={id} className="rounded-2xl border border-line bg-card p-3">
+            <div key={id} className="rounded-panel bg-card p-3">
               <div className="mb-2 flex items-center gap-2.5">
                 {e && <ExerciseThumb ex={e} size={40} />}
-                <div className="min-w-0"><div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>{t && <div className="text-xs text-mute tnum">Objetivo: {t.sets} × {t.repMin}–{t.repMax} · RIR {t.rirMin}–{t.rirMax}</div>}</div>
+                <div className="min-w-0"><div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>{t && <div className="text-xs text-mute tnum">Objetivo: {t.sets} × {t.repMin}–{t.repMax} con RIR {t.rirMin}–{t.rirMax}</div>}</div>
               </div>
               <div className="space-y-1">
                 {sets.filter((s) => s.exerciseId === id).map((s, i) => (
@@ -84,7 +84,7 @@ function Calendar({ sessions, month, setMonth, onPick }: { sessions: Session[]; 
     <Card>
       <div className="mb-3 flex items-center justify-between">
         <Btn size="sm" icon="left" aria-label="Mes anterior" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} />
-        <div className="font-bold capitalize">{month.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}</div>
+        <div className="wd-w font-bold first-letter:uppercase">{month.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}</div>
         <Btn size="sm" icon="right" aria-label="Mes siguiente" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} />
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-mute mb-1">{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <div key={d}>{d}</div>)}</div>
@@ -95,7 +95,7 @@ function Calendar({ sessions, month, setMonth, onPick }: { sessions: Session[]; 
           const ss = byDay.get(k);
           return (
             <button type="button" key={k} disabled={!ss} onClick={() => ss && onPick(ss[0])} aria-label={`${i + 1}${ss ? `, ${ss.length} entrenamiento(s)` : ''}`}
-              className={`aspect-square rounded-xl text-sm font-semibold tnum transition ${ss ? 'bg-fire text-black' : 'bg-card2/50 text-mute'} ${k === today ? 'ring-2 ring-white/70' : ''}`}>
+              className={`num aspect-square rounded-ctl text-[15px] transition ${ss ? 'bg-fire text-ink' : 'text-mute'} ${k === today ? 'ring-2 ring-chalk/80' : ''}`}>
               {i + 1}
             </button>
           );
@@ -107,10 +107,10 @@ function Calendar({ sessions, month, setMonth, onPick }: { sessions: Session[]; 
 
 const METRICS = [
   { value: 'maxWeight', label: 'Peso', unit: ' kg', color: '#ff6a1a' },
-  { value: 'totalReps', label: 'Reps', unit: ' reps', color: '#3b9dff' },
-  { value: 'volume', label: 'Volumen', unit: ' kg', color: '#3b9dff' },
+  { value: 'totalReps', label: 'Reps', unit: ' reps', color: '#5aa9ff' },
+  { value: 'volume', label: 'Volumen', unit: ' kg', color: '#5aa9ff' },
   { value: 'avgRir', label: 'RIR', unit: ' RIR', color: '#f5c542' },
-  { value: 'e1rm', label: '1RM est.', unit: ' kg', color: '#2fd17a' },
+  { value: 'e1rm', label: '1RM est.', unit: ' kg', color: '#3ddc84' },
 ] as const;
 
 export default function History() {
@@ -148,8 +148,8 @@ export default function History() {
               return (
                 <Card key={s.id} onClick={() => setOpen(s)}>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0"><div className="font-bold truncate">{s.name}</div><div className="text-xs text-mute">{fmtDate(s.startedAt)} · {fmtDuration(elapsedMs(s))}</div></div>
-                    <div className="shrink-0 text-right text-xs text-mute tnum"><div className="text-sm font-bold text-white">{ss.length} series</div>{Math.round(ss.reduce((a, x) => a + x.weight * x.reps, 0)).toLocaleString('es-CL')} kg</div>
+                    <div className="min-w-0"><div className="font-bold truncate">{s.name}</div><div className="text-xs text-mute">{fmtDate(s.startedAt)}, {fmtDuration(elapsedMs(s))}</div></div>
+                    <div className="shrink-0 text-right text-xs text-mute tnum"><div className="text-sm font-bold text-chalk">{ss.length} series</div>{Math.round(ss.reduce((a, x) => a + x.weight * x.reps, 0)).toLocaleString('es-CL')} kg</div>
                   </div>
                 </Card>
               );
@@ -172,7 +172,7 @@ export default function History() {
             {[...series].reverse().slice(0, 8).map((p) => (
               <div key={p.date} className="flex items-center justify-between rounded-xl bg-card px-3 py-2 text-sm border border-line">
                 <span className="text-mute">{fmtDate(p.date)}</span>
-                <span className="tnum font-semibold">{fmtKg(p.maxWeight)} kg · {p.totalReps} reps{p.avgRir != null ? ` · RIR ${p.avgRir}` : ''}{p.e1rm != null ? ` · ~${fmtKg(p.e1rm)}` : ''}</span>
+                <span className="tnum font-semibold">{fmtKg(p.maxWeight)} kg, {p.totalReps} reps{p.avgRir != null ? `, RIR ${p.avgRir}` : ''}{p.e1rm != null ? `, 1RM est. ${fmtKg(p.e1rm)}` : ''}</span>
               </div>
             ))}
           </div>
@@ -187,7 +187,7 @@ export default function History() {
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-go/15 text-go"><Icon name="trophy" size={18} /></span>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold truncate">{p.name}</div>
-                  <div className="text-xs text-mute">Mayor carga · {fmtDate(p.date)}{p.e1rm != null ? ` · 1RM estimado ~${fmtKg(p.e1rm)} kg` : ''}</div>
+                  <div className="text-xs text-mute">Mayor carga, {fmtDate(p.date)}{p.e1rm != null ? `. 1RM estimado: ${fmtKg(p.e1rm)} kg` : ''}</div>
                 </div>
                 <div className="text-right font-extrabold tnum text-go">{fmtKg(p.weight)} kg<span className="text-xs text-mute font-semibold"> × {p.reps}</span></div>
               </div>

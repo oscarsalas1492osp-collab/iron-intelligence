@@ -55,4 +55,4 @@ export function fatigueStatus(sets: ASet[], logs: RecoveryLog[], now: number): F
   return { level: 'ok', label: 'Sin señales de fatiga excesiva', reasons: reasons.length ? reasons : ['Rendimiento y recuperación declarada dentro de lo esperable.'], readiness };
 }
 
-export const LEVEL_COLOR = { sin_datos: '#8b919c', ok: '#2fd17a', atencion: '#f5c542', alta: '#ff6a1a' } as const;
+export const LEVEL_COLOR = { sin_datos: '#9299a3', ok: '#3ddc84', atencion: '#f5c542', alta: '#ff6a1a' } as const;

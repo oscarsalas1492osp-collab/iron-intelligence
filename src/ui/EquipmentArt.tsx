@@ -9,13 +9,13 @@ const plate = (x: number, y: number, h = 22) => <rect x={x - 3} y={y - h / 2} wi
 const ART: Record<Equipment, JSX.Element> = {
   machine: (<g>
     <path {...S} d="M14 10v52M14 62h40M14 10h16" /><rect x={8} y={20} width={12} height={26} rx={2} fill="#ff6a1a" opacity={0.9} />
-    <path {...S} d="M8 26h12M8 32h12M8 38h12" stroke="#0a0b0d" strokeWidth={1.4} />
+    <path {...S} d="M8 26h12M8 32h12M8 38h12" stroke="#16181b" strokeWidth={1.4} />
     <path {...S} d="M44 26v24M36 50h18M44 62V50" /><path {...A} d="M30 10v12l12 8M42 30h10" />
   </g>),
   cable: (<g>
     <path {...S} d="M16 8v54M10 62h34M16 8h26" /><circle cx={42} cy={10} r={4} {...S} />
     <path {...A} d="M42 14v22" /><path {...A} d="M34 36h16" strokeWidth={3.4} />
-    <rect x={10} y={30} width={12} height={22} rx={2} fill="#ff6a1a" opacity={0.9} /><path d="M10 37h12M10 44h12" stroke="#0a0b0d" strokeWidth={1.4} />
+    <rect x={10} y={30} width={12} height={22} rx={2} fill="#ff6a1a" opacity={0.9} /><path d="M10 37h12M10 44h12" stroke="#16181b" strokeWidth={1.4} />
   </g>),
   dumbbell: (<g>
     <path {...S} d="M22 36h28" strokeWidth={4} />{plate(18, 36, 26)}{plate(11, 36, 16)}{plate(54, 36, 26)}{plate(61, 36, 16)}
@@ -57,7 +57,7 @@ export function EquipmentArt({ equipment, size = 56, className }: { equipment: E
 /** Miniatura de un ejercicio: foto del usuario si existe; si no, ilustración del equipamiento. */
 export function ExerciseThumb({ ex, size = 56 }: { ex: Pick<ExerciseDef, 'equipment' | 'photo' | 'name'>; size?: number }) {
   return (
-    <div className="shrink-0 grid place-items-center overflow-hidden rounded-xl bg-card2 border border-line" style={{ width: size, height: size }}>
+    <div className="shrink-0 grid place-items-center overflow-hidden rounded-ctl bg-card2" style={{ width: size, height: size }}>
       {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <EquipmentArt equipment={ex.equipment} size={size * 0.78} />}
     </div>
   );

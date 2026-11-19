@@ -30,17 +30,17 @@ export default function Assistant() {
       <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">{QUICK_QUESTIONS.map((q) => <Chip key={q} onClick={() => ask(q)}>{q}</Chip>)}</div>
       <div className="flex-1 space-y-3">
         {!msgs.length && (
-          <div className="rounded-2xl border border-dashed border-line p-5 text-sm text-mute">
-            <p className="mb-2 font-semibold text-white">Cómo funciona</p>
+          <div className="rounded-panel bg-card/60 p-5 text-sm text-mute">
+            <p className="mb-2 font-semibold text-chalk">Cómo funciona</p>
             <p>Este asistente es un motor de análisis: reconoce tu pregunta y calcula la respuesta con tus sesiones, series y RIR. No genera texto libre ni inventa datos; si falta información, te lo dice. Cada respuesta indica en qué datos se basa.</p>
           </div>
         )}
         {msgs.map((m, i) => m.from === 'user' ? (
-          <div key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-fire px-4 py-2.5 text-sm font-medium text-black">{m.text}</div>
+          <div key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-fire px-4 py-2.5 text-sm font-medium text-ink">{m.text}</div>
         ) : (
           <div key={i} className="max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-card p-4 animate-rise">
             <div className="mb-1.5 font-bold">{m.answer!.title}</div>
-            <ul className="space-y-1.5 text-sm text-white/90">{m.answer!.lines.map((l, j) => <li key={j}>{l}</li>)}</ul>
+            <ul className="space-y-1.5 text-sm text-chalk/90">{m.answer!.lines.map((l, j) => <li key={j}>{l}</li>)}</ul>
             <div className="mt-2.5 border-t border-line pt-2 text-[11px] text-mute">Basado en: {m.answer!.basis}</div>
           </div>
         ))}

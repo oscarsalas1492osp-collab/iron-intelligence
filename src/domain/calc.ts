@@ -33,17 +33,21 @@ export function e1rm(weight: number, reps: number, rir: number | null): number |
 /** RPE basado en RIR (Zourdos et al., 2016): RPE = 10 − RIR. */
 export const rpeFromRir = (rir: number | null): number | null => (rir == null ? null : clamp(10 - rir, 1, 10));
 
-export interface IntensityInfo { label: string; short: string; color: string; level: number }
+export interface IntensityInfo { label: string; short: string; color: string; text: string; level: number }
 
-/** Etiqueta visual de proximidad al fallo. Describe el esfuerzo declarado, NO mide el estímulo muscular. */
+/**
+ * Etiqueta visual de proximidad al fallo. Describe el esfuerzo declarado, NO mide el estímulo muscular.
+ * Colores: escala de incandescencia del hierro (frío → rojo oscuro → cereza → naranja → ámbar → blanco).
+ * `color` es el relleno; `text` es la variante legible sobre fondo oscuro.
+ */
 export function intensityOf(rir: number | null): IntensityInfo {
-  if (rir == null) return { label: 'Sin RIR registrado', short: '—', color: '#8b919c', level: 0 };
-  if (rir <= 0) return { label: 'Fallo muscular reportado', short: 'Fallo', color: '#ff3b30', level: 5 };
-  if (rir <= 1) return { label: 'Proximidad muy elevada', short: 'Muy cerca', color: '#ff6a1a', level: 4 };
-  if (rir <= 2) return { label: 'Proximidad elevada al fallo', short: 'Cerca', color: '#ff9f45', level: 3 };
-  if (rir <= 3) return { label: 'Esfuerzo moderado-alto', short: 'Moderado-alto', color: '#f5c542', level: 2 };
-  if (rir <= 4) return { label: 'Intensidad relativamente baja', short: 'Moderado', color: '#3b9dff', level: 1 };
-  return { label: 'Muy lejos del fallo', short: 'Lejos', color: '#5b6472', level: 1 };
+  if (rir == null) return { label: 'Sin RIR registrado', short: 'sin RIR', color: '#4a505a', text: '#9299a3', level: 0 };
+  if (rir <= 0) return { label: 'Fallo muscular reportado', short: 'Fallo', color: '#ffe2a8', text: '#ffe2a8', level: 5 };
+  if (rir <= 1) return { label: 'Proximidad muy elevada', short: 'Muy cerca', color: '#ffa63d', text: '#ffb65c', level: 4 };
+  if (rir <= 2) return { label: 'Proximidad elevada al fallo', short: 'Cerca', color: '#ff6a1a', text: '#ff8a4a', level: 3 };
+  if (rir <= 3) return { label: 'Esfuerzo moderado-alto', short: 'Moderado-alto', color: '#c2412d', text: '#f0705a', level: 2 };
+  if (rir <= 4) return { label: 'Intensidad relativamente baja', short: 'Moderado', color: '#8a4a3a', text: '#d08a78', level: 1 };
+  return { label: 'Muy lejos del fallo', short: 'Lejos', color: '#5e6670', text: '#9299a3', level: 1 };
 }
 
 // ---- Fechas (hora local) ----

@@ -4,8 +4,8 @@
   "description": "Registra. Analiza. Progresa.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0a0b0d",
-  "theme_color": "#0a0b0d",
+  "background_color": "#16181b",
+  "theme_color": "#16181b",
   "icons": [
     {
       "src": "./icon-192.png",

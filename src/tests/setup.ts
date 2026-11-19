@@ -13,3 +13,6 @@ if (typeof window !== 'undefined') {
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// jsdom no tiene WebGL: la figura corporal usa su respaldo 2D en las pruebas.
+if (typeof HTMLCanvasElement !== 'undefined') HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;

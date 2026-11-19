@@ -68,7 +68,7 @@ describe('interfaz', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Finalizar' }));
 
     // Llega al historial con el detalle de la sesión guardada.
-    expect(await screen.findByText('Objetivo: 3 × 8–12 · RIR 1–2')).toBeInTheDocument();
+    expect(await screen.findByText('Objetivo: 3 × 8–12 con RIR 1–2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Editar serie 1' })).toHaveTextContent('5 kg × 9');
     expect((await db.sessions.toArray())[0].status).toBe('done');
     expect(await repo.getDoneSets()).toHaveLength(1);

@@ -47,7 +47,8 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Copia de seguridad JSON, restauración, exportación CSV (formato Excel en español: `;` y coma decimal) | Completo |
 | Uso sin conexión (todas las pantallas se guardan en la primera apertura) y pantalla encendida durante la sesión | Completo |
 | Autenticación y sincronización con Supabase | Implementado; esquema aplicado y verificado; falta confirmar el primer inicio de sesión real |
-| Ilustraciones | Una ilustración por **tipo de equipamiento** + mapa muscular por ejercicio + foto propia. No hay ilustración anatómica ni animación individual por ejercicio (el campo `photo` ya lo soporta) |
+| Mapa corporal | Modelo anatómico 3D giratorio (carga diferida, ~1 MB) coloreado por grupo muscular, con respaldo 2D si no hay WebGL |
+| Ilustraciones | Una ilustración por **tipo de equipamiento** + figura 3D por ejercicio + foto propia. No hay animación individual por ejercicio |
 | Pruebas de interfaz | Con Testing Library sobre la app completa; no hay suite E2E en navegador dentro del repo |
 
 ## Arquitectura
@@ -62,3 +63,16 @@ src/pages    Pantallas
 src/tests    Pruebas
 supabase     Esquema SQL con Row Level Security
 ```
+
+## Diseño
+
+Sistema visual "forja": grafito y antracita, texto en tiza, y una escala de incandescencia (hierro frío → rojo cereza →
+naranja → blanco) para la proximidad al fallo y el calor de cada músculo. Una sola familia tipográfica, Archivo variable,
+usada por su eje de ancho. Tokens en `tailwind.config.js` y `src/index.css`.
+
+## Créditos y licencias de terceros
+
+- Modelo 3D: Z-Anatomy vía hpfrei/body-anatomy-3d-viewer, **CC BY-SA 4.0** (ver `public/models/ATRIBUCION.md`).
+- Mapa 2D: `body-muscles` de Ivan Vulović, Apache-2.0.
+- Tipografía: Archivo (Omnibus-Type), SIL OFL 1.1, vía `@fontsource-variable/archivo`.
+- Motor 3D: three.js, MIT.

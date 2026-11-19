@@ -23,32 +23,29 @@ interface Rest { end: number; total: number }
 const loadRest = (): Rest | null => { try { const r = JSON.parse(localStorage.getItem(REST_KEY) || 'null'); return r && r.end > Date.now() ? r : null; } catch { return null; } };
 const storeRest = (r: Rest | null) => { try { r ? localStorage.setItem(REST_KEY, JSON.stringify(r)) : localStorage.removeItem(REST_KEY); } catch { /* sin almacenamiento */ } };
 
-const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#2fd17a', hold: '#3b9dff', hold_add_reps: '#3b9dff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
+const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#3ddc84', hold: '#5aa9ff', hold_add_reps: '#5aa9ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
 
 export function RecommendationCard({ rec, compact }: { rec: Recommendation; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const color = ACTION_COLOR[rec.action];
   return (
-    <div className="cursor-pointer rounded-2xl border p-3" style={{ borderColor: color + '55', background: color + '12' }} onClick={() => setOpen(!open)}>
-      <button type="button" className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={open}>
+    <div className="cursor-pointer rounded-panel p-4" style={{ background: color + '17' }} onClick={() => setOpen(!open)}>
+      <button type="button" className="flex w-full items-start justify-between gap-3 text-left" aria-expanded={open}>
         <div className="min-w-0">
-          <div className="text-[11px] font-extrabold tracking-wider" style={{ color }}>{rec.title}</div>
-          <div className="text-sm font-semibold">{rec.weight != null ? `Peso sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido todavía'}</div>
+          <div className="wd-x text-[13px] font-extrabold leading-tight" style={{ color }}>{rec.title}</div>
+          <div className="mt-0.5 font-semibold">{rec.weight != null ? `Peso sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido todavía'}</div>
         </div>
-        <div className="shrink-0 text-right">
-          <div className="text-[10px] uppercase tracking-wider text-mute">Confianza</div>
-          <div className="text-xs font-bold">{rec.confidenceLabel} · {Math.round(rec.confidence * 100)} %</div>
-        </div>
+        <div className="wd-c shrink-0 text-right text-sm text-mute">Confianza {rec.confidenceLabel}<br /><span className="tnum text-chalk">{Math.round(rec.confidence * 100)} %</span></div>
       </button>
-      {(open || !compact) && <p className="mt-2 text-sm text-white/90">{rec.reason}</p>}
+      {(open || !compact) && <p className="mt-2.5 text-sm text-chalk/90">{rec.reason}</p>}
       {open && (
-        <div className="mt-2 border-t border-white/10 pt-2">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-mute mb-1">Datos considerados</div>
-          <ul className="space-y-0.5 text-xs text-mute">{rec.factors.map((f, i) => <li key={i}>· {f}</li>)}</ul>
-          <p className="mt-2 text-[11px] text-mute">{rec.practical ? 'El umbral aplicado es una estimación práctica de entrenamiento, no un valor científico exacto. ' : ''}El RIR es tu estimación; la app no mide el estímulo muscular real.</p>
+        <div className="mt-3 border-t border-chalk/10 pt-3">
+          <div className="label mb-1">Datos considerados</div>
+          <ul className="space-y-0.5 text-sm text-mute">{rec.factors.map((f, i) => <li key={i}>{f}</li>)}</ul>
+          <p className="mt-2 text-xs text-mute">{rec.practical ? 'El umbral aplicado es una estimación práctica de entrenamiento, no un valor científico exacto. ' : ''}El RIR es tu estimación; la app no mide el estímulo muscular real.</p>
         </div>
       )}
-      {compact && !open && <div className="mt-1 text-[11px] text-mute">Toca para ver el motivo</div>}
+      {compact && !open && <div className="wd-c mt-1.5 text-sm text-mute">Toca para ver el motivo</div>}
     </div>
   );
 }
@@ -67,12 +64,12 @@ function StartScreen() {
           const its = items?.filter((i) => i.routineId === r.id) ?? [];
           const today = r.days.includes(dow);
           return (
-            <Card key={r.id} className={today ? '!border-fire/60' : ''}>
+            <Card key={r.id}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  {today && <div className="text-[10px] font-extrabold tracking-widest text-fire">PROGRAMADA PARA HOY</div>}
-                  <div className="text-lg font-bold leading-tight truncate">{r.name}</div>
-                  <div className="text-xs text-mute truncate">{its.map((i) => ex.get(i.exerciseId)?.name).filter(Boolean).slice(0, 3).join(' · ')}{its.length > 3 ? ` · +${its.length - 3}` : ''}</div>
+                  <div className="wd-w truncate text-lg font-bold leading-tight">{r.name}</div>
+                  {today && <div className="wd-c text-sm font-semibold text-fire">Programada para hoy</div>}
+                  <div className="wd-c truncate text-sm text-mute">{its.map((i) => ex.get(i.exerciseId)?.name).filter(Boolean).slice(0, 3).join(', ')}{its.length > 3 ? ` y ${its.length - 3} más` : ''}</div>
                 </div>
                 <Btn variant={today ? 'primary' : 'soft'} icon="play" disabled={!its.length} onClick={() => run(() => startSession(r.id))}>Iniciar</Btn>
               </div>
@@ -104,58 +101,61 @@ function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog
 
   if (s.done && !open) {
     return (
-      <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 rounded-xl bg-card2/60 px-3 py-2.5 text-left" aria-label={`Serie ${n} completada, tocar para editar`}>
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-black"><Icon name="check" size={15} /></span>
-        <span className="flex-1 font-bold tnum">{fmtKg(s.weight)} kg × {s.reps}</span>
-        <span className="text-xs font-semibold tnum" style={{ color: info.color }}>{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
-        <span className="hidden sm:inline text-xs text-mute">{info.short}</span>
-        {!s.metTarget && <span className="text-[10px] font-bold text-ember">BAJO RANGO</span>}
+      <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-1 py-3 text-left" aria-label={`Serie ${n} completada, tocar para editar`}>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
+        <span className="num flex-1 text-lg">{fmtKg(s.weight)} kg × {s.reps}</span>
+        {!s.metTarget && <span className="wd-c text-sm font-semibold text-[#ff7a70]">bajo el rango</span>}
+        <span className="hidden text-sm text-mute sm:inline">{info.short}</span>
+        <span className="wd-c flex items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
       </button>
     );
   }
 
   return (
-    <div className={cx('rounded-2xl border p-3 transition', open ? 'border-fire/50 bg-card' : 'border-line bg-card/50')} onClick={() => !open && onOpen()}>
-      <div className="flex items-end gap-2">
-        <span className="mb-2.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card2 text-xs font-bold text-mute">{n}</span>
+    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-card/45')} onClick={() => !open && onOpen()}>
+      <div className="flex items-center gap-2">
+        <span className="num grid h-7 w-7 shrink-0 place-items-center text-base text-mute">{n}</span>
         <div className="grid flex-1 grid-cols-2 gap-2">
           <Stepper compact label={`Peso serie ${n}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
           <Stepper compact label={`Repeticiones serie ${n}`} unit="reps" value={s.reps} step={1} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
         </div>
         <button type="button" aria-label={s.done ? `Desmarcar serie ${n}` : `Completar serie ${n}`}
           onClick={async (e) => { e.stopPropagation(); if (s.done) { await run(() => uncompleteSet(s.id)); } else if (await run(() => completeSet(s.id))) onDone(); }}
-          className={cx('grid h-10 w-12 shrink-0 place-items-center rounded-xl font-bold transition active:scale-95', s.done ? 'bg-go text-black' : 'bg-fire text-black')}>
+          className={cx('grid h-12 w-14 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
           <Icon name="check" size={20} />
         </button>
       </div>
       {open && (
         <div className="mt-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] uppercase tracking-wider text-mute">RIR · repeticiones en reserva</span>
-            <span className="text-[11px] font-semibold" style={{ color: info.color }}>{info.label}</span>
+          <div className="mb-1.5 flex items-baseline justify-between gap-3">
+            <span className="label">Repeticiones en reserva (RIR)</span>
+            <span className="wd-c text-sm font-semibold" style={{ color: info.text }}>{info.label}</span>
           </div>
-          <div className="grid grid-cols-6 gap-1.5">
+          {/* Escala de incandescencia: de hierro frío (lejos del fallo) a blanco (fallo). */}
+          <div className="grid grid-cols-6 gap-px overflow-hidden rounded-ctl bg-ink">
             {RIR_OPTS.map((r) => {
               const on = s.rir != null && (r === 5 ? s.rir >= 5 : Math.floor(s.rir) === r);
+              const heat = intensityOf(r);
               return (
                 <button type="button" key={r} aria-label={`RIR ${r === 5 ? '5 o más' : r}`} aria-pressed={on} onClick={() => patch({ rir: on && !halfRir ? null : r })}
-                  className={cx('h-10 rounded-xl text-sm font-bold tnum transition', on ? 'text-black' : 'bg-card2 text-mute border border-line')} style={on ? { background: intensityOf(r).color } : undefined}>
+                  className={cx('num relative h-12 text-lg transition-colors', on ? 'text-ink' : 'bg-card2 text-mute hover:text-chalk')} style={on ? { background: heat.color, color: r >= 3 ? '#f3f1ec' : '#16181b' } : undefined}>
                   {r === 5 ? '5+' : r}
+                  {!on && <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: heat.color }} />}
                 </button>
               );
             })}
           </div>
           {halfRir && s.rir != null && s.rir < 5 && (
-            <button type="button" className="mt-1.5 text-xs text-data" onClick={() => patch({ rir: Number.isInteger(s.rir) ? (s.rir as number) + 0.5 : Math.floor(s.rir as number) })}>
+            <button type="button" className="wd-c mt-2 text-sm text-data" onClick={() => patch({ rir: Number.isInteger(s.rir) ? (s.rir as number) + 0.5 : Math.floor(s.rir as number) })}>
               {Number.isInteger(s.rir) ? `Marcar ${s.rir}.5 (medio punto)` : `RIR ${s.rir} · quitar medio punto`}
             </button>
           )}
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex gap-1.5">
               {prev && <Btn size="sm" icon="copy" onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>= serie {n - 1}</Btn>}
               <Btn size="sm" icon="more" onClick={() => setMore(true)}>Detalle</Btn>
             </div>
-            <span className="text-[11px] text-mute tnum">{s.rpe != null ? `RPE ${s.rpe}` : ''}{s.done && s.restSec != null ? ` · descanso ${s.restSec} s` : ''}</span>
+            <span className="wd-c text-sm text-mute tnum">{s.rpe != null ? `RPE ${s.rpe}` : ''}{s.done && s.restSec != null ? `, descanso ${s.restSec} s` : ''}</span>
           </div>
         </div>
       )}
@@ -168,7 +168,7 @@ function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog
             <Stepper label="RIR" value={s.rir ?? 0} step={halfRir ? 0.5 : 1} min={0} max={10} onChange={(v) => patch({ rir: v })} />
             <Stepper label="RPE (1–10)" value={s.rpe ?? 10 - (s.rir ?? 2)} step={0.5} min={1} max={10} onChange={(v) => patch({ rpe: v })} />
           </div>
-          <p className="text-xs text-mute">El RPE se calcula como 10 − RIR; puedes ajustarlo si tu percepción difiere. Llegó al fallo: <b className="text-white">{s.failure ? 'sí' : 'no'}</b>.</p>
+          <p className="text-xs text-mute">El RPE se calcula como 10 − RIR; puedes ajustarlo si tu percepción difiere. Llegó al fallo: <b className="text-chalk">{s.failure ? 'sí' : 'no'}</b>.</p>
           <Field label="Observaciones"><textarea rows={2} defaultValue={s.note} onBlur={(e) => e.target.value !== s.note && patch({ note: e.target.value })} placeholder="Molestias, ajustes de la máquina, sensaciones…" /></Field>
           <Btn variant="danger" icon="trash" className="w-full" onClick={async () => { await run(() => deleteSet(s.id)); setMore(false); }}>Eliminar serie</Btn>
         </div>
@@ -192,29 +192,30 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
 
   return (
     <div className="space-y-3">
-      <Card>
+      <div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setDetail(true)} aria-label="Ver técnica del ejercicio"><ExerciseThumb ex={ex} size={64} /></button>
+          <button type="button" onClick={() => setDetail(true)} aria-label="Ver técnica del ejercicio"><ExerciseThumb ex={ex} size={60} /></button>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-extrabold leading-tight">{ex.name}</h2>
-            <div className="text-xs"><span className="text-fire font-semibold">{MUSCLE_LABEL[ex.primary]}</span>{ex.secondary.length > 0 && <span className="text-mute"> · {ex.secondary.map((m) => MUSCLE_LABEL[m]).join(', ')}</span>}</div>
-            {ex.machine && <div className="text-xs text-mute truncate">{ex.machine}</div>}
+            <h2 className="wd-w text-xl font-extrabold leading-tight">{ex.name}</h2>
+            <div className="wd-c text-[15px]"><span className="font-semibold text-fire">{MUSCLE_LABEL[ex.primary]}</span>{ex.secondary.length > 0 && <span className="text-mute">, con {ex.secondary.map((m) => MUSCLE_LABEL[m].toLowerCase()).join(' y ')}</span>}</div>
+            {ex.machine && <div className="wd-c truncate text-sm text-mute">{ex.machine}</div>}
           </div>
         </div>
-        <button type="button" onClick={() => setEditTarget(true)} className="mt-3 flex w-full items-center justify-between rounded-xl bg-card2 px-3 py-2 text-left">
-          <span className="text-sm tnum"><b>{target.sets} × {target.repMin}–{target.repMax}</b><span className="text-fire font-semibold"> · RIR {target.rirMin}–{target.rirMax}</span><span className="text-mute"> · descanso {target.restSec} s</span></span>
-          <Icon name="edit" size={15} className="text-mute" />
+        <button type="button" onClick={() => setEditTarget(true)} aria-label={`Objetivo: ${target.sets} × ${target.repMin}–${target.repMax}, RIR ${target.rirMin}–${target.rirMax}. Editar`} className="mt-4 grid w-full grid-cols-4 divide-x divide-line rounded-ctl bg-card py-2.5 text-center transition-colors hover:bg-card2">
+          {[['Series', target.sets], ['Repeticiones', `${target.repMin}–${target.repMax}`], ['RIR', target.rirMin === target.rirMax ? target.rirMin : `${target.rirMin}–${target.rirMax}`], ['Descanso', `${target.restSec} s`]].map(([k, v]) => (
+            <span key={k} className="px-1"><span className="num block text-base leading-tight">{v}</span><span className="label block !text-xs">{k}</span></span>
+          ))}
         </button>
-        <div className="mt-2 rounded-xl bg-card2 px-3 py-2 text-sm">
+        <p className="mt-3 text-[15px]">
           <span className="text-mute">Última sesión: </span>
-          {last ? <><b className="tnum">{[...new Set(last.sets.map((s) => s.weight))].map((w) => `${fmtKg(w)} kg × ${last.sets.filter((s) => s.weight === w).map((s) => s.reps).join(', ')}`).join(' · ')}</b>
-            <span className="text-mute"> · RIR {last.sets.map((s) => s.rir ?? '–').join(', ')} · {fmtDate(last.date)}</span></> : <span className="text-mute">sin registros previos</span>}
-        </div>
-      </Card>
+          {last ? <><b className="tnum">{[...new Set(last.sets.map((s) => s.weight))].map((w) => `${fmtKg(w)} kg × ${last.sets.filter((s) => s.weight === w).map((s) => s.reps).join(', ')}`).join(' y ')}</b>
+            <span className="wd-c text-mute"> con RIR {last.sets.map((s) => s.rir ?? '–').join(', ')}, {fmtDate(last.date)}</span></> : <span className="text-mute">sin registros previos</span>}
+        </p>
+      </div>
 
       <RecommendationCard rec={rec} compact />
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {sets.map((s, i) => (
           <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} open={openId === s.id} prev={sets[i - 1]} halfRir={halfRir}
             onOpen={() => setOpenId(s.id)}
@@ -227,7 +228,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
         <Btn icon="copy" disabled={!last} onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar sesión anterior</Btn>
       </div>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
-      <button type="button" className="w-full py-2 text-xs text-mute" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
+      <button type="button" className="wd-c w-full py-2 text-sm text-mute underline" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
 
       <Sheet open={editTarget} onClose={() => setEditTarget(false)} title="Objetivo de hoy">
         <TargetEditor value={target} onChange={(t) => run(() => updateSessionTarget(session.id, ex.id, t))} />
@@ -243,12 +244,12 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
   const left = Math.max(0, rest.end - now);
   const pct = rest.total > 0 ? left / (rest.total * 1000) : 0;
   return (
-    <div className="fixed inset-x-0 bottom-[76px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
-      <div className="mx-auto flex max-w-xl items-center gap-3 rounded-2xl border border-data/40 bg-graphite/95 p-3 shadow-2xl backdrop-blur animate-rise">
-        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="#2a2d34" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#3b9dff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
+    <div className="fixed inset-x-0 bottom-[84px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
+      <div className="mx-auto flex max-w-xl items-center gap-3 rounded-panel bg-card2 p-3 shadow-[0_10px_30px_rgba(0,0,0,.55)] animate-rise">
+        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="#16181b" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#5aa9ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
         <div className="flex-1">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-data">Descanso</div>
-          <div className="text-2xl font-extrabold tnum leading-none">{fmtDuration(left)}</div>
+          <div className="num text-2xl leading-none">{fmtDuration(left)}</div>
+          <div className="label mt-0.5 !text-data">de descanso</div>
         </div>
         <Btn size="sm" aria-label="Restar 15 segundos" onClick={() => onChange({ ...rest, end: rest.end - 15000 })}>−15</Btn>
         <Btn size="sm" aria-label="Sumar 15 segundos" onClick={() => onChange({ end: rest.end + 15000, total: rest.total + 15 })}>+15</Btn>
@@ -314,30 +315,30 @@ function Active({ session }: { session: Session }) {
       <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/95 px-4 pb-3 pt-2 backdrop-blur md:-mx-8 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-fire">{paused ? 'En pausa' : 'Entrenamiento en curso'}</div>
-            <div className="font-bold truncate">{session.name}</div>
+            <div className="wd-w truncate font-bold leading-tight">{session.name}</div>
+            <div className="wd-c text-sm font-semibold text-fire">{paused ? 'En pausa' : 'Entrenamiento en curso'}</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-extrabold tnum" aria-label="Tiempo transcurrido">{fmtDuration(elapsedMs(session, now))}</span>
+            <span className="num text-xl" aria-label="Tiempo transcurrido">{fmtDuration(elapsedMs(session, now))}</span>
             <Btn size="sm" icon={paused ? 'play' : 'pause'} aria-label={paused ? 'Reanudar' : 'Pausar'} onClick={() => run(() => (paused ? resumeSession(session.id) : pauseSession(session.id)))} />
             <Btn size="sm" variant="go" onClick={finish}>Finalizar</Btn>
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Bar value={done} max={sets.length || 1} color="#2fd17a" height={6} />
-          <span className="shrink-0 text-xs font-semibold tnum text-mute">{done}/{sets.length} series</span>
+          <Bar value={done} max={sets.length || 1} color="#3ddc84" height={5} />
+          <span className="wd-c shrink-0 text-sm font-semibold tnum text-mute">{done}/{sets.length} series</span>
         </div>
       </div>
 
       <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
         {ids.map((id, i) => {
           const xs = sets.filter((s) => s.exerciseId === id); const d = xs.filter((s) => s.done).length;
-          return <Chip key={id} active={id === current} color={d === xs.length && xs.length ? '#2fd17a' : '#ff6a1a'} onClick={() => select(id)}>{i + 1}. {ex.get(id)?.name ?? 'Ejercicio'} <span className="tnum opacity-70">{d}/{xs.length}</span></Chip>;
+          return <Chip key={id} active={id === current} color={d === xs.length && xs.length ? '#3ddc84' : '#ff6a1a'} onClick={() => select(id)}>{i + 1}. {ex.get(id)?.name ?? 'Ejercicio'} <span className="tnum opacity-60">{d}/{xs.length}</span></Chip>;
         })}
         <Chip onClick={() => setPicker(true)}>+ Ejercicio</Chip>
       </div>
 
-      {paused && <div className="mb-3 rounded-xl border border-line bg-card2 p-3 text-sm text-mute">Sesión en pausa: el cronómetro está detenido. Puedes seguir registrando o reanudar.</div>}
+      {paused && <div className="mb-3 rounded-ctl bg-card2 p-3 text-sm text-mute">Sesión en pausa: el cronómetro está detenido. Puedes seguir registrando o reanudar.</div>}
 
       {curEx ? (
         <ExercisePanel key={curEx.id} session={session} ex={curEx} sets={sets.filter((s) => s.exerciseId === curEx.id)} history={history} readiness={readiness} halfRir={profile.halfRir}

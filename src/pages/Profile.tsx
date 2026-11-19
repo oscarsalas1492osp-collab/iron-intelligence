@@ -60,8 +60,8 @@ export default function Profile() {
             <p className="text-xs text-mute">{GOAL_NOTE[p.goal]}</p>
             <Field label="Experiencia"><Seg value={p.experience} onChange={(experience) => set({ experience })} options={EXP} /></Field>
             <Field label={`Días disponibles por semana · ${p.daysAvailable}`}><input type="range" min={1} max={7} value={p.daysAvailable} onChange={(e) => set({ daysAvailable: Number(e.target.value) })} aria-label="Días disponibles" /></Field>
-            <Field label="Grupos musculares prioritarios" hint="Se destacan con ★ en el análisis de volumen."><div className="flex flex-wrap gap-2">{MUSCLES.map((m) => <Chip key={m} active={p.priorityMuscles.includes(m)} color="#ff6a1a" onClick={() => set({ priorityMuscles: toggle(p.priorityMuscles, m) })}>{MUSCLE_LABEL[m]}</Chip>)}</div></Field>
-            <Field label="Equipamiento disponible"><div className="flex flex-wrap gap-2">{EQUIPMENT.map((m) => <Chip key={m} active={p.equipment.includes(m)} color="#3b9dff" onClick={() => set({ equipment: toggle(p.equipment, m) })}>{EQUIPMENT_LABEL[m]}</Chip>)}</div></Field>
+            <Field label="Grupos musculares prioritarios" hint="Se marcan con una estrella en el análisis de volumen."><div className="flex flex-wrap gap-2">{MUSCLES.map((m) => <Chip key={m} active={p.priorityMuscles.includes(m)} color="#ff6a1a" onClick={() => set({ priorityMuscles: toggle(p.priorityMuscles, m) })}>{MUSCLE_LABEL[m]}</Chip>)}</div></Field>
+            <Field label="Equipamiento disponible"><div className="flex flex-wrap gap-2">{EQUIPMENT.map((m) => <Chip key={m} active={p.equipment.includes(m)} color="#5aa9ff" onClick={() => set({ equipment: toggle(p.equipment, m) })}>{EQUIPMENT_LABEL[m]}</Chip>)}</div></Field>
           </Card>
         </div>
 
@@ -80,7 +80,7 @@ export default function Profile() {
           <H2>Cuenta y sincronización</H2>
           <Card className="space-y-3">
             {!cloudEnabled ? (
-              <p className="text-sm text-mute"><b className="text-white">Modo local.</b> Tus datos se guardan de forma persistente en este dispositivo (IndexedDB). Para tener cuenta, respaldo en la nube y sincronización entre dispositivos, configura Supabase siguiendo el README (variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_ANON_KEY</code>).</p>
+              <p className="text-sm text-mute"><b className="text-chalk">Modo local.</b> Tus datos se guardan de forma persistente en este dispositivo (IndexedDB). Para tener cuenta, respaldo en la nube y sincronización entre dispositivos, configura Supabase siguiendo el README (variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_ANON_KEY</code>).</p>
             ) : uid === 'local' ? (
               <><p className="text-sm text-mute">Sin cuenta: los datos están solo en este dispositivo. Al iniciar sesión se asocian a tu cuenta y se sincronizan.</p><Btn variant="primary" icon="cloud" className="w-full" onClick={() => setAuth(true)}>Iniciar sesión o crear cuenta</Btn></>
             ) : (

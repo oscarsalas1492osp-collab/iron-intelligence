@@ -23,13 +23,13 @@ export default function Routines() {
             <Card key={r.id} onClick={() => nav(`/rutinas/${r.id}`)}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-bold text-lg leading-tight truncate">{r.name}</div>
-                  <div className="text-xs text-mute">{r.split} · {its.length} ejercicios · {its.reduce((a, i) => a + i.sets, 0)} series</div>
+                  <div className="wd-w font-bold text-lg leading-tight truncate">{r.name}</div>
+                  <div className="wd-c text-sm text-mute">{r.split}: {its.length} ejercicios, {its.reduce((a, i) => a + i.sets, 0)} series</div>
                 </div>
                 <Icon name="right" className="text-mute shrink-0" />
               </div>
               <div className="mt-3 flex gap-1.5">
-                {DAY_ORDER.map((d) => <span key={d} className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-bold ${r.days.includes(d) ? 'bg-fire text-black' : 'bg-card2 text-mute'}`}>{DAY_LABEL[d]}</span>)}
+                {DAY_ORDER.map((d) => <span key={d} className={`wd-c grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold ${r.days.includes(d) ? 'bg-fire text-ink' : 'bg-card2 text-mute'}`}>{DAY_LABEL[d]}</span>)}
               </div>
             </Card>
           );

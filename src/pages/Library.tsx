@@ -4,7 +4,8 @@ import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL, norm } from '../doma
 import { LIBRARY } from '../domain/exerciseLibrary';
 import type { Equipment, ExerciseDef, Muscle } from '../domain/types';
 import { useExercises } from '../hooks';
-import { ExerciseMuscles } from '../ui/BodyMap';
+import { exerciseTones } from '../domain/heat';
+import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Chip, Empty, Field, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 
@@ -25,7 +26,7 @@ function Filters({ q, setQ, muscle, setMuscle, eq, setEq }: { q: string; setQ: (
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
         <Chip active={!eq} onClick={() => setEq(null)}>Todo el equipo</Chip>
-        {EQUIPMENT.map((m) => <Chip key={m} active={eq === m} onClick={() => setEq(eq === m ? null : m)} color="#3b9dff">{EQUIPMENT_LABEL[m]}</Chip>)}
+        {EQUIPMENT.map((m) => <Chip key={m} active={eq === m} onClick={() => setEq(eq === m ? null : m)} color="#5aa9ff">{EQUIPMENT_LABEL[m]}</Chip>)}
       </div>
     </div>
   );
@@ -33,11 +34,11 @@ function Filters({ q, setQ, muscle, setMuscle, eq, setEq }: { q: string; setQ: (
 
 function Row({ ex, onClick, right }: { ex: ExerciseDef; onClick: () => void; right?: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl border border-line bg-card p-2.5 text-left transition hover:border-mute/40 active:scale-[.99]">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-panel bg-card p-2.5 text-left transition hover:border-mute/40 active:scale-[.99]">
       <ExerciseThumb ex={ex} />
       <div className="min-w-0 flex-1">
         <div className="font-semibold leading-tight truncate">{ex.name}</div>
-        <div className="text-xs text-mute truncate">{MUSCLE_LABEL[ex.primary]} · {EQUIPMENT_LABEL[ex.equipment]}{ex.custom ? ' · Propio' : ''}</div>
+        <div className="wd-c text-sm text-mute truncate">{MUSCLE_LABEL[ex.primary]}, {EQUIPMENT_LABEL[ex.equipment].toLowerCase()}{ex.custom ? ', propio' : ''}</div>
       </div>
       {right}
     </button>
@@ -61,27 +62,27 @@ export function ExercisePicker({ open, onClose, onPick, exclude = [] }: { open: 
 }
 
 const List = ({ title, items }: { title: string; items: string[] }) => items.length ? (
-  <div><div className="text-xs font-bold uppercase tracking-widest text-mute mb-1">{title}</div><ul className="space-y-1 text-sm">{items.map((c, i) => <li key={i} className="flex gap-2"><span className="text-fire">•</span>{c}</li>)}</ul></div>
+  <div><div className="label mb-1">{title}</div><ul className="space-y-1 text-sm">{items.map((c, i) => <li key={i} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-[1px] bg-fire" aria-hidden />{c}</li>)}</ul></div>
 ) : null;
-const Para = ({ title, text }: { title: string; text: string }) => text ? (<div><div className="text-xs font-bold uppercase tracking-widest text-mute mb-1">{title}</div><p className="text-sm">{text}</p></div>) : null;
+const Para = ({ title, text }: { title: string; text: string }) => text ? (<div><div className="label mb-1">{title}</div><p className="text-sm">{text}</p></div>) : null;
 
 export function ExerciseDetail({ ex, onClose, onEdit }: { ex: ExerciseDef | null; onClose: () => void; onEdit?: (ex: ExerciseDef) => void }) {
   if (!ex) return null;
   return (
     <Sheet open onClose={onClose} title={ex.name} wide>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[180px_1fr]">
-        <div className="flex md:flex-col items-center gap-3">
-          <ExerciseThumb ex={ex} size={120} />
-          <ExerciseMuscles primary={ex.primary} secondary={ex.secondary} className="h-40 md:h-52" />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[220px_1fr]">
+        <div className="relative h-72 md:h-80">
+          <BodyFigure tones={exerciseTones(ex.primary, ex.secondary)} className="absolute inset-0" />
+          <div className="absolute left-0 top-0"><ExerciseThumb ex={ex} size={68} /></div>
         </div>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Principal</div><div className="font-semibold text-fire">{MUSCLE_LABEL[ex.primary]}</div></div>
-            <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Secundarios</div><div className="font-semibold">{ex.secondary.map((m) => MUSCLE_LABEL[m]).join(', ') || '—'}</div></div>
-            <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Tipo</div><div className="font-semibold">{ex.type === 'compound' ? 'Multiarticular' : 'Monoarticular'}</div></div>
-            <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Equipamiento</div><div className="font-semibold">{EQUIPMENT_LABEL[ex.equipment]}</div></div>
-            {ex.machine && <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Máquina</div><div className="font-semibold">{ex.machine}</div></div>}
-            <div className="rounded-xl bg-card2 p-2.5"><div className="text-[10px] uppercase tracking-wider text-mute">Incremento mínimo</div><div className="font-semibold">{ex.increment} kg</div></div>
+            <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Principal</div><div className="font-semibold text-fire">{MUSCLE_LABEL[ex.primary]}</div></div>
+            <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Secundarios</div><div className="font-semibold">{ex.secondary.map((m) => MUSCLE_LABEL[m]).join(', ') || '—'}</div></div>
+            <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Tipo</div><div className="font-semibold">{ex.type === 'compound' ? 'Multiarticular' : 'Monoarticular'}</div></div>
+            <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Equipamiento</div><div className="font-semibold">{EQUIPMENT_LABEL[ex.equipment]}</div></div>
+            {ex.machine && <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Máquina</div><div className="font-semibold">{ex.machine}</div></div>}
+            <div className="rounded-ctl bg-card2 p-2.5"><div className="label !text-xs">Incremento mínimo</div><div className="font-semibold">{ex.increment} kg</div></div>
           </div>
           <List title="Indicaciones técnicas" items={ex.cues} />
           <List title="Errores frecuentes" items={ex.mistakes} />
@@ -175,7 +176,7 @@ export default function Library() {
   const list = useFiltered(all, q, muscle, eq);
   return (
     <div>
-      <Title sub={`${all.length} ejercicios · ${all.filter((e) => e.custom).length} propios`} right={<Btn variant="primary" icon="plus" onClick={() => setForm({ ex: null })}>Nuevo</Btn>}>Ejercicios</Title>
+      <Title sub={`${all.length} ejercicios, ${all.filter((e) => e.custom).length} propios`} right={<Btn variant="primary" icon="plus" onClick={() => setForm({ ex: null })}>Nuevo</Btn>}>Ejercicios</Title>
       <Filters {...{ q, setQ, muscle, setMuscle, eq, setEq }} />
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {list.map((e) => <Row key={e.id} ex={e} onClick={() => setDetail(e)} />)}

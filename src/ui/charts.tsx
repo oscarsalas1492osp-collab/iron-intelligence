@@ -1,14 +1,14 @@
 // Envoltorios de Recharts con el estilo de la app.
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const axis = { stroke: '#8b919c', fontSize: 11, tickLine: false, axisLine: false } as const;
-const tip = { contentStyle: { background: '#17191d', border: '1px solid #2a2d34', borderRadius: 12, fontSize: 12 }, labelStyle: { color: '#8b919c' }, cursor: { stroke: '#2a2d34', fill: '#ffffff08' } } as const;
+const axis = { stroke: '#9299a3', fontSize: 11, tickLine: false, axisLine: false } as const;
+const tip = { contentStyle: { background: '#202328', border: '1px solid #363b43', borderRadius: 12, fontSize: 12 }, labelStyle: { color: '#9299a3' }, cursor: { stroke: '#363b43', fill: '#ffffff08' } } as const;
 
-export function LineC({ data, x, y, color = '#3b9dff', unit = '', height = 220 }: { data: Record<string, unknown>[]; x: string; y: string; color?: string; unit?: string; height?: number }) {
+export function LineC({ data, x, y, color = '#5aa9ff', unit = '', height = 220 }: { data: Record<string, unknown>[]; x: string; y: string; color?: string; unit?: string; height?: number }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-        <CartesianGrid stroke="#2a2d34" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#363b43" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey={x} {...axis} minTickGap={24} />
         <YAxis {...axis} domain={['auto', 'auto']} />
         <Tooltip {...tip} formatter={(v) => [`${v}${unit}`, '']} separator="" />
@@ -22,7 +22,7 @@ export function BarC({ data, x, bars, height = 220 }: { data: Record<string, unk
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-        <CartesianGrid stroke="#2a2d34" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#363b43" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey={x} {...axis} minTickGap={8} />
         <YAxis {...axis} allowDecimals={false} />
         <Tooltip {...tip} />

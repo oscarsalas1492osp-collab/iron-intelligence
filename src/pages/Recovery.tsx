@@ -53,11 +53,11 @@ export default function Recovery() {
             <div className="mt-3 space-y-3">
               {SCALES.map((s) => (
                 <div key={s.key}>
-                  <div className="mb-1 flex items-baseline justify-between text-sm"><span>{s.label}</span><span className="text-xs text-mute">{s.lo} → {s.hi}</span></div>
+                  <div className="mb-1 flex items-baseline justify-between text-sm"><span>{s.label}</span><span className="wd-c text-sm text-mute">1 = {s.lo.toLowerCase()}, 5 = {s.hi.toLowerCase()}</span></div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button type="button" key={n} aria-label={`${s.label}: ${n}`} aria-pressed={v[s.key] === n} onClick={() => setV({ ...v, [s.key]: n })}
-                        className={`h-10 rounded-xl text-sm font-bold transition ${v[s.key] === n ? 'bg-white text-black' : 'bg-card2 text-mute border border-line'}`}>{n}</button>
+                        className={`h-10 rounded-xl text-sm font-bold transition ${v[s.key] === n ? 'bg-chalk text-ink' : 'bg-card2 text-mute'}`}>{n}</button>
                     ))}
                   </div>
                 </div>
@@ -74,7 +74,7 @@ export default function Recovery() {
               <div className="flex-1"><Stepper label="Peso de hoy (kg)" value={kg} step={0.1} min={25} max={300} onChange={setKg} /></div>
               <Btn variant="primary" className="h-12" onClick={() => run(() => saveBodyWeight(kg), 'Peso registrado')}>Guardar</Btn>
             </div>
-            {weights && weights.length >= 2 ? <div className="mt-3"><LineC data={weights.map((w) => ({ label: w.date.slice(5), kg: w.kg }))} x="label" y="kg" unit=" kg" color="#3b9dff" height={170} /></div>
+            {weights && weights.length >= 2 ? <div className="mt-3"><LineC data={weights.map((w) => ({ label: w.date.slice(5), kg: w.kg }))} x="label" y="kg" unit=" kg" color="#5aa9ff" height={170} /></div>
               : <p className="mt-3 text-xs text-mute">Registra tu peso al menos dos días para ver la evolución.</p>}
             {!!weights?.length && <div className="mt-2 space-y-1">{[...weights].reverse().slice(0, 5).map((w) => (
               <div key={w.id} className="flex items-center justify-between text-sm"><span className="text-mute">{w.date}</span><span className="flex items-center gap-2 font-semibold tnum">{fmtKg(w.kg)} kg<button type="button" aria-label={`Eliminar peso del ${w.date}`} className="text-mute" onClick={() => run(() => softDelete('bodyWeights', w.id))}><Icon name="x" size={14} /></button></span></div>
@@ -83,9 +83,9 @@ export default function Recovery() {
 
           <H2>Últimos registros</H2>
           {logs?.length ? <div className="space-y-1.5">{logs.slice(0, 7).map((l) => (
-            <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
+            <div key={l.id} className="flex items-center justify-between gap-2 rounded-ctl bg-card px-3 py-2 text-sm">
               <span className="text-mute">{l.date}</span>
-              <span className="text-xs text-mute tnum">{l.sleepHours} h · fatiga {l.fatigue} · dolor {l.soreness} · estrés {l.stress}</span>
+              <span className="text-xs text-mute tnum">{l.sleepHours} h, fatiga {l.fatigue}, dolor {l.soreness}, estrés {l.stress}</span>
               <span className="flex items-center gap-2"><b className="tnum">{readinessOf(l)}</b><button type="button" aria-label={`Eliminar registro del ${l.date}`} className="text-mute" onClick={() => run(() => softDelete('recovery', l.id))}><Icon name="x" size={14} /></button></span>
             </div>
           ))}</div> : <Empty icon="heart" title="Sin registros" text="Un registro diario de 20 segundos mejora el contexto de las recomendaciones." />}

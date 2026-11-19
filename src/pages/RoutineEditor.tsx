@@ -52,15 +52,15 @@ export default function RoutineEditor() {
   return (
     <div>
       <button type="button" onClick={() => nav('/rutinas')} className="mb-3 flex items-center gap-1 text-sm text-mute"><Icon name="left" size={16} />Rutinas</button>
-      <Title sub={`${items.length} ejercicios · ${items.reduce((a, i) => a + i.sets, 0)} series`}>{routine.name}</Title>
+      <Title sub={`${items.length} ejercicios, ${items.reduce((a, i) => a + i.sets, 0)} series`}>{routine.name}</Title>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mb-4">
         <Field label="Nombre"><input defaultValue={routine.name} key={routine.id} onBlur={(e) => e.target.value !== routine.name && run(() => saveRoutine({ ...routine, name: e.target.value }))} /></Field>
         <Field label="División"><input defaultValue={routine.split} placeholder="Push/Pull/Legs, Torso/Pierna…" onBlur={(e) => e.target.value !== routine.split && run(() => saveRoutine({ ...routine, split: e.target.value }))} /></Field>
       </div>
-      <Field label={`Días programados · ${routine.days.length} por semana`}>
+      <Field label={`Días programados: ${routine.days.length} por semana`}>
         <div className="flex gap-2">{DAY_ORDER.map((d) => (
-          <button type="button" key={d} aria-pressed={routine.days.includes(d)} onClick={() => toggleDay(d)} className={`h-10 flex-1 rounded-xl text-sm font-bold transition ${routine.days.includes(d) ? 'bg-fire text-black' : 'bg-card2 text-mute border border-line'}`}>{DAY_LABEL[d]}</button>
+          <button type="button" key={d} aria-pressed={routine.days.includes(d)} onClick={() => toggleDay(d)} className={`h-10 flex-1 rounded-xl text-sm font-bold transition ${routine.days.includes(d) ? 'bg-fire text-ink' : 'bg-card2 text-mute'}`}>{DAY_LABEL[d]}</button>
         ))}</div>
       </Field>
 
@@ -68,7 +68,7 @@ export default function RoutineEditor() {
         {items.map((it, i) => {
           const e = ex.get(it.exerciseId);
           return (
-            <div key={it.id} className="flex items-center gap-2 rounded-2xl border border-line bg-card p-2.5">
+            <div key={it.id} className="flex items-center gap-2 rounded-panel bg-card p-2.5">
               <div className="flex flex-col">
                 <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => run(() => moveItem(id, it.id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
                 <button type="button" aria-label="Bajar" disabled={i === items.length - 1} onClick={() => run(() => moveItem(id, it.id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
@@ -76,8 +76,8 @@ export default function RoutineEditor() {
               {e && <ExerciseThumb ex={e} size={48} />}
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEdit(it)}>
                 <div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>
-                <div className="text-xs text-mute truncate">{e ? MUSCLE_LABEL[e.primary] : ''}</div>
-                <div className="mt-0.5 text-xs tnum"><span className="text-white font-semibold">{it.sets} × {it.repMin}–{it.repMax}</span><span className="text-fire"> · RIR {it.rirMin}–{it.rirMax}</span><span className="text-mute"> · {it.restSec} s</span></div>
+                <div className="wd-c text-sm text-mute truncate">{e ? MUSCLE_LABEL[e.primary] : ''}</div>
+                <div className="wd-c mt-0.5 text-sm tnum"><span className="text-chalk font-semibold">{it.sets} × {it.repMin}–{it.repMax}</span><span className="text-fire"> RIR {it.rirMin}–{it.rirMax}</span><span className="text-mute">, {it.restSec} s</span></div>
               </button>
               <button type="button" aria-label="Editar objetivos" onClick={() => setEdit(it)} className="grid h-9 w-9 place-items-center rounded-full bg-card2 text-mute"><Icon name="edit" size={16} /></button>
             </div>
