@@ -1,0 +1,31 @@
+import { Link } from 'react-router-dom';
+import { Card, Icon, Title } from '../ui/components';
+import { MORE } from '../ui/Layout';
+
+const DESC: Record<string, string> = {
+  '/ejercicios': 'Biblioteca, máquinas y ejercicios propios',
+  '/analisis': 'Volumen por músculo y proximidad al fallo',
+  '/recuperacion': 'Sueño, fatiga, estrés y peso corporal',
+  '/asistente': 'Preguntas sobre tu historial',
+  '/perfil': 'Objetivos, ajustes, copias y cuenta',
+  '/fundamento': 'Evidencia detrás de cada regla',
+};
+
+export default function More() {
+  return (
+    <div>
+      <Title>Más</Title>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {MORE.map((n) => (
+          <Link key={n.to} to={n.to}>
+            <Card className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card2 text-fire"><Icon name={n.icon} /></span>
+              <span className="min-w-0 flex-1"><span className="block font-bold">{n.label}</span><span className="block text-xs text-mute truncate">{DESC[n.to]}</span></span>
+              <Icon name="right" className="text-mute" size={18} />
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
