@@ -5,7 +5,7 @@ import { db } from '../data/db';
 import { elapsedMs, mine, startSession } from '../data/repo';
 import { ago, DAY, fmtDate, fmtDuration, fmtKg, weekStart } from '../domain/calc';
 import { LEGEND, weekHeat } from '../domain/heat';
-import { MUSCLE_LABEL } from '../domain/muscles';
+import { MAIN_MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { fatigueStatus, LEVEL_COLOR } from '../domain/recovery';
 import type { Muscle } from '../domain/types';
 import { inWeek, muscleVolume, personalRecords, tonnage } from '../domain/volume';
@@ -66,7 +66,7 @@ export default function Dashboard() {
   const fatigue = useMemo(() => fatigueStatus(sets, logs, now), [sets, logs, now]);
 
   const trained = vol.filter((v) => v.direct > 0);
-  const pending = vol.filter((v) => v.fractional === 0);
+  const pending = vol.filter((v) => v.fractional === 0 && MAIN_MUSCLES.includes(v.muscle));
   const bw = weights[weights.length - 1];
   const dSets = pctDelta(week.length, prevWeek.length), dTon = pctDelta(tonnage(week), tonnage(prevWeek));
   const selVol = sel ? vol.find((v) => v.muscle === sel) : null;

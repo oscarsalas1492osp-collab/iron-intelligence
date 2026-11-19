@@ -2,8 +2,8 @@
 import { z } from 'zod';
 
 const base = { id: z.string().min(1), userId: z.string().min(1), updatedAt: z.number(), deleted: z.union([z.literal(0), z.literal(1)]), dirty: z.union([z.literal(0), z.literal(1)]) };
-const muscle = z.enum(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'abs']);
-const equipment = z.enum(['machine', 'cable', 'dumbbell', 'barbell', 'smith', 'bodyweight', 'lever', 'convergent', 'isolation_machine']);
+const muscle = z.enum(['chest', 'back', 'traps', 'shoulders', 'biceps', 'triceps', 'forearms', 'abs', 'obliques', 'lowerback', 'glutes', 'abductors', 'adductors', 'quads', 'hamstrings', 'calves', 'tibialis', 'neck']);
+const equipment = z.enum(['machine', 'isolation_machine', 'convergent', 'lever', 'cable', 'smith', 'barbell', 'ez_bar', 'trap_bar', 'landmine', 'dumbbell', 'kettlebell', 'plate', 'band', 'bodyweight', 'suspension', 'medball', 'sled', 'other']);
 const halfStep = (n: number) => Math.abs(n * 2 - Math.round(n * 2)) < 1e-9;
 
 const target = {
@@ -28,6 +28,9 @@ export const schemas = {
   exercises: z.object({
     ...base, baseId: z.string().nullable(), name: z.string().trim().min(2, 'El nombre es obligatorio').max(80), primary: muscle,
     secondary: z.array(muscle), type: z.enum(['compound', 'isolation']), equipment, machine: z.string().max(80),
+    // Campos añadidos con el catálogo ampliado: las filas antiguas no los traen.
+    focus: z.string().max(80).default(''), aka: z.string().max(160).default(''),
+    measure: z.enum(['reps', 'time', 'distance']).default('reps'), category: z.enum(['strength', 'functional', 'power', 'calisthenics']).default('strength'),
     cues: z.array(z.string()), mistakes: z.array(z.string()), rom: z.string(), execution: z.string(), safety: z.string(),
     increment: z.number().min(0.25, 'El incremento mínimo es 0,25 kg').max(25), photo: z.string().nullable(), custom: z.boolean(),
   }),

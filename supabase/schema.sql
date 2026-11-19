@@ -33,8 +33,16 @@ create table if not exists public.exercises (
   type text not null check (type in ('compound','isolation')), equipment text not null, machine text not null default '',
   cues jsonb not null default '[]', mistakes jsonb not null default '[]', rom text not null default '',
   execution text not null default '', safety text not null default '', increment numeric not null check (increment > 0),
-  photo text, custom boolean not null default true
+  photo text, custom boolean not null default true,
+  focus text not null default '', aka text not null default '',
+  measure text not null default 'reps' check (measure in ('reps','time','distance')),
+  category text not null default 'strength' check (category in ('strength','functional','power','calisthenics'))
 );
+-- Instalaciones anteriores al catálogo ampliado: añade las columnas nuevas sin tocar los datos.
+alter table public.exercises add column if not exists focus text not null default '';
+alter table public.exercises add column if not exists aka text not null default '';
+alter table public.exercises add column if not exists measure text not null default 'reps' check (measure in ('reps','time','distance'));
+alter table public.exercises add column if not exists category text not null default 'strength' check (category in ('strength','functional','power','calisthenics'));
 
 create table if not exists public.routines (
   id text primary key,

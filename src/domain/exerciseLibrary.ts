@@ -1,6 +1,10 @@
-// Biblioteca base de ejercicios. Los ids son estables: el historial los referencia.
+// Biblioteca de ejercicios. Los ids son estables: el historial los referencia.
+// BASE reúne los ejercicios escritos a mano; el catálogo ampliado (catalog/) hereda sus indicaciones del patrón de movimiento.
 // El usuario puede ajustar cualquiera (incremento, máquina, foto) o crear los suyos.
-import type { Equipment, ExerciseDef, ExerciseRow, ExType, Muscle } from './types';
+import { CATALOG, type CatalogRow } from './catalog/exercises';
+import { MACHINES } from './catalog/machines';
+import { PATTERNS, type Pattern } from './catalog/patterns';
+import type { Category, Equipment, ExerciseDef, ExerciseRow, ExType, Measure, Muscle } from './types';
 
 const SAFETY: Record<Equipment, string> = {
   machine: 'Ajusta asiento y topes antes de cargar. Si aparece dolor articular (no la fatiga muscular normal), detén la serie.',
@@ -12,21 +16,100 @@ const SAFETY: Record<Equipment, string> = {
   lever: 'Carga los discos de forma simétrica y asegura el asiento. Evita bloquear la articulación con violencia.',
   convergent: 'Ajusta el asiento para que las empuñaduras queden alineadas con la articulación objetivo.',
   isolation_machine: 'Alinea el eje de la máquina con tu articulación. Evita impulsos: el objetivo es tensión controlada.',
+  ez_bar: 'Coloca seguros en ambos lados. Si baja hacia la cara o la cabeza, usa una carga que controles en todo el recorrido.',
+  trap_bar: 'Párate centrado dentro de la barra y carga ambos lados por igual. Apoya la barra en el suelo con control.',
+  landmine: 'Comprueba que el extremo de la barra esté bien encajado en el anclaje y despeja el arco por donde se mueve.',
+  kettlebell: 'Deja espacio libre delante y detrás. Si pierdes el control, suelta la pesa lejos del cuerpo en vez de forzar la muñeca o la espalda.',
+  plate: 'Sujeta el disco con ambas manos por el borde y no lo dejes caer sobre los pies.',
+  band: 'Revisa que la banda no tenga cortes y que el anclaje sea firme. No la estires hacia la cara.',
+  suspension: 'Comprueba el anclaje antes de cargar tu peso. Mientras más inclinado el cuerpo, más difícil: avanza de a poco.',
+  medball: 'Usa un balón que no rebote para los azotes y deja espacio libre alrededor. Recoge el balón flexionando piernas, no la espalda.',
+  sled: 'Usa un carril despejado y calzado con agarre. Aumenta la carga de a poco: el esfuerzo sube rápido.',
+  other: 'Revisa el estado del implemento y el espacio disponible antes de empezar. Empieza con una versión fácil y progresa.',
 };
 
 const EXEC: Record<ExType, string> = {
   compound: 'Fase excéntrica controlada (2–3 s), sin rebote en el punto bajo, y fase concéntrica decidida manteniendo la técnica.',
   isolation: 'Movimiento controlado en todo el recorrido, sin impulso del tronco; breve pausa en el punto de máxima contracción o estiramiento.',
 };
+const EXEC_TIME = 'Mantén la posición o el trabajo continuo durante el tiempo marcado. En cada serie se anotan segundos en lugar de repeticiones.';
+const EXEC_DISTANCE = 'Recorre la distancia a ritmo constante. En cada serie se anotan metros en lugar de repeticiones.';
+const EXEC_POWER = 'Cada repetición a máxima velocidad y con técnica limpia. Termina la serie cuando la velocidad cae: aquí no se busca llegar cerca del fallo.';
+
+function execOf(type: ExType, measure: Measure, category: Category): string {
+  if (measure === 'time') return EXEC_TIME;
+  if (measure === 'distance') return EXEC_DISTANCE;
+  if (category === 'power') return EXEC_POWER;
+  return EXEC[type];
+}
 
 function x(
   id: string, name: string, primary: Muscle, secondary: Muscle[], type: ExType, equipment: Equipment, increment: number,
   cues: string[], mistakes: string[], rom: string, machine = '',
 ): ExerciseDef {
-  return { id, name, primary, secondary, type, equipment, machine, cues, mistakes, rom, execution: EXEC[type], safety: SAFETY[equipment], increment, photo: null, custom: false };
+  return { id, name, primary, secondary, type, equipment, machine, focus: '', aka: '', measure: 'reps', category: 'strength', cues, mistakes, rom, execution: EXEC[type], safety: SAFETY[equipment], increment, photo: null, custom: false };
 }
 
-export const LIBRARY: ExerciseDef[] = [
+/** Incremento mínimo habitual de cada implemento; el usuario puede ajustarlo por ejercicio. */
+function defaultIncrement(eq: Equipment, type: ExType): number {
+  switch (eq) {
+    case 'machine': case 'convergent': case 'lever': case 'isolation_machine': case 'trap_bar': case 'sled': return 5;
+    case 'cable': return type === 'compound' ? 5 : 2.5;
+    case 'smith': case 'barbell': case 'ez_bar': case 'landmine': case 'plate': case 'bodyweight': return 2.5;
+    case 'dumbbell': return type === 'compound' ? 2 : 1;
+    case 'kettlebell': return 4;
+    default: return 1;
+  }
+}
+
+const MACHINE_OF = new Map<string, string>();
+for (const mc of MACHINES) for (const id of mc.ex) if (!MACHINE_OF.has(id)) MACHINE_OF.set(id, mc.name);
+
+function fromCatalog(r: CatalogRow): ExerciseDef {
+  const pt: Pattern = PATTERNS[r.pattern];
+  const type = r.x.t ?? pt.type;
+  const measure = r.x.m ?? pt.measure ?? 'reps';
+  const category = r.x.c ?? pt.category ?? 'strength';
+  return {
+    id: r.id, name: r.name, primary: r.primary, secondary: r.secondary, type, equipment: r.equipment,
+    machine: MACHINE_OF.get(r.id) ?? '', focus: r.x.f ?? '', aka: r.x.a ?? '', measure, category,
+    cues: pt.cues, mistakes: pt.mistakes, rom: pt.rom, execution: execOf(type, measure, category), safety: SAFETY[r.equipment],
+    increment: r.x.i ?? defaultIncrement(r.equipment, type), photo: null, custom: false,
+  };
+}
+
+// Ajustes sobre la base al ampliar los grupos musculares (trapecio, lumbares, aductores, abductores…) y añadir énfasis y otros nombres.
+const PATCH: Record<string, Partial<ExerciseDef>> = {
+  bench_press: { aka: 'bench press' }, incline_bench_press: { focus: 'Pectoral superior', aka: 'incline bench press' },
+  incline_db_press: { focus: 'Pectoral superior' }, smith_incline_press: { focus: 'Pectoral superior' },
+  pec_deck: { aka: 'butterfly pec fly contractora' }, cable_crossover: { aka: 'cable crossover' },
+  push_up: { category: 'calisthenics', aka: 'push up lagartijas' }, dips: { category: 'calisthenics', aka: 'dips' },
+  lat_pulldown: { aka: 'lat pulldown' }, pull_up: { category: 'calisthenics', aka: 'pull up' },
+  seated_cable_row: { secondary: ['biceps', 'traps', 'forearms'], aka: 'seated cable row' }, machine_row: { secondary: ['biceps', 'traps', 'forearms'] },
+  lever_row: { secondary: ['biceps', 'traps', 'forearms'], aka: 'iso-lateral row hammer' }, db_row: { secondary: ['biceps', 'traps', 'forearms'] },
+  barbell_row: { secondary: ['biceps', 'traps', 'lowerback', 'forearms'], aka: 'bent over row' },
+  straight_arm_pulldown: { aka: 'straight arm pulldown' },
+  back_extension: { primary: 'lowerback', secondary: ['glutes', 'hamstrings'], aka: 'hiperextensiones hyperextension' },
+  shoulder_press_machine: { secondary: ['triceps', 'traps'] }, db_shoulder_press: { secondary: ['triceps', 'traps'] },
+  overhead_press: { secondary: ['triceps', 'traps', 'abs'], aka: 'ohp military press overhead press' },
+  lateral_raise_db: { secondary: ['traps'], focus: 'Deltoides lateral', aka: 'lateral raise' },
+  lateral_raise_cable: { secondary: ['traps'], focus: 'Deltoides lateral' }, lateral_raise_machine: { secondary: ['traps'], focus: 'Deltoides lateral' },
+  reverse_pec_deck: { secondary: ['traps', 'back'], focus: 'Deltoides posterior', aka: 'reverse fly rear delt' },
+  face_pull: { secondary: ['traps', 'back'], focus: 'Deltoides posterior', aka: 'face pull' },
+  hammer_curl: { focus: 'Braquial', aka: 'hammer curl' }, preacher_curl_machine: { aka: 'preacher curl scott' },
+  overhead_triceps_cable: { focus: 'Cabeza larga' }, skullcrusher: { aka: 'skull crusher rompecráneos' }, triceps_pushdown: { aka: 'pushdown' },
+  squat: { secondary: ['glutes', 'adductors', 'lowerback'], aka: 'back squat' }, hack_squat: { aka: 'hack squat' },
+  leg_press: { secondary: ['glutes', 'adductors'], aka: 'leg press' }, smith_squat: { secondary: ['glutes', 'adductors'] },
+  bulgarian_split_squat: { secondary: ['glutes', 'adductors'], aka: 'bulgarian split squat' }, leg_extension: { aka: 'leg extension' },
+  romanian_deadlift: { secondary: ['glutes', 'lowerback'], aka: 'rdl romanian deadlift' },
+  seated_leg_curl: { aka: 'seated leg curl' }, lying_leg_curl: { aka: 'lying prone leg curl' },
+  hip_thrust: { aka: 'hip thrust' }, glute_kickback_cable: { aka: 'cable kickback' },
+  hip_abduction_machine: { primary: 'abductors', secondary: ['glutes'], aka: 'hip abduction outer thigh' },
+  seated_calf_raise: { focus: 'Sóleo' }, hanging_leg_raise: { category: 'calisthenics' },
+  plank: { name: 'Plancha frontal', measure: 'time', execution: EXEC_TIME, aka: 'plank' },
+};
+
+const BASE: ExerciseDef[] = [
   // ---- Pecho ----
   x('chest_press_machine', 'Press de pecho en máquina', 'chest', ['triceps', 'shoulders'], 'compound', 'machine', 5, ['Escápulas atrás y abajo contra el respaldo', 'Empuñaduras a la altura media del pecho'], ['Despegar la espalda del respaldo', 'Acortar el recorrido al subir la carga'], 'Desde un estiramiento cómodo del pecho hasta casi extender los codos.', 'Press de pecho sentado'),
   x('chest_press_convergent', 'Press convergente de pecho', 'chest', ['triceps', 'shoulders'], 'compound', 'convergent', 5, ['Deja que las manos se acerquen al final', 'Codos a unos 45–60° del torso'], ['Encoger los hombros', 'Rebotar en el punto bajo'], 'Estiramiento profundo abajo; manos convergen sin chocar arriba.', 'Press convergente'),
@@ -102,7 +185,11 @@ export const LIBRARY: ExerciseDef[] = [
   x('plank', 'Plancha (reps = segundos ÷ 5)', 'abs', ['shoulders'], 'isolation', 'bodyweight', 1, ['Cuerpo en línea', 'Glúteos y abdomen apretados'], ['Cadera caída', 'Aguantar la respiración'], 'Isométrico: mantener la alineación.'),
 ];
 
-/** Combina la biblioteca base con los ejercicios y ajustes del usuario. */
+export const LIBRARY: ExerciseDef[] = [...BASE.map((b) => ({ ...b, ...PATCH[b.id] })), ...CATALOG.map(fromCatalog)];
+const BY_ID = new Map(LIBRARY.map((b) => [b.id, b]));
+export const isLibraryId = (id: string) => BY_ID.has(id);
+
+/** Combina la biblioteca con los ejercicios y ajustes del usuario. */
 export function mergeExercises(rows: ExerciseRow[]): ExerciseDef[] {
   const overrides = new Map<string, ExerciseRow>();
   const customs: ExerciseDef[] = [];
@@ -111,9 +198,14 @@ export function mergeExercises(rows: ExerciseRow[]): ExerciseDef[] {
     if (r.baseId) overrides.set(r.baseId, r);
     else customs.push(rowToDef(r, r.id));
   }
-  return [...LIBRARY.map((b) => (overrides.has(b.id) ? rowToDef(overrides.get(b.id)!, b.id) : b)), ...customs];
+  // De un ejercicio de la biblioteca el usuario solo ajusta máquina, incremento y foto: el resto sigue al catálogo vigente.
+  return [...LIBRARY.map((b) => { const o = overrides.get(b.id); return o ? { ...b, machine: o.machine, increment: o.increment, photo: o.photo } : b; }), ...customs];
 }
 
 function rowToDef(r: ExerciseRow, id: string): ExerciseDef {
-  return { id, name: r.name, primary: r.primary, secondary: r.secondary, type: r.type, equipment: r.equipment, machine: r.machine, cues: r.cues, mistakes: r.mistakes, rom: r.rom, execution: r.execution, safety: r.safety, increment: r.increment, photo: r.photo, custom: r.custom };
+  return {
+    id, name: r.name, primary: r.primary, secondary: r.secondary, type: r.type, equipment: r.equipment, machine: r.machine,
+    focus: r.focus ?? '', aka: r.aka ?? '', measure: r.measure ?? 'reps', category: r.category ?? 'strength',
+    cues: r.cues, mistakes: r.mistakes, rom: r.rom, execution: r.execution, safety: r.safety, increment: r.increment, photo: r.photo, custom: r.custom,
+  };
 }

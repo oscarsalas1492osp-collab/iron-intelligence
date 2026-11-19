@@ -1,10 +1,10 @@
 // Repositorio: todas las escrituras de la app pasan por aquí.
 // Valida, marca la fila como pendiente de sincronizar y avisa a los suscriptores.
 import { clamp, rpeFromRir, uid, ymd } from '../domain/calc';
-import { LIBRARY, mergeExercises } from '../domain/exerciseLibrary';
+import { isLibraryId, mergeExercises } from '../domain/exerciseLibrary';
 import { recommend, workWeight } from '../domain/progression';
 import { recentReadiness } from '../domain/recovery';
-import { DEFAULT_TARGET, type Base, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Target } from '../domain/types';
+import { defaultTarget, type Base, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Target } from '../domain/types';
 import { validate, ValidationError, type TableName } from '../domain/validation';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db, getUserId } from './db';
@@ -56,7 +56,7 @@ export async function getExercises(): Promise<ExerciseDef[]> {
 }
 /** Guarda un ejercicio personalizado o un ajuste sobre uno de la biblioteca. */
 export async function saveExercise(def: ExerciseDef): Promise<ExerciseDef> {
-  const isBase = LIBRARY.some((b) => b.id === def.id);
+  const isBase = isLibraryId(def.id);
   const rows = mine(await db.exercises.toArray());
   const existing = rows.find((r) => (isBase ? r.baseId === def.id : r.id === def.id));
   const { id: _id, ...fields } = def;
@@ -92,7 +92,7 @@ export async function getItems(routineId: string): Promise<RoutineItem[]> {
 export async function addItem(routineId: string, exerciseId: string, over: Partial<Target> = {}): Promise<RoutineItem> {
   const ex = (await getExercises()).find((e) => e.id === exerciseId);
   const items = await getItems(routineId);
-  const target = { ...DEFAULT_TARGET[ex?.type ?? 'compound'], ...over };
+  const target = { ...defaultTarget(ex), ...over };
   return save('routineItems', { ...newBase(), routineId, exerciseId, order: items.length, ...target } as RoutineItem);
 }
 export const saveItem = (it: RoutineItem) => save('routineItems', it);
@@ -182,7 +182,7 @@ export async function addExerciseToSession(sessionId: string, exerciseId: string
   const session = await db.sessions.get(sessionId);
   const ex = (await getExercises()).find((e) => e.id === exerciseId);
   if (!session || !ex || session.exerciseIds.includes(exerciseId)) return;
-  const target = DEFAULT_TARGET[ex.type];
+  const target = defaultTarget(ex);
   await save('sessions', { ...session, exerciseIds: [...session.exerciseIds, exerciseId], targets: { ...session.targets, [exerciseId]: target } });
   for (const s of await presetSets(sessionId, ex, target, await getDoneSets())) await save('sets', s);
 }

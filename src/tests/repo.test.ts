@@ -21,6 +21,29 @@ async function logSession(routineId: string, fill: (i: number) => { weight: numb
 }
 
 describe('registro de series y sesiones', () => {
+  it('un ejercicio por tiempo parte con su rango en segundos y uno del catálogo ampliado se registra igual que los demás', async () => {
+    const r = await routineWith('plank', 'farmer_walk', 'pendulum_squat');
+    const s = await repo.startSession(r.id);
+    expect(s.targets['plank']).toMatchObject({ repMin: 30, repMax: 60 });
+    expect(s.targets['farmer_walk']).toMatchObject({ repMin: 20, repMax: 40 });
+    expect(s.targets['pendulum_squat']).toMatchObject({ repMin: 8, repMax: 12 });
+    const sets = await repo.getSessionSets(s.id);
+    expect(sets.filter((x) => x.exerciseId === 'plank').every((x) => x.reps === 30)).toBe(true);
+    const sq = sets.find((x) => x.exerciseId === 'pendulum_squat')!;
+    await repo.updateSet(sq.id, { weight: 80, reps: 10, rir: 2 });
+    await repo.completeSet(sq.id);
+    await repo.finishSession(s.id);
+    const done = await repo.getDoneSets();
+    expect(done.find((x) => x.exerciseId === 'pendulum_squat')).toMatchObject({ weight: 80, reps: 10 });
+  });
+
+  it('guarda un ejercicio propio con medida y familia, y lo sube con las columnas nuevas', async () => {
+    const ex = await repo.saveExercise({ id: '', name: 'Arrastre con cuerda', primary: 'back', secondary: ['biceps'], type: 'compound', equipment: 'sled', machine: '', focus: '', aka: '', measure: 'distance', category: 'functional', cues: [], mistakes: [], rom: '', execution: '', safety: '', increment: 5, photo: null, custom: true });
+    const row = (await db.exercises.toArray()).find((x) => x.id === ex.id)!;
+    expect(toRemote(row)).toMatchObject({ measure: 'distance', category: 'functional', focus: '', aka: '', equipment: 'sled' });
+    expect((await repo.getExercises()).find((x) => x.id === ex.id)).toMatchObject({ measure: 'distance', category: 'functional' });
+  });
+
   it('al iniciar crea las series objetivo y cada serie se guarda individualmente', async () => {
     const r = await routineWith('chest_press_machine', 'triceps_pushdown');
     const s = await repo.startSession(r.id);

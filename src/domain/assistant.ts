@@ -7,7 +7,7 @@ import { DAY, e1rm, fmtKg, mean, weekStart } from './calc';
 import { MUSCLE_LABEL, findMuscle, norm } from './muscles';
 import { ACTION_LABEL, recommend, trendOf, type Trend } from './progression';
 import { recentReadiness } from './recovery';
-import { DEFAULT_TARGET, type ExerciseDef, type RecoveryLog, type Routine, type RoutineItem, type Target } from './types';
+import { defaultTarget, type ExerciseDef, type RecoveryLog, type Routine, type RoutineItem, type Target } from './types';
 import { inWeek, muscleVolume, sessionsOf, type ASet } from './volume';
 
 export interface AssistantCtx {
@@ -49,7 +49,7 @@ function trends(ctx: AssistantCtx): ExTrend[] {
 const pct = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)} %`;
 const targetOf = (ctx: AssistantCtx, ex: ExerciseDef): Target => {
   const it = ctx.items.find((i) => i.exerciseId === ex.id);
-  return it ? { sets: it.sets, repMin: it.repMin, repMax: it.repMax, rirMin: it.rirMin, rirMax: it.rirMax, restSec: it.restSec } : DEFAULT_TARGET[ex.type];
+  return it ? { sets: it.sets, repMin: it.repMin, repMax: it.repMax, rirMin: it.rirMin, rirMax: it.rirMax, restSec: it.restSec } : defaultTarget(ex);
 };
 const recFor = (ctx: AssistantCtx, ex: ExerciseDef) =>
   recommend({ exType: ex.type, increment: ex.increment, target: targetOf(ctx, ex), history: sessionsOf(ctx.sets, ex.id), readiness: recentReadiness(ctx.recovery, ctx.now) });

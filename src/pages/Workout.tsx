@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addExerciseToSession, addSet, completeSet, copyLastSession, deleteSet, elapsedMs, finishSession, getSessionSets, pauseSession, removeExerciseFromSession, resumeSession, startSession, uncompleteSet, updateSessionTarget, updateSet } from '../data/repo';
 import { fmtDate, fmtDuration, fmtKg, intensityOf } from '../domain/calc';
-import { MUSCLE_LABEL } from '../domain/muscles';
+import { MEASURE_UNIT, MUSCLE_LABEL, unitText } from '../domain/muscles';
 import { recommend, type Recommendation } from '../domain/progression';
 import { recentReadiness } from '../domain/recovery';
-import { DEFAULT_TARGET, type EndReason, type ExerciseDef, type Session, type SetLog, type Target } from '../domain/types';
+import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Session, type SetLog, type Target } from '../domain/types';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db } from '../data/db';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useUserId } from '../hooks';
@@ -25,23 +25,23 @@ const storeRest = (r: Rest | null) => { try { r ? localStorage.setItem(REST_KEY,
 
 const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#3ddc84', hold: '#5aa9ff', hold_add_reps: '#5aa9ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
 
-export function RecommendationCard({ rec, compact }: { rec: Recommendation; compact?: boolean }) {
+export function RecommendationCard({ rec, compact, measure = 'reps' }: { rec: Recommendation; compact?: boolean; measure?: Measure }) {
   const [open, setOpen] = useState(false);
   const color = ACTION_COLOR[rec.action];
   return (
     <div className="cursor-pointer rounded-panel p-4" style={{ background: color + '17' }} onClick={() => setOpen(!open)}>
       <button type="button" className="flex w-full items-start justify-between gap-3 text-left" aria-expanded={open}>
         <div className="min-w-0">
-          <div className="wd-x text-[13px] font-extrabold leading-tight" style={{ color }}>{rec.title}</div>
+          <div className="wd-x text-[13px] font-extrabold leading-tight" style={{ color }}>{unitText(rec.title, measure)}</div>
           <div className="mt-0.5 font-semibold">{rec.weight != null ? `Peso sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido todavía'}</div>
         </div>
         <div className="wd-c shrink-0 text-right text-sm text-mute">Confianza {rec.confidenceLabel}<br /><span className="tnum text-chalk">{Math.round(rec.confidence * 100)} %</span></div>
       </button>
-      {(open || !compact) && <p className="mt-2.5 text-sm text-chalk/90">{rec.reason}</p>}
+      {(open || !compact) && <p className="mt-2.5 text-sm text-chalk/90">{unitText(rec.reason, measure)}</p>}
       {open && (
         <div className="mt-3 border-t border-chalk/10 pt-3">
           <div className="label mb-1">Datos considerados</div>
-          <ul className="space-y-0.5 text-sm text-mute">{rec.factors.map((f, i) => <li key={i}>{f}</li>)}</ul>
+          <ul className="space-y-0.5 text-sm text-mute">{rec.factors.map((f, i) => <li key={i}>{unitText(f, measure)}</li>)}</ul>
           <p className="mt-2 text-xs text-mute">{rec.practical ? 'El umbral aplicado es una estimación práctica de entrenamiento, no un valor científico exacto. ' : ''}El RIR es tu estimación; la app no mide el estímulo muscular real.</p>
         </div>
       )}
@@ -93,7 +93,8 @@ const REASONS: { value: EndReason; label: string }[] = [
   { value: 'fatigue', label: 'Fatiga general (no del músculo objetivo)' },
 ];
 
-function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog; n: number; step: number; open: boolean; prev?: SetLog; halfRir: boolean; onOpen: () => void; onDone: () => void }) {
+function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; onOpen: () => void; onDone: () => void }) {
+  const unit = MEASURE_UNIT[measure];
   const run = useAction();
   const [more, setMore] = useState(false);
   const info = intensityOf(s.rir);
@@ -103,7 +104,7 @@ function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog
     return (
       <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-1 py-3 text-left" aria-label={`Serie ${n} completada, tocar para editar`}>
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
-        <span className="num flex-1 text-lg">{fmtKg(s.weight)} kg × {s.reps}</span>
+        <span className="num flex-1 text-lg">{fmtKg(s.weight)} kg × {s.reps}{measure !== 'reps' && ` ${unit}`}</span>
         {!s.metTarget && <span className="wd-c text-sm font-semibold text-[#ff7a70]">bajo el rango</span>}
         <span className="hidden text-sm text-mute sm:inline">{info.short}</span>
         <span className="wd-c flex items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
@@ -117,7 +118,7 @@ function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog
         <span className="num grid h-7 w-7 shrink-0 place-items-center text-base text-mute">{n}</span>
         <div className="grid flex-1 grid-cols-2 gap-2">
           <Stepper compact label={`Peso serie ${n}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
-          <Stepper compact label={`Repeticiones serie ${n}`} unit="reps" value={s.reps} step={1} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
+          <Stepper compact label={`${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} serie ${n}`} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
         </div>
         <button type="button" aria-label={s.done ? `Desmarcar serie ${n}` : `Completar serie ${n}`}
           onClick={async (e) => { e.stopPropagation(); if (s.done) { await run(() => uncompleteSet(s.id)); } else if (await run(() => completeSet(s.id))) onDone(); }}
@@ -180,7 +181,7 @@ function SetRow({ s, n, step, open, prev, halfRir, onOpen, onDone }: { s: SetLog
 // ---------- Panel del ejercicio actual ----------
 function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest, onNext, hasNext }: { session: Session; ex: ExerciseDef; sets: SetLog[]; history: ASet[]; readiness: number | null; halfRir: boolean; onRest: (sec: number) => void; onNext: () => void; hasNext: boolean }) {
   const run = useAction(); const { confirm, toast } = useUi();
-  const target: Target = session.targets[ex.id] ?? DEFAULT_TARGET[ex.type];
+  const target: Target = session.targets[ex.id] ?? defaultTarget(ex);
   const past = useMemo(() => sessionsOf(history, ex.id), [history, ex.id]);
   const rec = useMemo(() => recommend({ exType: ex.type, increment: ex.increment, target, history: past, readiness }), [ex, target, past, readiness]);
   const last = past[0];
@@ -202,7 +203,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
           </div>
         </div>
         <button type="button" onClick={() => setEditTarget(true)} aria-label={`Objetivo: ${target.sets} × ${target.repMin}–${target.repMax}, RIR ${target.rirMin}–${target.rirMax}. Editar`} className="mt-4 grid w-full grid-cols-4 divide-x divide-line rounded-ctl bg-card py-2.5 text-center transition-colors hover:bg-card2">
-          {[['Series', target.sets], ['Repeticiones', `${target.repMin}–${target.repMax}`], ['RIR', target.rirMin === target.rirMax ? target.rirMin : `${target.rirMin}–${target.rirMax}`], ['Descanso', `${target.restSec} s`]].map(([k, v]) => (
+          {[['Series', target.sets], [ex.measure === 'reps' ? 'Repeticiones' : ex.measure === 'time' ? 'Segundos' : 'Metros', `${target.repMin}–${target.repMax}`], ['RIR', target.rirMin === target.rirMax ? target.rirMin : `${target.rirMin}–${target.rirMax}`], ['Descanso', `${target.restSec} s`]].map(([k, v]) => (
             <span key={k} className="px-1"><span className="num block text-base leading-tight">{v}</span><span className="label block !text-xs">{k}</span></span>
           ))}
         </button>
@@ -213,11 +214,11 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
         </p>
       </div>
 
-      <RecommendationCard rec={rec} compact />
+      <RecommendationCard rec={rec} compact measure={ex.measure} />
 
       <div className="space-y-1.5">
         {sets.map((s, i) => (
-          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} open={openId === s.id} prev={sets[i - 1]} halfRir={halfRir}
+          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={sets[i - 1]} halfRir={halfRir}
             onOpen={() => setOpenId(s.id)}
             onDone={() => { onRest(target.restSec); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); }} />
         ))}
@@ -231,7 +232,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
       <button type="button" className="wd-c w-full py-2 text-sm text-mute underline" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
 
       <Sheet open={editTarget} onClose={() => setEditTarget(false)} title="Objetivo de hoy">
-        <TargetEditor value={target} onChange={(t) => run(() => updateSessionTarget(session.id, ex.id, t))} />
+        <TargetEditor value={target} measure={ex.measure} onChange={(t) => run(() => updateSessionTarget(session.id, ex.id, t))} />
         <p className="mt-3 text-xs text-mute">Cambia solo esta sesión. Para cambiarlo de forma permanente, edita la rutina.</p>
       </Sheet>
       <ExerciseDetail ex={detail ? ex : null} onClose={() => setDetail(false)} />

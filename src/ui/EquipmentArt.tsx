@@ -44,6 +44,41 @@ const ART: Record<Equipment, JSX.Element> = {
     <path {...A} d="M42 40l16 12" strokeWidth={3} /><rect x={53} y={48} width={12} height={8} rx={4} fill="#ff6a1a" />
     <path {...S} d="M48 30a14 14 0 0110 8" strokeDasharray="2 5" />
   </g>),
+  ez_bar: (<g>
+    <path {...S} d="M4 36h12l5-5 9 10 6-10 6 10 9-10 5 5h12" strokeWidth={3} />{plate(11, 36, 26)}{plate(61, 36, 26)}
+  </g>),
+  trap_bar: (<g>
+    <path {...S} d="M24 20h24l12 16-12 16H24L12 36z" /><path {...S} d="M2 36h10M60 36h10" strokeWidth={3} />{plate(6, 36, 24)}{plate(66, 36, 24)}
+    <path {...A} d="M29 30v12M43 30v12" strokeWidth={3.4} />
+  </g>),
+  landmine: (<g>
+    <path {...S} d="M8 62h56" /><path {...S} d="M10 62l6-10 6 10" /><circle cx={16} cy={52} r={3.5} fill="currentColor" />
+    <path {...S} d="M16 52L58 14" strokeWidth={3} /><circle cx={50} cy={21} r={9} {...A} strokeWidth={3} /><circle cx={50} cy={21} r={2} fill="#ff6a1a" />
+  </g>),
+  kettlebell: (<g>
+    <path {...S} d="M25 32c-5-13 2-22 11-22s16 9 11 22" strokeWidth={3.4} /><circle cx={36} cy={44} r={18} fill="#ff6a1a" />
+    <path d="M28 40a10 10 0 0116 0" stroke="#16181b" strokeWidth={1.6} fill="none" strokeLinecap="round" />
+  </g>),
+  plate: (<g>
+    <circle cx={36} cy={36} r={27} {...S} /><circle cx={36} cy={36} r={17} {...A} strokeWidth={5} /><circle cx={36} cy={36} r={4.5} fill="currentColor" />
+  </g>),
+  band: (<g>
+    <path {...A} d="M10 36c0-16 52-16 52 0S10 52 10 36z" strokeWidth={4} /><path {...S} d="M24 36c4-5 8 5 12 0s8 5 12 0" />
+  </g>),
+  suspension: (<g>
+    <path {...S} d="M12 8h48" strokeWidth={3} /><path {...S} d="M36 8L20 46M36 8l16 38" />
+    <path {...A} d="M12 46h16l-8 14zM44 46h16l-8 14z" strokeWidth={3} />
+  </g>),
+  medball: (<g>
+    <circle cx={36} cy={36} r={25} {...S} /><path {...A} d="M12 30c14 10 34 10 48 0M30 12c-8 16-8 32 0 48" />
+  </g>),
+  sled: (<g>
+    <path {...S} d="M8 58h50l8-8" strokeWidth={3} /><path {...A} d="M20 58V16M48 58V16" strokeWidth={3.4} />
+    <rect x={28} y={44} width={12} height={12} rx={2} fill="#ff6a1a" /><rect x={30} y={34} width={8} height={9} rx={2} fill="#ff6a1a" opacity={0.7} />
+  </g>),
+  other: (<g>
+    <path {...S} d="M12 30h36v32H12zM12 30l8-8h36l-8 8M56 22v32l-8 8" /><path {...A} d="M22 46c4-6 8 6 12 0s8 6 12 0" /><circle cx={54} cy={12} r={5} {...A} />
+  </g>),
 };
 
 export function EquipmentArt({ equipment, size = 56, className }: { equipment: Equipment; size?: number; className?: string }) {

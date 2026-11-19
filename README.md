@@ -39,7 +39,7 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Recuperación de sesión tras cerrar la app, pausa/reanudar, temporizador de descanso | Completo |
 | Motor de doble progresión con explicación, factores y confianza | Completo |
 | Constructor de rutinas + plantillas PPL, Torso/Pierna, Full Body | Completo |
-| Biblioteca (más de 60 ejercicios), ejercicios propios, máquina del gimnasio, foto propia | Completo |
+| Biblioteca de 448 ejercicios y 76 equipos (ver `docs/CATALOGO.md`), ejercicios propios, máquina del gimnasio, foto propia | Completo |
 | Volumen por músculo (directas/indirectas con coeficiente), distribución por RIR, tendencias | Completo |
 | Historial, calendario, edición/eliminación, gráficos por ejercicio, récords, 1RM estimado | Completo |
 | Recuperación y fatiga, peso corporal | Completo |

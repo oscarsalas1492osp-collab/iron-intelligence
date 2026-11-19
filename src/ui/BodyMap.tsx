@@ -8,16 +8,23 @@ import type { Muscle } from '../domain/types';
 
 const RULES: [RegExp, Muscle][] = [
   [/^chest-/, 'chest'],
-  [/^(lats|traps|lower-back)-/, 'back'],
+  [/^lats-/, 'back'],
+  [/^traps-/, 'traps'],
+  [/^lower-back-/, 'lowerback'],
   [/^(shoulder-(front|side)|deltoid-rear)-/, 'shoulders'],
   [/^biceps-/, 'biceps'],
   [/^triceps-/, 'triceps'],
   [/^forearm/, 'forearms'],
-  [/^(abs|obliques)-/, 'abs'],
-  [/^gluteus-/, 'glutes'],
+  [/^abs-/, 'abs'],
+  [/^obliques-/, 'obliques'],
+  [/^gluteus-maximus-/, 'glutes'],
+  [/^gluteus-medius-/, 'abductors'],
+  [/^adductors-/, 'adductors'],
   [/^quads-/, 'quads'],
   [/^hamstrings-/, 'hamstrings'],
   [/^calves-/, 'calves'],
+  [/^tibialis-anterior-/, 'tibialis'],
+  [/^(neck-|nape)/, 'neck'],
 ];
 const groupOf = (id: string): Muscle | null => RULES.find(([r]) => r.test(id))?.[1] ?? null;
 const REGIONS = [...FRONT_MUSCLES, ...BACK_MUSCLES].map((m) => ({ id: m.id as string, d: m.path, group: groupOf(m.id as string) }));

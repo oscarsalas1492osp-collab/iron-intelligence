@@ -2,14 +2,22 @@
 // Todas las entidades persistentes comparten los campos de sincronización de `Base`.
 
 export type Muscle =
-  | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'forearms'
-  | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'abs';
+  | 'chest' | 'back' | 'traps' | 'shoulders' | 'biceps' | 'triceps' | 'forearms'
+  | 'abs' | 'obliques' | 'lowerback' | 'glutes' | 'abductors' | 'adductors'
+  | 'quads' | 'hamstrings' | 'calves' | 'tibialis' | 'neck';
 
 export type Equipment =
-  | 'machine' | 'cable' | 'dumbbell' | 'barbell' | 'smith'
-  | 'bodyweight' | 'lever' | 'convergent' | 'isolation_machine';
+  | 'machine' | 'isolation_machine' | 'convergent' | 'lever' | 'cable' | 'smith'
+  | 'barbell' | 'ez_bar' | 'trap_bar' | 'landmine' | 'dumbbell' | 'kettlebell' | 'plate'
+  | 'band' | 'bodyweight' | 'suspension' | 'medball' | 'sled' | 'other';
 
 export type ExType = 'compound' | 'isolation';
+
+/** Qué se anota en la columna de repeticiones: repeticiones, segundos o metros. */
+export type Measure = 'reps' | 'time' | 'distance';
+
+/** Familia de entrenamiento, para filtrar el catálogo. */
+export type Category = 'strength' | 'functional' | 'power' | 'calisthenics';
 
 /** Motivo por el que terminó la serie. El RIR 0 no implica por sí solo fallo muscular momentáneo. */
 export type EndReason = 'none' | 'momentary' | 'technical' | 'voluntary' | 'fatigue';
@@ -32,6 +40,12 @@ export interface ExerciseDef {
   type: ExType;
   equipment: Equipment;
   machine: string;
+  /** Porción o énfasis dentro del grupo principal (p. ej. «Pectoral superior»). */
+  focus: string;
+  /** Otros nombres con los que se conoce el ejercicio, para la búsqueda. */
+  aka: string;
+  measure: Measure;
+  category: Category;
   cues: string[];
   mistakes: string[];
   rom: string;
@@ -142,3 +156,13 @@ export const DEFAULT_TARGET: Record<ExType, Target> = {
   compound: { sets: 3, repMin: 8, repMax: 12, rirMin: 1, rirMax: 2, restSec: 120 },
   isolation: { sets: 3, repMin: 10, repMax: 15, rirMin: 0, rirMax: 2, restSec: 90 },
 };
+
+/** Objetivo inicial según cómo se mide y a qué familia pertenece el ejercicio. */
+export function defaultTarget(ex?: Pick<ExerciseDef, 'type' | 'measure' | 'category'> | null): Target {
+  if (!ex) return DEFAULT_TARGET.compound;
+  if (ex.measure === 'time') return { sets: 3, repMin: 30, repMax: 60, rirMin: 1, rirMax: 2, restSec: 90 };
+  if (ex.measure === 'distance') return { sets: 3, repMin: 20, repMax: 40, rirMin: 1, rirMax: 2, restSec: 120 };
+  // Potencia: pocas repeticiones rápidas y lejos del fallo; la velocidad es el objetivo.
+  if (ex.category === 'power') return { sets: 4, repMin: 3, repMax: 5, rirMin: 2, rirMax: 4, restSec: 150 };
+  return DEFAULT_TARGET[ex.type];
+}

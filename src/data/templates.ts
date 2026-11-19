@@ -1,6 +1,6 @@
 // Plantillas de rutina. Son puntos de partida editables, no prescripciones.
 import { LIBRARY } from '../domain/exerciseLibrary';
-import { DEFAULT_TARGET, type Target } from '../domain/types';
+import { defaultTarget, type Target } from '../domain/types';
 
 export interface TemplateDay { name: string; days: number[]; exercises: (string | [string, Partial<Target>])[] }
 export interface Template { id: string; name: string; split: string; description: string; routines: TemplateDay[] }
@@ -32,5 +32,5 @@ export const TEMPLATES: Template[] = [
 
 export function targetFor(exerciseId: string, over: Partial<Target> = {}): Target {
   const e = LIBRARY.find((x) => x.id === exerciseId);
-  return { ...DEFAULT_TARGET[e?.type ?? 'compound'], ...over };
+  return { ...defaultTarget(e), ...over };
 }

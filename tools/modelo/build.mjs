@@ -8,18 +8,26 @@ import draco3d from 'draco3dgltf';
 
 const [,, input, output, ratioArg] = process.argv;
 const ratio = Number(ratioArg ?? 0.6);
+// El orden importa: el primer grupo cuyo patrón coincide se queda con la malla.
 const G = {
   chest: [/^Pectoralis Major/],
-  back: [/^Latissimus Dorsi/, /^Trapezius/, /^Rhomboid/, /^Teres/, /^Infraspinatus/, /^Supraspinatus/, /^Iliocostalis/, /^Longissimus/, /^Spinalis/, /^Multifidus/, /^Quadratus Lumborum/],
+  neck: [/^Sternocleidomastoid/, /^Splenius/, /^Scalene/, /^Levator Scapulae/, /^Semispinalis/, /Longissimus Capitis/],
+  traps: [/^Trapezius/],
+  lowerback: [/^Iliocostalis/, /^Longissimus/, /^Spinalis/, /^Multifidus/, /^Quadratus Lumborum/],
+  back: [/^Latissimus Dorsi/, /^Rhomboid/, /^Teres/, /^Infraspinatus/, /^Supraspinatus/],
   shoulders: [/^Deltoid/],
   biceps: [/^Biceps$/, /Biceps Brachii/, /^Brachialis/, /^Coracobrachialis/],
   triceps: [/^Triceps/, /^Anconeus/],
   forearms: [/^Brachioradialis/, /Extensor Carpi/, /Flexor Carpi/, /^Flexor Digitorum (Superficialis|Profundus)/, /Flexor Digitorum Superficialis/, /^Extensor Digitorum$/, /^Extensor Digiti Minimi/, /^Extensor Indicis/, /^Extensor Pollicis/, /^Abductor Pollicis Longus/, /^Flexor Pollicis Longus/, /^Palmaris Longus/, /Pronator/, /^Supinator/],
   quads: [/^Quadriceps Femoris/],
   hamstrings: [/Biceps Femoris/, /^Semitendinosus/, /^Semimembranosus/],
+  abductors: [/^Gluteus (Medius|Minimus)/],
   glutes: [/^Gluteus/],
+  adductors: [/^Adductor (Brevis|Longus|Magnus)/, /^Gracilis/, /^Pectineus/],
   calves: [/^Gastrocnemius/, /^Soleus/, /^Plantaris/],
-  abs: [/^Rectus Abdominis/, /^Abdominal (External|Internal) Oblique/, /^Pyramidalis/],
+  tibialis: [/^Tibialis Anterior/, /^Extensor Digitorum Longus/, /^Extensor Hallucis Longus/],
+  obliques: [/^Abdominal (External|Internal) Oblique/],
+  abs: [/^Rectus Abdominis/, /^Pyramidalis/],
 };
 // Estructuras internas que no aportan a la silueta y solo suman peso.
 const DROP = [/Arytenoid/, /Pharyng/, /Thyro/, /Cricothyroid/, /Genio/, /Hyoglossus/, /Stylo/, /Palato/, /Diaphragm/, /Transversus Thoracis/, /Innermost Intercostal/, /^(Inferior|Superior|Lateral|Medial) Rectus$/, /^(Inferior|Superior) Oblique$/, /Levator Palpebrae/, /Tarsus/, /Common Tendinous Ring/, /Psoas/, /Iliacus/, /Transverse Abdominal/, /Longus (Colli|Capitis)/, /Rotatores/, /Interspinales/, /Intertransversarii/, /Levatores/, /Obturator/, /Gemelli/, /Quadratus Femoris/, /Piriformis/, /Subscapularis/, /Pterygoid/];

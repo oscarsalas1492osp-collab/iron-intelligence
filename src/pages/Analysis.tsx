@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DAY, e1rm, weekStart } from '../domain/calc';
 import { hotTone, type Tones } from '../domain/heat';
-import { MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
+import { MAIN_MUSCLES, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { trendOf } from '../domain/progression';
 import type { Muscle } from '../domain/types';
 import { inWeek, muscleVolume, rirDistribution, sessionsOf, tonnage, topContributors, weeklySeries } from '../domain/volume';
@@ -70,7 +70,7 @@ export default function Analysis() {
           <H2>Series por grupo muscular</H2>
           <Card>
             <div className="space-y-2.5">
-              {vol.map((v) => (
+              {vol.filter((v) => MAIN_MUSCLES.includes(v.muscle) || v.fractional > 0 || v.muscle === muscle).map((v) => (
                 <button type="button" key={v.muscle} onClick={() => setMuscle(v.muscle)} className="block w-full text-left" aria-label={`${MUSCLE_LABEL[v.muscle]}: ${v.direct} directas, ${v.indirect} indirectas`}>
                   <div className="mb-1 flex items-baseline justify-between text-sm">
                     <span className={v.muscle === muscle ? 'font-bold text-chalk' : 'text-mute'}>{MUSCLE_LABEL[v.muscle]}{profile.priorityMuscles.includes(v.muscle) && <Icon name="star" size={13} className="ml-1.5 inline -translate-y-px text-fire" />}</span>

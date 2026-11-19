@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../data/db';
 import { addItem, deleteItem, deleteRoutine, moveItem, saveItem, saveRoutine, startSession } from '../data/repo';
-import { MUSCLE_LABEL } from '../domain/muscles';
-import type { RoutineItem, Target } from '../domain/types';
+import { MEASURE_UNIT, MUSCLE_LABEL } from '../domain/muscles';
+import type { Measure, RoutineItem, Target } from '../domain/types';
 import { useActiveSession, useAllItems, useExMap } from '../hooks';
 import { Btn, Empty, Field, Icon, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
@@ -12,7 +12,9 @@ import { ExercisePicker } from './Library';
 import { DAY_LABEL, DAY_ORDER } from './Routines';
 
 /** Editor de objetivos (series, rango, RIR, descanso). Se usa en rutinas y durante la sesión. */
-export function TargetEditor({ value, onChange }: { value: Target; onChange: (t: Target) => void }) {
+export function TargetEditor({ value, onChange, measure = 'reps' }: { value: Target; onChange: (t: Target) => void; measure?: Measure }) {
+  const [lo, hi] = measure === 'reps' ? ['Reps mínimas', 'Reps máximas'] : measure === 'time' ? ['Segundos mínimos', 'Segundos máximos'] : ['Metros mínimos', 'Metros máximos'];
+  const step = measure === 'reps' ? 1 : 5;
   const set = (p: Partial<Target>) => {
     const t = { ...value, ...p };
     if (t.repMin > t.repMax) { if ('repMin' in p) t.repMax = t.repMin; else t.repMin = t.repMax; }
@@ -23,8 +25,8 @@ export function TargetEditor({ value, onChange }: { value: Target; onChange: (t:
     <div className="grid grid-cols-2 gap-3">
       <Stepper label="Series" value={value.sets} min={1} max={12} onChange={(v) => set({ sets: Math.round(v) })} />
       <Stepper label="Descanso (s)" value={value.restSec} step={15} min={0} max={900} onChange={(v) => set({ restSec: Math.round(v) })} />
-      <Stepper label="Reps mínimas" value={value.repMin} min={1} max={100} onChange={(v) => set({ repMin: Math.round(v) })} />
-      <Stepper label="Reps máximas" value={value.repMax} min={1} max={100} onChange={(v) => set({ repMax: Math.round(v) })} />
+      <Stepper label={lo} value={value.repMin} step={step} min={1} max={100} onChange={(v) => set({ repMin: Math.round(v) })} />
+      <Stepper label={hi} value={value.repMax} step={step} min={1} max={100} onChange={(v) => set({ repMax: Math.round(v) })} />
       <Stepper label="RIR mínimo" value={value.rirMin} min={0} max={10} onChange={(v) => set({ rirMin: Math.round(v) })} />
       <Stepper label="RIR máximo" value={value.rirMax} min={0} max={10} onChange={(v) => set({ rirMax: Math.round(v) })} />
     </div>
@@ -77,7 +79,7 @@ export default function RoutineEditor() {
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEdit(it)}>
                 <div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>
                 <div className="wd-c text-sm text-mute truncate">{e ? MUSCLE_LABEL[e.primary] : ''}</div>
-                <div className="wd-c mt-0.5 text-sm tnum"><span className="text-chalk font-semibold">{it.sets} × {it.repMin}–{it.repMax}</span><span className="text-fire"> RIR {it.rirMin}–{it.rirMax}</span><span className="text-mute">, {it.restSec} s</span></div>
+                <div className="wd-c mt-0.5 text-sm tnum"><span className="text-chalk font-semibold">{it.sets} × {it.repMin}–{it.repMax}{e && e.measure !== 'reps' ? ` ${MEASURE_UNIT[e.measure]}` : ''}</span><span className="text-fire"> RIR {it.rirMin}–{it.rirMax}</span><span className="text-mute">, {it.restSec} s</span></div>
               </button>
               <button type="button" aria-label="Editar objetivos" onClick={() => setEdit(it)} className="grid h-9 w-9 place-items-center rounded-full bg-card2 text-mute"><Icon name="edit" size={16} /></button>
             </div>
@@ -95,7 +97,7 @@ export default function RoutineEditor() {
       <ExercisePicker open={picker} onClose={() => setPicker(false)} exclude={items.map((i) => i.exerciseId)} onPick={(e) => run(() => addItem(id, e.id))} />
       <Sheet open={!!edit} onClose={() => setEdit(null)} title={edit ? ex.get(edit.exerciseId)?.name : ''}>
         {edit && <>
-          <TargetEditor value={edit} onChange={(t) => setEdit({ ...edit, ...t })} />
+          <TargetEditor value={edit} measure={ex.get(edit.exerciseId)?.measure} onChange={(t) => setEdit({ ...edit, ...t })} />
           <p className="mt-3 text-xs text-mute">Los cambios aplican desde la próxima sesión; el historial conserva los objetivos con los que se entrenó.</p>
           <div className="mt-4 flex gap-2">
             <Btn variant="danger" icon="trash" onClick={async () => { await run(() => deleteItem(edit.id)); setEdit(null); }}>Quitar</Btn>
