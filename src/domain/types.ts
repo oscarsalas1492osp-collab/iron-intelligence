@@ -83,6 +83,8 @@ export interface RoutineItem extends Base, Target {
   routineId: string;
   exerciseId: string;
   order: number;
+  /** Clave compartida por los 2–3 ejercicios de una biserie o triserie; null si va suelto. */
+  superset: string | null;
 }
 
 export interface Session extends Base {
@@ -97,7 +99,12 @@ export interface Session extends Base {
   exerciseIds: string[];
   /** Copia de los objetivos al iniciar: cambiar la rutina después no altera el historial. */
   targets: Record<string, Target>;
+  /** Biseries y triseries de la sesión: cada grupo lista 2–3 ejercicios que se hacen seguidos, sin descanso. */
+  supersets: string[][];
 }
+
+/** Técnica que alarga una serie; vacío en una serie normal. */
+export type Technique = '' | 'drop' | 'restpause' | 'myo' | 'cluster';
 
 export interface SetLog extends Base {
   sessionId: string;
@@ -116,6 +123,9 @@ export interface SetLog extends Base {
   /** Descanso real tomado antes de esta serie, en segundos. */
   restSec: number | null;
   note: string;
+  /** Tramo añadido con una técnica avanzada: comparte `order` con su serie principal y `sub` lo numera (0 = serie principal). */
+  technique: Technique;
+  sub: number;
 }
 
 export interface RecoveryLog extends Base {

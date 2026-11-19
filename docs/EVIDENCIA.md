@@ -78,3 +78,18 @@ Fuentes: [Bell et al., Sports Med Open 2023](https://pmc.ncbi.nlm.nih.gov/articl
 **Hallazgo.** Las fórmulas de 1RM (aquí Epley con repeticiones + RIR) pierden precisión con muchas repeticiones. Los cuestionarios de bienestar son subjetivos.
 
 **En la app.** El 1RM se muestra siempre como estimación y no se calcula por encima de 15 repeticiones hasta el fallo. El puntaje de recuperación es una ponderación propia de lo que declaras, solo como contexto.
+
+## Técnicas avanzadas: dropset, descanso-pausa, myo-reps y cluster
+*evidencia*
+
+**Hallazgo.** Dos metaanálisis de dropsets (Sødal et al. 2023; Coleman et al. 2022) no encontraron diferencias de hipertrofia frente a las series tradicionales; en los estudios que midieron la duración, las sesiones con dropsets tomaron entre la mitad y un tercio del tiempo. Un metaanálisis de 2026 sobre sistemas avanzados (Tsartsapakis et al.) concluye que dropsets y clusters rinden parecido a las series tradicionales cuando se igualan volumen y esfuerzo, y atribuye al descanso-pausa una ventaja pequeña. Los clusters atenúan la pérdida de velocidad dentro de la serie (Latella et al. 2019) y, con series y esfuerzo igualados, dieron hipertrofia similar (Vargas-Molina et al. 2025). Las myo-reps son una variante del descanso-pausa sin estudios propios.
+
+**En la app.** En cada serie, el botón «Técnica» añade un tramo: la bajada de un dropset parte con un 20 % menos de carga, redondeada al paso de la máquina; el descanso-pausa, las myo-reps y el cluster mantienen la carga e inician una pausa corta (15–20 s). Los tramos suman tonelaje y aparecen en el historial bajo su serie, pero cuentan como parte de esa misma serie en el volumen semanal y no entran en la recomendación de carga. Esa forma de contar es una convención práctica, no un valor medido.
+
+## Biseries y triseries
+*evidencia*
+
+**Hallazgo.** Un metaanálisis de 19 estudios (Zhang et al., Sports Medicine 2025) encontró que las biseries permiten un número de repeticiones y un volumen similares a las series tradicionales con sesiones más cortas, con más lactato y esfuerzo percibido, y adaptaciones a largo plazo comparables en fuerza máxima, resistencia e hipertrofia. Las biseries de músculos opuestos permitieron incluso más repeticiones.
+
+**En la app.** Dos o tres ejercicios se unen manteniendo presionado uno y arrastrándolo sobre otro, o con el botón equivalente. Una serie es la ronda completa; dentro de la ronda no hay descanso y, al terminarla, corre el descanso más largo de los ejercicios unidos. Cada ejercicio conserva su registro, su objetivo y su recomendación.
+

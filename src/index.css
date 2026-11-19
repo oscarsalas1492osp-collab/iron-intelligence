@@ -17,7 +17,7 @@ body {
   font-stretch: 100%;
   font-feature-settings: 'tnum' 0;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none; /* sin rebote ni navegación del navegador al deslizar a los lados */
 }
 /* Superficies del navegador: selección, cursor, foco y barras de desplazamiento con la paleta. */
 ::selection { background: #ff6a1a; color: #16181b; }

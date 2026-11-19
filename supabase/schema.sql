@@ -88,6 +88,12 @@ create table if not exists public.set_logs (
   completed_at bigint, rest_sec numeric, note text not null default ''
 );
 
+-- Biseries/triseries y técnicas avanzadas (columnas añadidas sin tocar los datos existentes).
+alter table public.routine_items add column if not exists superset text;
+alter table public.sessions add column if not exists supersets jsonb not null default '[]';
+alter table public.set_logs add column if not exists technique text not null default '' check (technique in ('','drop','restpause','myo','cluster'));
+alter table public.set_logs add column if not exists sub int not null default 0 check (sub between 0 and 12);
+
 create table if not exists public.recovery_logs (
   id text primary key,
   user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),

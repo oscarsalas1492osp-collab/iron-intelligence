@@ -160,18 +160,20 @@ export function Stepper({ value, onChange, step = 1, min = 0, max = 9999, label,
     if (!Number.isNaN(n)) onChange(fix(n));
     setText(null);
   };
+  // Las cifras largas (122,5 kg) reducen un poco el tamaño para caber completas.
+  const shown = text ?? String(value);
   return (
     <div className="min-w-0">
       {!compact && <div className="label mb-1.5">{label}</div>}
       <div className={cx('flex items-stretch overflow-hidden rounded-ctl bg-card2', compact ? 'h-12' : 'h-12')}>
-        <button type="button" aria-label={`Disminuir ${label}`} onClick={() => onChange(fix(value - step))} className="grid w-10 shrink-0 place-items-center text-mute transition-colors hover:text-chalk active:bg-line"><Icon name="minus" size={16} /></button>
+        <button type="button" aria-label={`Disminuir ${label}`} onClick={() => onChange(fix(value - step))} className={cx('grid shrink-0 place-items-center text-mute transition-colors hover:text-chalk active:bg-line', compact ? 'w-8' : 'w-10')}><Icon name="minus" size={16} /></button>
         <div className="relative min-w-0 flex-1">
-          <input aria-label={label} inputMode="decimal" value={text ?? String(value)} onFocus={(e) => { setText(String(value)); e.target.select(); }} onChange={(e) => setText(e.target.value)} onBlur={commit}
+          <input aria-label={label} inputMode="decimal" value={shown} onFocus={(e) => { setText(String(value)); e.target.select(); }} onChange={(e) => setText(e.target.value)} onBlur={commit}
             onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-            className={cx('num !h-full !w-full !rounded-none !border-0 !bg-transparent !px-0 text-center', unit ? '!pb-3 !pt-0' : '!py-0')} style={{ fontSize: 19 }} />
+            className={cx('num !h-full !w-full !rounded-none !border-0 !bg-transparent !px-0 text-center', unit ? '!pb-3 !pt-0' : '!py-0')} style={{ fontSize: compact ? (shown.length >= 6 ? 14 : shown.length >= 5 ? 16 : shown.length >= 3 ? 17 : 19) : 19 }} />
           {unit && text == null && <span className="wd-c pointer-events-none absolute inset-x-0 bottom-1 text-center text-[11px] font-semibold text-mute">{unit}</span>}
         </div>
-        <button type="button" aria-label={`Aumentar ${label}`} onClick={() => onChange(fix(value + step))} className="grid w-10 shrink-0 place-items-center text-mute transition-colors hover:text-chalk active:bg-line"><Icon name="plus" size={16} /></button>
+        <button type="button" aria-label={`Aumentar ${label}`} onClick={() => onChange(fix(value + step))} className={cx('grid shrink-0 place-items-center text-mute transition-colors hover:text-chalk active:bg-line', compact ? 'w-8' : 'w-10')}><Icon name="plus" size={16} /></button>
       </div>
     </div>
   );

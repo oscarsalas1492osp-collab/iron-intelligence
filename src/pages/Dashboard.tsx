@@ -8,7 +8,7 @@ import { LEGEND, weekHeat } from '../domain/heat';
 import { MAIN_MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { fatigueStatus, LEVEL_COLOR } from '../domain/recovery';
 import type { Muscle } from '../domain/types';
-import { inWeek, muscleVolume, personalRecords, tonnage } from '../domain/volume';
+import { inWeek, mainSets, muscleVolume, personalRecords, tonnage } from '../domain/volume';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useSessions, useUserId } from '../hooks';
 import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Icon, Spark, useAction } from '../ui/components';
@@ -68,7 +68,8 @@ export default function Dashboard() {
   const trained = vol.filter((v) => v.direct > 0);
   const pending = vol.filter((v) => v.fractional === 0 && MAIN_MUSCLES.includes(v.muscle));
   const bw = weights[weights.length - 1];
-  const dSets = pctDelta(week.length, prevWeek.length), dTon = pctDelta(tonnage(week), tonnage(prevWeek));
+  const nWeek = mainSets(week).length;
+  const dSets = pctDelta(nWeek, mainSets(prevWeek).length), dTon = pctDelta(tonnage(week), tonnage(prevWeek));
   const selVol = sel ? vol.find((v) => v.muscle === sel) : null;
 
   const begin = async () => {
@@ -106,7 +107,7 @@ export default function Dashboard() {
             <BodyFigure tones={heat.tones} selected={sel} onSelect={(m) => setSel(sel === m ? null : m)} className="absolute inset-0" />
             <div className="pointer-events-none absolute left-0 top-1 space-y-4">
               <WeekFigure label="sesiones" value={new Set(week.map((s) => s.sessionId)).size} note={`de ${profile.daysAvailable} días`} />
-              <WeekFigure label="series" value={week.length} note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
+              <WeekFigure label="series" value={nWeek} note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
               <WeekFigure label="toneladas" value={(tonnage(week) / 1000).toFixed(1).replace('.', ',')} note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
             </div>
             <ul className="wd-c pointer-events-none absolute right-0 top-1 space-y-1.5 text-xs text-mute">

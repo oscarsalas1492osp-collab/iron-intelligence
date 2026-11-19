@@ -69,4 +69,23 @@ export const EVIDENCE: EvidenceItem[] = [
     kind: 'estimación práctica',
     refs: [],
   },
+  {
+    topic: 'Técnicas avanzadas: dropset, descanso-pausa, myo-reps y cluster',
+    finding: 'Con el volumen y el esfuerzo igualados, estas técnicas producen hipertrofia y fuerza comparables a las series tradicionales. Su ventaja es el tiempo: las sesiones con dropsets duraron entre la mitad y un tercio. A cambio generan más fatiga y esfuerzo percibido. Las myo-reps no tienen estudios propios.',
+    appRule: 'Cada técnica se anota como tramos pegados a su serie. Los tramos suman tonelaje, pero cuentan como parte de la misma serie en el volumen semanal y no alteran la recomendación de carga: es una convención práctica.',
+    kind: 'evidencia',
+    refs: [
+      { label: 'Sødal et al., Sports Med Open 2023', url: 'https://doi.org/10.1186/s40798-023-00620-5' },
+      { label: 'Tsartsapakis et al., JFMK 2026', url: 'https://www.mdpi.com/2411-5142/11/1/80' },
+      { label: 'Prestes et al., JSCR 2019', url: 'https://pubmed.ncbi.nlm.nih.gov/28617715/' },
+      { label: 'Vargas-Molina et al., EJAP 2025', url: 'https://doi.org/10.1007/s00421-025-05712-6' },
+    ],
+  },
+  {
+    topic: 'Biseries y triseries',
+    finding: 'Frente a las series tradicionales, las biseries permiten repeticiones y volumen similares con sesiones más cortas, y adaptaciones a largo plazo comparables en fuerza e hipertrofia, con más lactato y esfuerzo percibido. Emparejar músculos opuestos incluso permitió más repeticiones.',
+    appRule: 'Una serie de la biserie es la ronda completa de sus 2 o 3 ejercicios; el descanso empieza al terminarla. Cada ejercicio conserva su propio registro, objetivo y recomendación.',
+    kind: 'evidencia',
+    refs: [{ label: 'Zhang et al., Sports Med 2025', url: 'https://doi.org/10.1007/s40279-025-02176-8' }],
+  },
 ];

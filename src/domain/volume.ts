@@ -22,7 +22,12 @@ export interface ASet {
   rir: number | null;
   failure: boolean;
   endReason: EndReason;
+  /** Tramo de una técnica avanzada (bajada de un dropset, pausa de un descanso-pausa…): suma tonelaje, no cuenta como serie. */
+  ext?: boolean;
 }
+
+/** Series principales: las que cuentan como «una serie» en el volumen semanal y en la progresión. */
+export const mainSets = (sets: ASet[]): ASet[] => (sets.some((s) => s.ext) ? sets.filter((s) => !s.ext) : sets);
 
 export interface MuscleVolume { muscle: Muscle; direct: number; indirect: number; fractional: number; days: number }
 export type ExMap = Map<string, ExerciseDef>;
@@ -30,7 +35,7 @@ export type ExMap = Map<string, ExerciseDef>;
 export function muscleVolume(sets: ASet[], ex: ExMap, coef: number): MuscleVolume[] {
   const acc = new Map<Muscle, { direct: number; indirect: number; days: Set<string> }>();
   for (const m of MUSCLES) acc.set(m, { direct: 0, indirect: 0, days: new Set() });
-  for (const s of sets) {
+  for (const s of mainSets(sets)) {
     const e = ex.get(s.exerciseId);
     if (!e) continue;
     const p = acc.get(e.primary)!;
@@ -59,7 +64,7 @@ export function weeklySeries(sets: ASet[], ex: ExMap, coef: number, muscle: Musc
 export const RIR_BUCKETS = ['0 (fallo)', '1', '2', '3', '4+', 'Sin RIR'] as const;
 export function rirDistribution(sets: ASet[]): { bucket: string; count: number }[] {
   const c = [0, 0, 0, 0, 0, 0];
-  for (const s of sets) {
+  for (const s of mainSets(sets)) {
     if (s.rir == null) c[5]++;
     else if (s.rir < 0.75) c[0]++;
     else if (s.rir < 1.75) c[1]++;
@@ -76,7 +81,7 @@ export const tonnage = (sets: ASet[]): number => Math.round(sets.reduce((a, s) =
 /** Ejercicios que más series aportan a un músculo. */
 export function topContributors(sets: ASet[], ex: ExMap, coef: number, muscle: Muscle) {
   const m = new Map<string, number>();
-  for (const s of sets) {
+  for (const s of mainSets(sets)) {
     const e = ex.get(s.exerciseId);
     if (!e) continue;
     const w = e.primary === muscle ? 1 : e.secondary.includes(muscle) ? coef : 0;
@@ -88,7 +93,7 @@ export function topContributors(sets: ASet[], ex: ExMap, coef: number, muscle: M
 /** Agrupa las series de un ejercicio por sesión, de la más reciente a la más antigua. */
 export function sessionsOf(sets: ASet[], exerciseId: string): (PerfSession & { sessionId: string })[] {
   const by = new Map<string, ASet[]>();
-  for (const s of sets) if (s.exerciseId === exerciseId) (by.get(s.sessionId) ?? by.set(s.sessionId, []).get(s.sessionId)!).push(s);
+  for (const s of mainSets(sets)) if (s.exerciseId === exerciseId) (by.get(s.sessionId) ?? by.set(s.sessionId, []).get(s.sessionId)!).push(s);
   return [...by.entries()]
     .map(([sessionId, xs]) => ({ sessionId, date: xs[0].date, sets: xs.sort((a, b) => a.order - b.order) }))
     .sort((a, b) => b.date - a.date);

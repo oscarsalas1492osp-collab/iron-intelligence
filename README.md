@@ -36,6 +36,9 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Módulo | Estado |
 |---|---|
 | Registro por serie (peso, reps, RIR, RPE, fallo, motivo de fin, descanso real, nota) | Completo |
+| Técnicas avanzadas por serie: dropset, descanso-pausa, myo-reps y cluster (tramos bajo la serie) | Completo |
+| Biseries y triseries en rutinas y sesiones: arrastrar un ejercicio sobre otro o usar el botón; registro por rondas sin descanso intermedio | Completo |
+| Gestos en la sesión: deslizar a los lados para cambiar de ejercicio | Completo (probado con eventos táctiles en Chromium, no en un teléfono real) |
 | Recuperación de sesión tras cerrar la app, pausa/reanudar, temporizador de descanso | Completo |
 | Motor de doble progresión con explicación, factores y confianza | Completo |
 | Constructor de rutinas + plantillas PPL, Torso/Pierna, Full Body | Completo |

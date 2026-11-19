@@ -42,11 +42,11 @@ export async function exportCsv(): Promise<string> {
   const ex = new Map((await getExercises()).map((e) => [e.id, e.name]));
   const sessions = new Map((await db.sessions.toArray()).filter((s) => s.userId === uid && !s.deleted).map((s) => [s.id, s]));
   const sets = (await db.sets.toArray()).filter((s) => s.userId === uid && !s.deleted && s.done && sessions.has(s.sessionId));
-  sets.sort((a, b) => sessions.get(a.sessionId)!.startedAt - sessions.get(b.sessionId)!.startedAt || a.exerciseId.localeCompare(b.exerciseId) || a.order - b.order);
-  const head = ['fecha', 'sesion', 'ejercicio', 'serie', 'peso_kg', 'repeticiones', 'rir', 'rpe', 'fallo', 'motivo_fin', 'descanso_s', 'cumplio_minimo', 'nota'];
+  sets.sort((a, b) => sessions.get(a.sessionId)!.startedAt - sessions.get(b.sessionId)!.startedAt || a.exerciseId.localeCompare(b.exerciseId) || a.order - b.order || (a.sub ?? 0) - (b.sub ?? 0));
+  const head = ['fecha', 'sesion', 'ejercicio', 'serie', 'peso_kg', 'repeticiones', 'rir', 'rpe', 'fallo', 'motivo_fin', 'descanso_s', 'cumplio_minimo', 'nota', 'tecnica', 'tramo'];
   const rows = sets.map((s) => {
     const se = sessions.get(s.sessionId)!;
-    return [fmtLocal(se.startedAt), se.name, ex.get(s.exerciseId) ?? s.exerciseId, s.order + 1, s.weight, s.reps, s.rir ?? '', s.rpe ?? '', s.failure ? 'si' : 'no', s.endReason, s.restSec ?? '', s.metTarget ? 'si' : 'no', s.note].map(csvCell).join(';');
+    return [fmtLocal(se.startedAt), se.name, ex.get(s.exerciseId) ?? s.exerciseId, s.order + 1, s.weight, s.reps, s.rir ?? '', s.rpe ?? '', s.failure ? 'si' : 'no', s.endReason, s.restSec ?? '', s.metTarget ? 'si' : 'no', s.note, s.technique ?? '', s.sub ?? 0].map(csvCell).join(';');
   });
   return [head.join(';'), ...rows].join('\r\n');
 }

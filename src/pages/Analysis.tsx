@@ -5,7 +5,7 @@ import { hotTone, type Tones } from '../domain/heat';
 import { MAIN_MUSCLES, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { trendOf } from '../domain/progression';
 import type { Muscle } from '../domain/types';
-import { inWeek, muscleVolume, rirDistribution, sessionsOf, tonnage, topContributors, weeklySeries } from '../domain/volume';
+import { inWeek, mainSets, muscleVolume, rirDistribution, sessionsOf, tonnage, topContributors, weeklySeries } from '../domain/volume';
 import { useDoneSets, useExMap, useProfile } from '../hooks';
 import { BarC } from '../ui/charts';
 import { BodyFigure } from '../ui/BodyFigure';
@@ -40,7 +40,8 @@ export default function Analysis() {
 
   const label = `${new Date(start).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })} – ${new Date(start + 6 * DAY).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}`;
   const sessionsN = new Set(week.map((s) => s.sessionId)).size;
-  const delta = prev.length ? Math.round(((week.length - prev.length) / prev.length) * 100) : null;
+  const nWeek = mainSets(week).length, nPrev = mainSets(prev).length;
+  const delta = nPrev ? Math.round(((nWeek - nPrev) / nPrev) * 100) : null;
 
   return (
     <div>
@@ -54,7 +55,7 @@ export default function Analysis() {
       <Card className="mb-4">
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Sesiones" value={sessionsN} />
-          <Stat label="Series" value={week.length} sub={delta != null ? `${delta > 0 ? '+' : ''}${delta} % vs. semana previa` : undefined} />
+          <Stat label="Series" value={nWeek} sub={delta != null ? `${delta > 0 ? '+' : ''}${delta} % vs. semana previa` : undefined} />
           <Stat label="Carga movida" value={`${(tonnage(week) / 1000).toFixed(1)} t`} color="#5aa9ff" />
         </div>
       </Card>
@@ -92,8 +93,8 @@ export default function Analysis() {
               {dist.map((d, i) => (
                 <div key={d.bucket} className="flex items-center gap-3 text-sm">
                   <span className="w-20 shrink-0 text-mute">RIR {d.bucket.replace('Sin RIR', '—')}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-card2"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${week.length ? (d.count / week.length) * 100 : 0}%`, background: RIR_COLORS[i] }} /></div>
-                  <span className="w-14 shrink-0 text-right tnum text-xs"><b>{d.count}</b> <span className="text-mute">{week.length ? Math.round((d.count / week.length) * 100) : 0} %</span></span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-card2"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${nWeek ? (d.count / nWeek) * 100 : 0}%`, background: RIR_COLORS[i] }} /></div>
+                  <span className="w-14 shrink-0 text-right tnum text-xs"><b>{d.count}</b> <span className="text-mute">{nWeek ? Math.round((d.count / nWeek) * 100) : 0} %</span></span>
                 </div>
               ))}
             </div>

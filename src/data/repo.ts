@@ -4,7 +4,9 @@ import { clamp, rpeFromRir, uid, ymd } from '../domain/calc';
 import { isLibraryId, mergeExercises } from '../domain/exerciseLibrary';
 import { recommend, workWeight } from '../domain/progression';
 import { recentReadiness } from '../domain/recovery';
-import { defaultTarget, type Base, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Target } from '../domain/types';
+import { cleanGroups, joinGroup, leaveGroup, moveUnit, type Arrangement } from '../domain/superset';
+import { TECHNIQUE } from '../domain/techniques';
+import { defaultTarget, type Base, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Target, type Technique } from '../domain/types';
 import { validate, ValidationError, type TableName } from '../domain/validation';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db, getUserId } from './db';
@@ -93,18 +95,38 @@ export async function addItem(routineId: string, exerciseId: string, over: Parti
   const ex = (await getExercises()).find((e) => e.id === exerciseId);
   const items = await getItems(routineId);
   const target = { ...defaultTarget(ex), ...over };
-  return save('routineItems', { ...newBase(), routineId, exerciseId, order: items.length, ...target } as RoutineItem);
+  return save('routineItems', { ...newBase(), routineId, exerciseId, order: items.length, superset: null, ...target } as RoutineItem);
 }
 export const saveItem = (it: RoutineItem) => save('routineItems', it);
-export const deleteItem = (id: string) => softDelete('routineItems', id);
-export async function moveItem(routineId: string, id: string, dir: -1 | 1): Promise<void> {
-  const items = await getItems(routineId);
-  const i = items.findIndex((x) => x.id === id);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= items.length) return;
-  [items[i], items[j]] = [items[j], items[i]];
-  await Promise.all(items.map((it, k) => (it.order === k ? null : save('routineItems', { ...it, order: k }))));
+export async function deleteItem(id: string): Promise<void> {
+  const it = await db.routineItems.get(id);
+  await softDelete('routineItems', id);
+  if (it) await applyArrangement(it.routineId, (ids, groups) => ({ ids, groups }));
 }
+
+const groupsOfItems = (items: RoutineItem[]): string[][] => {
+  const by = new Map<string, string[]>();
+  for (const it of items) if (it.superset) (by.get(it.superset) ?? by.set(it.superset, []).get(it.superset)!).push(it.id);
+  return [...by.values()];
+};
+/** Reordena y reagrupa los ejercicios de una rutina y guarda solo las filas que cambian. */
+async function applyArrangement(routineId: string, fn: (ids: string[], groups: string[][]) => Arrangement): Promise<void> {
+  const items = await getItems(routineId);
+  const { ids, groups } = fn(items.map((i) => i.id), cleanGroups(items.map((i) => i.id), groupsOfItems(items)));
+  const key = new Map<string, string>();
+  for (const g of cleanGroups(ids, groups)) for (const id of g) key.set(id, g[0]);
+  for (const [k, id] of ids.entries()) {
+    const it = items.find((x) => x.id === id)!;
+    const superset = key.get(id) ?? null;
+    if (it.order !== k || (it.superset ?? null) !== superset) await save('routineItems', { ...it, order: k, superset });
+  }
+}
+/** Mueve un ejercicio (o su biserie completa) un lugar hacia arriba o hacia abajo. */
+export const moveItem = (routineId: string, id: string, dir: -1 | 1) => applyArrangement(routineId, (ids, groups) => moveUnit(ids, groups, id, dir));
+/** Une un ejercicio de la rutina con otro para formar una biserie, o con una biserie para formar una triserie. */
+export const groupItems = (routineId: string, dragId: string, targetId: string) => applyArrangement(routineId, (ids, groups) => joinGroup(ids, groups, dragId, targetId));
+export const ungroupItem = (routineId: string, id: string) => applyArrangement(routineId, (ids, groups) => leaveGroup(ids, groups, id));
+
 export async function createFromTemplate(templateId: string): Promise<Routine[]> {
   const t = TEMPLATES.find((x) => x.id === templateId);
   if (!t) throw new Error('Plantilla no encontrada');
@@ -114,7 +136,7 @@ export async function createFromTemplate(templateId: string): Promise<Routine[]>
     let order = 0;
     for (const e of d.exercises) {
       const [exerciseId, over] = typeof e === 'string' ? [e, {}] : e;
-      await save('routineItems', { ...newBase(), routineId: r.id, exerciseId, order: order++, ...targetFor(exerciseId, over) } as RoutineItem);
+      await save('routineItems', { ...newBase(), routineId: r.id, exerciseId, order: order++, superset: null, ...targetFor(exerciseId, over) } as RoutineItem);
     }
     out.push(r);
   }
@@ -128,7 +150,7 @@ export async function getDoneSets(includeActive = false): Promise<ASet[]> {
   const byId = new Map(sessions.map((s) => [s.id, s]));
   return mine(await db.sets.toArray())
     .filter((s) => s.done && byId.has(s.sessionId))
-    .map((s) => ({ sessionId: s.sessionId, exerciseId: s.exerciseId, date: byId.get(s.sessionId)!.startedAt, order: s.order, weight: s.weight, reps: s.reps, rir: s.rir, failure: s.failure, endReason: s.endReason }));
+    .map((s) => ({ sessionId: s.sessionId, exerciseId: s.exerciseId, date: byId.get(s.sessionId)!.startedAt, order: s.order, weight: s.weight, reps: s.reps, rir: s.rir, failure: s.failure, endReason: s.endReason, ...(s.sub ? { ext: true } : {}) }));
 }
 
 export async function recommendationFor(ex: ExerciseDef, target: Target, history?: ASet[]) {
@@ -152,7 +174,7 @@ async function presetSets(sessionId: string, ex: ExerciseDef, target: Target, hi
   return Array.from({ length: target.sets }, (_, i) => ({
     ...newBase(), sessionId, exerciseId: ex.id, order: i, weight,
     reps: weight === lastW && lastReps[i] != null ? clamp(lastReps[i], 1, 200) : target.repMin,
-    rir: null, rpe: null, failure: false, endReason: 'none' as const, metTarget: false, done: false, completedAt: null, restSec: null, note: '',
+    rir: null, rpe: null, failure: false, endReason: 'none' as const, metTarget: false, done: false, completedAt: null, restSec: null, note: '', technique: '' as const, sub: 0,
   }));
 }
 
@@ -168,6 +190,7 @@ export async function startSession(routineId: string | null): Promise<Session> {
     ...newBase(), routineId, name: routine?.name ?? 'Entrenamiento libre', startedAt: Date.now(), endedAt: null, status: 'active', pausedAt: null, pausedMs: 0, notes: '',
     exerciseIds: items.map((i) => i.exerciseId),
     targets: Object.fromEntries(items.map((i) => [i.exerciseId, { sets: i.sets, repMin: i.repMin, repMax: i.repMax, rirMin: i.rirMin, rirMax: i.rirMax, restSec: i.restSec }])),
+    supersets: cleanGroups(items.map((i) => i.exerciseId), groupsOfItems(items).map((g) => g.map((id) => items.find((i) => i.id === id)?.exerciseId ?? ''))),
   };
   await save('sessions', session);
   for (const it of items) {
@@ -193,7 +216,26 @@ export async function removeExerciseFromSession(sessionId: string, exerciseId: s
   const sets = (await db.sets.where('sessionId').equals(sessionId).toArray()).filter((s) => s.exerciseId === exerciseId);
   for (const s of sets) await softDelete('sets', s.id);
   const { [exerciseId]: _drop, ...targets } = session.targets;
-  await save('sessions', { ...session, exerciseIds: session.exerciseIds.filter((x) => x !== exerciseId), targets });
+  const exerciseIds = session.exerciseIds.filter((x) => x !== exerciseId);
+  await save('sessions', { ...session, exerciseIds, targets, supersets: cleanGroups(exerciseIds, session.supersets) });
+}
+
+/** Une dos ejercicios de la sesión en una biserie (o suma un tercero a una biserie). */
+export function groupInSession(sessionId: string, dragId: string, targetId: string): Promise<void> {
+  return db.transaction('rw', db.sessions, async () => {
+    const s = await db.sessions.get(sessionId);
+    if (!s) return;
+    const { ids, groups } = joinGroup(s.exerciseIds, s.supersets, dragId, targetId);
+    await save('sessions', { ...s, exerciseIds: ids, supersets: groups });
+  });
+}
+export function ungroupInSession(sessionId: string, exerciseId: string): Promise<void> {
+  return db.transaction('rw', db.sessions, async () => {
+    const s = await db.sessions.get(sessionId);
+    if (!s) return;
+    const { ids, groups } = leaveGroup(s.exerciseIds, s.supersets, exerciseId);
+    await save('sessions', { ...s, exerciseIds: ids, supersets: groups });
+  });
 }
 
 export function updateSessionTarget(sessionId: string, exerciseId: string, patch: Partial<Target>): Promise<void> {
@@ -237,17 +279,38 @@ export async function deleteSession(id: string): Promise<void> {
 
 // ---------- Series ----------
 export async function getSessionSets(sessionId: string): Promise<SetLog[]> {
-  return mine(await db.sets.where('sessionId').equals(sessionId).toArray()).sort((a, b) => a.order - b.order);
+  // Las series guardadas antes de las técnicas avanzadas no traen `technique` ni `sub`.
+  return mine(await db.sets.where('sessionId').equals(sessionId).toArray())
+    .map((s) => (s.sub == null || s.technique == null ? { ...s, sub: s.sub ?? 0, technique: s.technique ?? '' } : s))
+    .sort((a, b) => a.order - b.order || a.sub - b.sub);
 }
 
 export async function addSet(sessionId: string, exerciseId: string): Promise<SetLog> {
-  const all = (await getSessionSets(sessionId)).filter((s) => s.exerciseId === exerciseId);
+  const all = (await getSessionSets(sessionId)).filter((s) => s.exerciseId === exerciseId && !s.sub);
   const prev = all[all.length - 1];
   const session = await db.sessions.get(sessionId);
   const t = session?.targets[exerciseId];
   return save('sets', {
     ...newBase(), sessionId, exerciseId, order: prev ? prev.order + 1 : 0, weight: prev?.weight ?? 0, reps: prev?.reps ?? t?.repMin ?? 10,
-    rir: null, rpe: null, failure: false, endReason: 'none', metTarget: false, done: false, completedAt: null, restSec: null, note: '',
+    rir: null, rpe: null, failure: false, endReason: 'none', metTarget: false, done: false, completedAt: null, restSec: null, note: '', technique: '', sub: 0,
+  } as SetLog);
+}
+
+/** Añade un tramo de técnica avanzada (bajada de dropset, pausa de descanso-pausa…) a continuación de una serie. */
+export async function addExtension(setId: string, technique: Exclude<Technique, ''>, increment: number): Promise<SetLog> {
+  const parent = await db.sets.get(setId);
+  if (!parent) throw new ValidationError('La serie ya no existe');
+  const family = (await getSessionSets(parent.sessionId)).filter((s) => s.exerciseId === parent.exerciseId && s.order === parent.order);
+  if (family.length > 6) throw new ValidationError('Una serie admite hasta seis tramos');
+  const last = family[family.length - 1];
+  const info = TECHNIQUE[technique];
+  const inc = increment > 0 ? increment : 2.5;
+  // La bajada parte de la carga del último tramo, redondeada hacia abajo al paso de la máquina.
+  const weight = info.weight === 1 ? last.weight : Math.max(0, Math.floor((last.weight * info.weight) / inc + 1e-9) * inc);
+  return save('sets', {
+    ...newBase(), sessionId: parent.sessionId, exerciseId: parent.exerciseId, order: parent.order, sub: last.sub + 1, technique,
+    weight: Math.round(weight * 100) / 100, reps: info.reps(last.reps), rir: null, rpe: null, failure: false, endReason: 'none',
+    metTarget: true, done: false, completedAt: null, restSec: null, note: '',
   } as SetLog);
 }
 
@@ -267,7 +330,8 @@ export function updateSet(id: string, patch: Partial<SetLog>): Promise<SetLog> {
     if (next.done) {
       const session = await db.sessions.get(s.sessionId);
       const t = session?.targets[s.exerciseId];
-      next.metTarget = t ? next.reps >= t.repMin : true;
+      // Los tramos de una técnica no se comparan con el rango objetivo.
+      next.metTarget = t && !next.sub ? next.reps >= t.repMin : true;
     }
     return save('sets', next);
   });
@@ -284,7 +348,15 @@ export async function completeSet(id: string): Promise<SetLog> {
   return updateSet(id, { done: true, completedAt: now, restSec: rest, rpe: s.rpe ?? rpeFromRir(s.rir) });
 }
 export const uncompleteSet = (id: string) => updateSet(id, { done: false, completedAt: null, restSec: null });
-export const deleteSet = (id: string) => softDelete('sets', id);
+/** Elimina una serie. Si es la principal, se van también sus tramos de técnica. */
+export async function deleteSet(id: string): Promise<void> {
+  const s = await db.sets.get(id);
+  if (s && !s.sub) {
+    const kids = (await getSessionSets(s.sessionId)).filter((x) => x.exerciseId === s.exerciseId && x.order === s.order && x.sub > 0);
+    for (const k of kids) await softDelete('sets', k.id);
+  }
+  await softDelete('sets', id);
+}
 
 /** Reemplaza las series pendientes de un ejercicio por una copia de la sesión anterior. */
 export async function copyLastSession(sessionId: string, exerciseId: string): Promise<boolean> {
@@ -292,10 +364,10 @@ export async function copyLastSession(sessionId: string, exerciseId: string): Pr
   if (!last) return false;
   const cur = (await getSessionSets(sessionId)).filter((s) => s.exerciseId === exerciseId);
   for (const s of cur.filter((s) => !s.done)) await softDelete('sets', s.id);
-  const doneCount = cur.filter((s) => s.done).length;
+  const doneCount = cur.filter((s) => s.done && !s.sub).length;
   let order = Math.max(-1, ...cur.map((s) => s.order)) + 1;
   for (const p of last.sets.slice(doneCount)) {
-    await save('sets', { ...newBase(), sessionId, exerciseId, order: order++, weight: p.weight, reps: p.reps, rir: null, rpe: null, failure: false, endReason: 'none', metTarget: false, done: false, completedAt: null, restSec: null, note: '' } as SetLog);
+    await save('sets', { ...newBase(), sessionId, exerciseId, order: order++, weight: p.weight, reps: p.reps, rir: null, rpe: null, failure: false, endReason: 'none', metTarget: false, done: false, completedAt: null, restSec: null, note: '', technique: '', sub: 0 } as SetLog);
   }
   return true;
 }

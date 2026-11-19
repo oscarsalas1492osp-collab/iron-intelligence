@@ -35,13 +35,13 @@ export const schemas = {
     increment: z.number().min(0.25, 'El incremento mínimo es 0,25 kg').max(25), photo: z.string().nullable(), custom: z.boolean(),
   }),
   routines: z.object({ ...base, name: z.string().trim().min(1, 'La rutina necesita un nombre').max(60), split: z.string().max(40), days: z.array(z.number().int().min(0).max(6)), order: z.number() }),
-  routineItems: z.object({ ...base, ...target, routineId: z.string().min(1), exerciseId: z.string().min(1), order: z.number() })
+  routineItems: z.object({ ...base, ...target, routineId: z.string().min(1), exerciseId: z.string().min(1), order: z.number(), superset: z.string().nullable().default(null) })
     .refine((t) => t.repMin <= t.repMax, { message: 'El mínimo de repeticiones no puede superar al máximo' })
     .refine((t) => t.rirMin <= t.rirMax, { message: 'El RIR mínimo no puede superar al máximo' }),
   sessions: z.object({
     ...base, routineId: z.string().nullable(), name: z.string().max(80), startedAt: z.number(), endedAt: z.number().nullable(),
     status: z.enum(['active', 'paused', 'done']), pausedAt: z.number().nullable(), pausedMs: z.number().min(0), notes: z.string().max(2000),
-    exerciseIds: z.array(z.string()), targets: z.record(z.object(target)),
+    exerciseIds: z.array(z.string()), targets: z.record(z.object(target)), supersets: z.array(z.array(z.string()).min(2).max(3)).default([]),
   }),
   sets: z.object({
     ...base, sessionId: z.string().min(1), exerciseId: z.string().min(1), order: z.number().int().min(0),
@@ -50,6 +50,7 @@ export const schemas = {
     rir: z.number().min(0).max(10).refine(halfStep, 'El RIR admite pasos de 0,5').nullable(),
     rpe: z.number().min(1).max(10).nullable(), failure: z.boolean(), endReason: z.enum(['none', 'momentary', 'technical', 'voluntary', 'fatigue']),
     metTarget: z.boolean(), done: z.boolean(), completedAt: z.number().nullable(), restSec: z.number().min(0).nullable(), note: z.string().max(500),
+    technique: z.enum(['', 'drop', 'restpause', 'myo', 'cluster']).default(''), sub: z.number().int().min(0).max(12).default(0),
   }),
   recovery: z.object({
     ...base, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), sleepHours: z.number().min(0).max(16),

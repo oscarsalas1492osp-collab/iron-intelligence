@@ -2,11 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../data/db';
-import { addItem, deleteItem, deleteRoutine, moveItem, saveItem, saveRoutine, startSession } from '../data/repo';
+import { addItem, deleteItem, deleteRoutine, groupItems, moveItem, saveItem, saveRoutine, startSession, ungroupItem } from '../data/repo';
+import { groupLabel, MAX_GROUP, unitsOf } from '../domain/superset';
+import { useHoldDrag } from '../ui/useHoldDrag';
 import { MEASURE_UNIT, MUSCLE_LABEL } from '../domain/muscles';
 import type { Measure, RoutineItem, Target } from '../domain/types';
 import { useActiveSession, useAllItems, useExMap } from '../hooks';
-import { Btn, Empty, Field, Icon, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
+import { Btn, cx, Empty, Field, Icon, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { ExercisePicker } from './Library';
 import { DAY_LABEL, DAY_ORDER } from './Routines';
@@ -41,6 +43,15 @@ export default function RoutineEditor() {
   const ex = useExMap(); const active = useActiveSession();
   const [picker, setPicker] = useState(false);
   const [edit, setEdit] = useState<RoutineItem | null>(null);
+  // Unidades en orden: un ejercicio suelto o los 2–3 de una biserie o triserie.
+  const units = unitsOf(items.map((i) => i.id), [...new Set(items.map((i) => i.superset).filter(Boolean))].map((k) => items.filter((i) => i.superset === k).map((i) => i.id)))
+    .map((u) => u.map((itemId) => items.find((i) => i.id === itemId)!));
+  const unitOfItem = (itemId: string) => units.find((u) => u.some((i) => i.id === itemId)) ?? [];
+  const joinTargets = (itemId: string) => units.filter((u) => u.length < MAX_GROUP && !u.some((i) => i.id === itemId));
+  const drag = useHoldDrag(
+    (dragId, targetId) => void run(() => groupItems(id, dragId, targetId), unitOfItem(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada'),
+    (dragId, targetId) => unitOfItem(dragId).length === 1 && !unitOfItem(targetId).some((i) => i.id === dragId),
+  );
 
   if (routine === undefined) return null;
   if (!routine || routine.deleted) return <Empty title="Rutina no encontrada"><Btn onClick={() => nav('/rutinas')}>Volver</Btn></Empty>;
@@ -67,22 +78,46 @@ export default function RoutineEditor() {
       </Field>
 
       <div className="mt-5 space-y-2">
-        {items.map((it, i) => {
-          const e = ex.get(it.exerciseId);
-          return (
-            <div key={it.id} className="flex items-center gap-2 rounded-panel bg-card p-2.5">
-              <div className="flex flex-col">
-                <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => run(() => moveItem(id, it.id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
-                <button type="button" aria-label="Bajar" disabled={i === items.length - 1} onClick={() => run(() => moveItem(id, it.id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
+        {units.map((u, ui) => {
+          const grouped = u.length >= 2;
+          const rows = u.map((it) => {
+            const e = ex.get(it.exerciseId);
+            return (
+              <div key={it.id} data-drop-id={it.id} {...(grouped ? {} : drag.bind(it.id, e?.name ?? 'Ejercicio'))}
+                className={cx('flex items-center gap-2 rounded-panel bg-card p-2.5 transition', drag.over === it.id && 'ring-2 ring-fire', drag.dragging === it.id && 'opacity-40')}>
+                {!grouped && (
+                  <div className="flex flex-col">
+                    <button type="button" aria-label="Subir" disabled={ui === 0} onClick={() => run(() => moveItem(id, it.id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
+                    <button type="button" aria-label="Bajar" disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, it.id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
+                  </div>
+                )}
+                {e && <ExerciseThumb ex={e} size={48} />}
+                <button type="button" className="min-w-0 flex-1 text-left" onClick={drag.guard(() => setEdit(it))}>
+                  <div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>
+                  <div className="wd-c text-sm text-mute truncate">{e ? MUSCLE_LABEL[e.primary] : ''}</div>
+                  <div className="wd-c mt-0.5 text-sm tnum"><span className="text-chalk font-semibold">{it.sets} × {it.repMin}–{it.repMax}{e && e.measure !== 'reps' ? ` ${MEASURE_UNIT[e.measure]}` : ''}</span><span className="text-fire"> RIR {it.rirMin}–{it.rirMax}</span>{!grouped && <span className="text-mute">, {it.restSec} s</span>}</div>
+                </button>
+                {grouped
+                  ? <Btn size="sm" aria-label={`Separar ${e?.name ?? 'ejercicio'} de la ${groupLabel(u.length).toLowerCase()}`} onClick={() => run(() => ungroupItem(id, it.id), 'Ejercicio separado')}>Separar</Btn>
+                  : <button type="button" aria-label="Editar objetivos" onClick={() => setEdit(it)} className="grid h-9 w-9 place-items-center rounded-full bg-card2 text-mute"><Icon name="edit" size={16} /></button>}
               </div>
-              {e && <ExerciseThumb ex={e} size={48} />}
-              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setEdit(it)}>
-                <div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>
-                <div className="wd-c text-sm text-mute truncate">{e ? MUSCLE_LABEL[e.primary] : ''}</div>
-                <div className="wd-c mt-0.5 text-sm tnum"><span className="text-chalk font-semibold">{it.sets} × {it.repMin}–{it.repMax}{e && e.measure !== 'reps' ? ` ${MEASURE_UNIT[e.measure]}` : ''}</span><span className="text-fire"> RIR {it.rirMin}–{it.rirMax}</span><span className="text-mute">, {it.restSec} s</span></div>
-              </button>
-              <button type="button" aria-label="Editar objetivos" onClick={() => setEdit(it)} className="grid h-9 w-9 place-items-center rounded-full bg-card2 text-mute"><Icon name="edit" size={16} /></button>
-            </div>
+            );
+          });
+          if (!grouped) return rows[0];
+          return (
+            <section key={u[0].id} aria-label={groupLabel(u.length)} className="rounded-panel bg-fire/10 p-2">
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <div className="flex">
+                  <button type="button" aria-label={`Subir ${groupLabel(u.length).toLowerCase()}`} disabled={ui === 0} onClick={() => run(() => moveItem(id, u[0].id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
+                  <button type="button" aria-label={`Bajar ${groupLabel(u.length).toLowerCase()}`} disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, u[0].id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="wd-x text-[13px] font-extrabold text-fire">{groupLabel(u.length).toUpperCase()}</span>
+                  <span className="wd-c block text-sm text-mute">Seguidos, sin descanso. Descanso al terminar la ronda: {Math.max(...u.map((it) => it.restSec))} s</span>
+                </div>
+              </div>
+              <div className="space-y-2">{rows}</div>
+            </section>
           );
         })}
         {!items.length && <Empty icon="dumbbell" title="Rutina vacía" text="Añade ejercicios desde la biblioteca." />}
@@ -94,10 +129,20 @@ export default function RoutineEditor() {
         <Btn variant="danger" icon="trash" onClick={async () => { if (await confirm(`Se eliminará la rutina “${routine.name}”. Las sesiones ya registradas se conservan.`, { confirmLabel: 'Eliminar', danger: true })) { await run(() => deleteRoutine(id)); nav('/rutinas'); } }}>Eliminar rutina</Btn>
       </div>
 
+      {items.length > 1 && <p className="wd-c mt-3 text-sm text-mute">Para armar una biserie o triserie, mantén presionado un ejercicio y arrástralo sobre otro, o ábrelo y elige «Unir en biserie con».</p>}
+      {drag.ghost}
       <ExercisePicker open={picker} onClose={() => setPicker(false)} exclude={items.map((i) => i.exerciseId)} onPick={(e) => run(() => addItem(id, e.id))} />
       <Sheet open={!!edit} onClose={() => setEdit(null)} title={edit ? ex.get(edit.exerciseId)?.name : ''}>
         {edit && <>
           <TargetEditor value={edit} measure={ex.get(edit.exerciseId)?.measure} onChange={(t) => setEdit({ ...edit, ...t })} />
+          {unitOfItem(edit.id).length === 1 && joinTargets(edit.id).length > 0 && (
+            <Field label="Unir en biserie con" hint="Se hacen seguidos, sin descanso; una serie es la ronda completa. También puedes mantener presionado un ejercicio y arrastrarlo sobre otro.">
+              <select value="" aria-label="Unir en biserie con" onChange={async (e) => { const t = e.target.value; if (t && (await run(async () => { await groupItems(id, edit.id, t); return true; }, unitOfItem(t).length >= 2 ? 'Triserie creada' : 'Biserie creada'))) setEdit(null); }}>
+                <option value="">Elegir ejercicio…</option>
+                {joinTargets(edit.id).map((u) => <option key={u[0].id} value={u[0].id}>{u.map((i) => ex.get(i.exerciseId)?.name ?? 'Ejercicio').join(' + ')}</option>)}
+              </select>
+            </Field>
+          )}
           <p className="mt-3 text-xs text-mute">Los cambios aplican desde la próxima sesión; el historial conserva los objetivos con los que se entrenó.</p>
           <div className="mt-4 flex gap-2">
             <Btn variant="danger" icon="trash" onClick={async () => { await run(() => deleteItem(edit.id)); setEdit(null); }}>Quitar</Btn>

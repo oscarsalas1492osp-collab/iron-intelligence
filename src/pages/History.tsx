@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { deleteSession, deleteSet, elapsedMs, getSessionSets, updateSet } from '../data/repo';
 import { e1rm, fmtDate, fmtDuration, fmtKg, intensityOf, ymd } from '../domain/calc';
-import type { Session, SetLog } from '../domain/types';
+import { TECHNIQUE } from '../domain/techniques';
+import type { Session, SetLog, Technique } from '../domain/types';
 import { exerciseSeries, personalRecords } from '../domain/volume';
 import { useDoneSets, useExMap, useSessions } from '../hooks';
 import { LineC } from '../ui/charts';
@@ -39,7 +40,7 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
       <div className="mb-4 grid grid-cols-4 gap-2">
         <Stat label="Fecha" value={<span className="text-base">{fmtDate(session.startedAt)}</span>} />
         <Stat label="Duración" value={<span className="text-base">{fmtDuration(elapsedMs(session))}</span>} />
-        <Stat label="Series" value={<span className="text-base">{sets.length}</span>} />
+        <Stat label="Series" value={<span className="text-base">{sets.filter((x) => !x.sub).length}</span>} />
         <Stat label="Volumen" value={<span className="text-base">{Math.round(sets.reduce((a, s) => a + s.weight * s.reps, 0)).toLocaleString('es-CL')} kg</span>} />
       </div>
       <div className="space-y-3">
@@ -52,15 +53,19 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
                 <div className="min-w-0"><div className="font-semibold leading-tight truncate">{e?.name ?? 'Ejercicio eliminado'}</div>{t && <div className="text-xs text-mute tnum">Objetivo: {t.sets} × {t.repMin}–{t.repMax} con RIR {t.rirMin}–{t.rirMax}</div>}</div>
               </div>
               <div className="space-y-1">
-                {sets.filter((s) => s.exerciseId === id).map((s, i) => (
-                  <button type="button" key={s.id} onClick={() => setEdit(s)} className="flex w-full items-center gap-3 rounded-lg bg-card2/60 px-3 py-2 text-left text-sm" aria-label={`Editar serie ${i + 1}`}>
-                    <span className="w-5 text-xs text-mute">{i + 1}</span>
-                    <span className="flex-1 font-bold tnum">{fmtKg(s.weight)} kg × {s.reps}</span>
-                    <span className="text-xs font-semibold tnum" style={{ color: intensityOf(s.rir).color }}>{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
-                    {s.failure && <span className="text-[10px] font-bold text-ember">FALLO</span>}
-                    <Icon name="edit" size={14} className="text-mute" />
-                  </button>
-                ))}
+                {sets.filter((s) => s.exerciseId === id).map((s, _i, all) => {
+                  const n = all.filter((x) => !x.sub && x.order <= s.order).length;
+                  const tag = s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag ?? 'Tramo'} ${s.sub}` : null;
+                  return (
+                    <button type="button" key={s.id} onClick={() => setEdit(s)} className={`flex w-full items-center gap-3 rounded-lg bg-card2/60 px-3 py-2 text-left text-sm ${tag ? 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50' : ''}`} aria-label={tag ? `Editar ${tag.toLowerCase()} de la serie ${n}` : `Editar serie ${n}`}>
+                      <span className={tag ? 'wd-c text-xs font-semibold text-fire' : 'w-5 text-xs text-mute'}>{tag ?? n}</span>
+                      <span className="flex-1 font-bold tnum">{fmtKg(s.weight)} kg × {s.reps}</span>
+                      <span className="text-xs font-semibold tnum" style={{ color: intensityOf(s.rir).color }}>{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
+                      {s.failure && <span className="text-[10px] font-bold text-ember">FALLO</span>}
+                      <Icon name="edit" size={14} className="text-mute" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

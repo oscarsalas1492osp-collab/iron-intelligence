@@ -1,24 +1,28 @@
 // REGISTRO DE ENTRENAMIENTO — funcionalidad principal.
 // Cada cambio se escribe de inmediato en la base local: si la app se cierra, la sesión se recupera tal cual.
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addExerciseToSession, addSet, completeSet, copyLastSession, deleteSet, elapsedMs, finishSession, getSessionSets, pauseSession, removeExerciseFromSession, resumeSession, startSession, uncompleteSet, updateSessionTarget, updateSet } from '../data/repo';
+import { addExerciseToSession, addExtension, addSet, completeSet, groupInSession, ungroupInSession, copyLastSession, deleteSet, elapsedMs, finishSession, getSessionSets, pauseSession, removeExerciseFromSession, resumeSession, startSession, uncompleteSet, updateSessionTarget, updateSet } from '../data/repo';
 import { fmtDate, fmtDuration, fmtKg, intensityOf } from '../domain/calc';
 import { MEASURE_UNIT, MUSCLE_LABEL, unitText } from '../domain/muscles';
 import { recommend, type Recommendation } from '../domain/progression';
 import { recentReadiness } from '../domain/recovery';
-import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Session, type SetLog, type Target } from '../domain/types';
+import { groupLabel, MAX_GROUP, unitsOf } from '../domain/superset';
+import { SUPERSET_INFO, TECHNIQUE, TECHNIQUES } from '../domain/techniques';
+import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Session, type SetLog, type Target, type Technique } from '../domain/types';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db } from '../data/db';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useUserId } from '../hooks';
 import { Bar, Btn, Card, Chip, cx, Empty, Field, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { ExerciseDetail, ExercisePicker } from './Library';
+import { useHoldDrag } from '../ui/useHoldDrag';
 import { TargetEditor } from './RoutineEditor';
 
 const REST_KEY = 'ii_rest';
 const CUR_KEY = 'ii_cur_ex';
+const HINT_KEY = 'ii_hint_gestures';
 interface Rest { end: number; total: number }
 const loadRest = (): Rest | null => { try { const r = JSON.parse(localStorage.getItem(REST_KEY) || 'null'); return r && r.end > Date.now() ? r : null; } catch { return null; } };
 const storeRest = (r: Rest | null) => { try { r ? localStorage.setItem(REST_KEY, JSON.stringify(r)) : localStorage.removeItem(REST_KEY); } catch { /* sin almacenamiento */ } };
@@ -93,18 +97,27 @@ const REASONS: { value: EndReason; label: string }[] = [
   { value: 'fatigue', label: 'Fatiga general (no del músculo objetivo)' },
 ];
 
-function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; onOpen: () => void; onDone: () => void }) {
+/** Nombre de una serie para los lectores de pantalla y los títulos: «serie 2» o «bajada 1 de la serie 2». */
+const setName = (s: SetLog, n: number) => (s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag.toLowerCase() ?? 'tramo'} ${s.sub} de la serie ${n}` : `serie ${n}`);
+
+function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; onOpen: () => void; onDone: () => void; onExtend?: (added: SetLog, pause: number) => void }) {
   const unit = MEASURE_UNIT[measure];
   const run = useAction();
-  const [more, setMore] = useState(false);
+  const [more, setMore] = useState(false); const [tech, setTech] = useState(false);
   const info = intensityOf(s.rir);
+  // En una biserie hay una «serie 1» por ejercicio: el nombre accesible incluye cuál.
+  const name = setName(s, n) + (title ? ` de ${title}` : '');
+  const tag = s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag ?? 'Tramo'} ${s.sub}` : null;
   const patch = (p: Partial<SetLog>) => run(() => updateSet(s.id, p));
 
   if (s.done && !open) {
     return (
-      <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-1 py-3 text-left" aria-label={`Serie ${n} completada, tocar para editar`}>
+      <button type="button" onClick={onOpen} className={cx('flex w-full items-center gap-3 px-1 py-3 text-left', tag && 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50 py-2 pl-3')} aria-label={`${name[0].toUpperCase()}${name.slice(1)} completada, tocar para editar`}>
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
-        <span className="num flex-1 text-lg">{fmtKg(s.weight)} kg × {s.reps}{measure !== 'reps' && ` ${unit}`}</span>
+        <span className="min-w-0 flex-1">
+          {(title || tag) && <span className="wd-c block truncate text-sm text-mute">{[title, tag].filter(Boolean).join(', ')}</span>}
+          <span className="num block text-lg leading-tight">{fmtKg(s.weight)} kg × {s.reps}{measure !== 'reps' && ` ${unit}`}</span>
+        </span>
         {!s.metTarget && <span className="wd-c text-sm font-semibold text-[#ff7a70]">bajo el rango</span>}
         <span className="hidden text-sm text-mute sm:inline">{info.short}</span>
         <span className="wd-c flex items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
@@ -113,16 +126,18 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { 
   }
 
   return (
-    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-card/45')} onClick={() => !open && onOpen()}>
-      <div className="flex items-center gap-2">
-        <span className="num grid h-7 w-7 shrink-0 place-items-center text-base text-mute">{n}</span>
-        <div className="grid flex-1 grid-cols-2 gap-2">
-          <Stepper compact label={`Peso serie ${n}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
-          <Stepper compact label={`${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} serie ${n}`} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
+    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-card/45', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && onOpen()}>
+      {(title || tag) && <div className="wd-c mb-1.5 truncate text-sm font-semibold text-mute">{title}{title && tag ? ', ' : ''}{tag && <span className="text-fire">{tag}</span>}</div>}
+      <div className="flex items-center gap-2" data-noswipe>
+        {!tag && <span className="num grid h-7 w-4 shrink-0 place-items-center text-base text-mute">{n}</span>}
+        {/* El peso recibe más ancho: debe mostrar completas cifras como 122,5 o 247,5. */}
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] gap-2">
+          <Stepper compact label={`Peso ${name}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
+          <Stepper compact label={`${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} ${name}`} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
         </div>
-        <button type="button" aria-label={s.done ? `Desmarcar serie ${n}` : `Completar serie ${n}`}
+        <button type="button" aria-label={s.done ? `Desmarcar ${name}` : `Completar ${name}`}
           onClick={async (e) => { e.stopPropagation(); if (s.done) { await run(() => uncompleteSet(s.id)); } else if (await run(() => completeSet(s.id))) onDone(); }}
-          className={cx('grid h-12 w-14 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
+          className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
           <Icon name="check" size={20} />
         </button>
       </div>
@@ -133,7 +148,7 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { 
             <span className="wd-c text-sm font-semibold" style={{ color: info.text }}>{info.label}</span>
           </div>
           {/* Escala de incandescencia: de hierro frío (lejos del fallo) a blanco (fallo). */}
-          <div className="grid grid-cols-6 gap-px overflow-hidden rounded-ctl bg-ink">
+          <div className="grid grid-cols-6 gap-px overflow-hidden rounded-ctl bg-ink" data-noswipe>
             {RIR_OPTS.map((r) => {
               const on = s.rir != null && (r === 5 ? s.rir >= 5 : Math.floor(s.rir) === r);
               const heat = intensityOf(r);
@@ -153,14 +168,32 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { 
           )}
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex gap-1.5">
-              {prev && <Btn size="sm" icon="copy" onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>= serie {n - 1}</Btn>}
+              {prev && !s.sub && <Btn size="sm" icon="copy" onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>= serie {n - 1}</Btn>}
               <Btn size="sm" icon="more" onClick={() => setMore(true)}>Detalle</Btn>
+              {onExtend && <Btn size="sm" icon="plus" onClick={() => setTech(true)}>Técnica</Btn>}
             </div>
             <span className="wd-c text-sm text-mute tnum">{s.rpe != null ? `RPE ${s.rpe}` : ''}{s.done && s.restSec != null ? `, descanso ${s.restSec} s` : ''}</span>
           </div>
         </div>
       )}
-      <Sheet open={more} onClose={() => setMore(false)} title={`Serie ${n} · detalle`}>
+      <Sheet open={tech} onClose={() => setTech(false)} title="Alargar la serie" wide>
+        <div className="space-y-2.5">
+          {TECHNIQUES.map((t) => (
+            <div key={t.id} className="rounded-panel bg-card2 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="wd-w font-bold">{t.name}</div>
+                  <p className="mt-0.5 text-sm text-chalk/90">{t.how}</p>
+                </div>
+                <Btn size="sm" variant="primary" aria-label={`Añadir ${t.name}`} onClick={async () => { const x = await run(() => addExtension(s.id, t.id, step)); if (x) { setTech(false); onExtend?.(x, t.pause); } }}>Añadir</Btn>
+              </div>
+              <p className="mt-1.5 text-xs text-mute">{t.when} {t.evidence} <a href={t.source} target="_blank" rel="noreferrer" className="text-data underline">Fuente</a></p>
+            </div>
+          ))}
+          <p className="text-xs text-mute">Cada tramo se anota con su carga y sus repeticiones. Suma tonelaje, pero en el volumen semanal cuenta como parte de la misma serie: es una convención práctica, no un valor medido.</p>
+        </div>
+      </Sheet>
+      <Sheet open={more} onClose={() => setMore(false)} title={`${name[0].toUpperCase()}${name.slice(1)}, detalle`}>
         <div className="space-y-3">
           <Field label="¿Cómo terminó la serie?">
             <select value={s.endReason} onChange={(e) => patch({ endReason: e.target.value as EndReason })}>{REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
@@ -171,71 +204,185 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, onOpen, onDone }: { 
           </div>
           <p className="text-xs text-mute">El RPE se calcula como 10 − RIR; puedes ajustarlo si tu percepción difiere. Llegó al fallo: <b className="text-chalk">{s.failure ? 'sí' : 'no'}</b>.</p>
           <Field label="Observaciones"><textarea rows={2} defaultValue={s.note} onBlur={(e) => e.target.value !== s.note && patch({ note: e.target.value })} placeholder="Molestias, ajustes de la máquina, sensaciones…" /></Field>
-          <Btn variant="danger" icon="trash" className="w-full" onClick={async () => { await run(() => deleteSet(s.id)); setMore(false); }}>Eliminar serie</Btn>
+          <Btn variant="danger" icon="trash" className="w-full" onClick={async () => { await run(() => deleteSet(s.id)); setMore(false); }}>{s.sub ? 'Eliminar tramo' : 'Eliminar serie'}</Btn>
         </div>
       </Sheet>
     </div>
   );
 }
 
-// ---------- Panel del ejercicio actual ----------
-function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest, onNext, hasNext }: { session: Session; ex: ExerciseDef; sets: SetLog[]; history: ASet[]; readiness: number | null; halfRir: boolean; onRest: (sec: number) => void; onNext: () => void; hasNext: boolean }) {
-  const run = useAction(); const { confirm, toast } = useUi();
+// ---------- Cabecera de un ejercicio: objetivo, última sesión y recomendación ----------
+function useExerciseCtx(session: Session, ex: ExerciseDef, history: ASet[], readiness: number | null) {
   const target: Target = session.targets[ex.id] ?? defaultTarget(ex);
   const past = useMemo(() => sessionsOf(history, ex.id), [history, ex.id]);
   const rec = useMemo(() => recommend({ exType: ex.type, increment: ex.increment, target, history: past, readiness }), [ex, target, past, readiness]);
-  const last = past[0];
-  const firstOpen = sets.find((s) => !s.done)?.id ?? null;
-  const [openId, setOpenId] = useState<string | null>(firstOpen);
-  useEffect(() => { setOpenId(firstOpen); }, [ex.id, firstOpen]);
-  const [editTarget, setEditTarget] = useState(false); const [detail, setDetail] = useState(false);
-  const allDone = sets.length > 0 && sets.every((s) => s.done);
+  return { target, past, rec, last: past[0] };
+}
 
+function ExerciseHead({ session, ex, history, readiness, compact, extra }: { session: Session; ex: ExerciseDef; history: ASet[]; readiness: number | null; compact?: boolean; extra?: React.ReactNode }) {
+  const run = useAction();
+  const { target, rec, last } = useExerciseCtx(session, ex, history, readiness);
+  const [editTarget, setEditTarget] = useState(false); const [detail, setDetail] = useState(false); const [more, setMore] = useState(false);
+  const unit = ex.measure === 'reps' ? 'Repeticiones' : ex.measure === 'time' ? 'Segundos' : 'Metros';
   return (
     <div className="space-y-3">
       <div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setDetail(true)} aria-label="Ver técnica del ejercicio"><ExerciseThumb ex={ex} size={60} /></button>
+          <button type="button" onClick={() => setDetail(true)} aria-label={`Ver técnica de ${ex.name}`}><ExerciseThumb ex={ex} size={compact ? 48 : 60} /></button>
           <div className="min-w-0 flex-1">
-            <h2 className="wd-w text-xl font-extrabold leading-tight">{ex.name}</h2>
-            <div className="wd-c text-[15px]"><span className="font-semibold text-fire">{MUSCLE_LABEL[ex.primary]}</span>{ex.secondary.length > 0 && <span className="text-mute">, con {ex.secondary.map((m) => MUSCLE_LABEL[m].toLowerCase()).join(' y ')}</span>}</div>
-            {ex.machine && <div className="wd-c truncate text-sm text-mute">{ex.machine}</div>}
+            <h2 className={cx('wd-w font-extrabold leading-tight', compact ? 'text-base' : 'text-xl')}>{ex.name}</h2>
+            <div className="wd-c text-[15px]"><span className="font-semibold text-fire">{MUSCLE_LABEL[ex.primary]}</span>{!compact && ex.secondary.length > 0 && <span className="text-mute">, con {ex.secondary.map((m) => MUSCLE_LABEL[m].toLowerCase()).join(' y ')}</span>}</div>
+            {ex.machine && !compact && <div className="wd-c truncate text-sm text-mute">{ex.machine}</div>}
           </div>
+          {extra}
         </div>
-        <button type="button" onClick={() => setEditTarget(true)} aria-label={`Objetivo: ${target.sets} × ${target.repMin}–${target.repMax}, RIR ${target.rirMin}–${target.rirMax}. Editar`} className="mt-4 grid w-full grid-cols-4 divide-x divide-line rounded-ctl bg-card py-2.5 text-center transition-colors hover:bg-card2">
-          {[['Series', target.sets], [ex.measure === 'reps' ? 'Repeticiones' : ex.measure === 'time' ? 'Segundos' : 'Metros', `${target.repMin}–${target.repMax}`], ['RIR', target.rirMin === target.rirMax ? target.rirMin : `${target.rirMin}–${target.rirMax}`], ['Descanso', `${target.restSec} s`]].map(([k, v]) => (
+        <button type="button" onClick={() => setEditTarget(true)} aria-label={`Objetivo: ${target.sets} × ${target.repMin}–${target.repMax}, RIR ${target.rirMin}–${target.rirMax}. Editar`} className={cx('grid w-full grid-cols-4 divide-x divide-line rounded-ctl bg-card text-center transition-colors hover:bg-card2', compact ? 'mt-2.5 py-1.5' : 'mt-4 py-2.5')}>
+          {[['Series', target.sets], [unit, `${target.repMin}–${target.repMax}`], ['RIR', target.rirMin === target.rirMax ? target.rirMin : `${target.rirMin}–${target.rirMax}`], ['Descanso', `${target.restSec} s`]].map(([k, v]) => (
             <span key={k} className="px-1"><span className="num block text-base leading-tight">{v}</span><span className="label block !text-xs">{k}</span></span>
           ))}
         </button>
-        <p className="mt-3 text-[15px]">
-          <span className="text-mute">Última sesión: </span>
-          {last ? <><b className="tnum">{[...new Set(last.sets.map((s) => s.weight))].map((w) => `${fmtKg(w)} kg × ${last.sets.filter((s) => s.weight === w).map((s) => s.reps).join(', ')}`).join(' y ')}</b>
-            <span className="wd-c text-mute"> con RIR {last.sets.map((s) => s.rir ?? '–').join(', ')}, {fmtDate(last.date)}</span></> : <span className="text-mute">sin registros previos</span>}
-        </p>
+        {(!compact || more) && (
+          <p className={cx('text-[15px]', compact ? 'mt-2' : 'mt-3')}>
+            <span className="text-mute">Última sesión: </span>
+            {last ? <><b className="tnum">{[...new Set(last.sets.map((s) => s.weight))].map((w) => `${fmtKg(w)} kg × ${last.sets.filter((s) => s.weight === w).map((s) => s.reps).join(', ')}`).join(' y ')}</b>
+              <span className="wd-c text-mute"> con RIR {last.sets.map((s) => s.rir ?? '–').join(', ')}, {fmtDate(last.date)}</span></> : <span className="text-mute">sin registros previos</span>}
+          </p>
+        )}
+        {/* En una biserie la cabecera es breve: la recomendación completa se abre a pedido para llegar antes a las series. */}
+        {compact && !more && (
+          <button type="button" onClick={() => setMore(true)} aria-expanded={false} className="wd-c mt-2 block w-full truncate text-left text-sm text-mute">
+            <span className="font-semibold text-data">{rec.weight != null ? `Sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido'}</span>. Ver recomendación y última sesión
+          </button>
+        )}
       </div>
+      {(!compact || more) && <RecommendationCard rec={rec} compact measure={ex.measure} />}
+      <Sheet open={editTarget} onClose={() => setEditTarget(false)} title="Objetivo de hoy">
+        <TargetEditor value={target} measure={ex.measure} onChange={(t) => run(() => updateSessionTarget(session.id, ex.id, t))} />
+        <p className="mt-3 text-xs text-mute">Cambia solo esta sesión. Para cambiarlo de forma permanente, edita la rutina.</p>
+      </Sheet>
+      <ExerciseDetail ex={detail ? ex : null} onClose={() => setDetail(false)} />
+    </div>
+  );
+}
 
-      <RecommendationCard rec={rec} compact measure={ex.measure} />
+/** Series principales de un ejercicio con sus tramos de técnica a continuación. */
+const familiesOf = (sets: SetLog[]) => sets.filter((s) => !s.sub).map((m) => ({ main: m, ext: sets.filter((x) => x.sub > 0 && x.order === m.order) }));
+
+/** Lista de ejercicios con los que se puede formar o ampliar una biserie. */
+function JoinSheet({ open, onClose, session, units, ex, title, onPick }: { open: boolean; onClose: () => void; session: Session; units: string[][]; ex: Map<string, ExerciseDef>; title: string; onPick: (unit: string[]) => void }) {
+  void session;
+  return (
+    <Sheet open={open} onClose={onClose} title={title}>
+      <p className="mb-3 text-sm text-chalk/90">{SUPERSET_INFO.how}</p>
+      <div className="space-y-2">
+        {units.map((u) => (
+          <button type="button" key={u[0]} onClick={() => { onPick(u); onClose(); }} className="flex w-full items-center gap-3 rounded-panel bg-card2 p-2.5 text-left">
+            {ex.get(u[0]) && <ExerciseThumb ex={ex.get(u[0])!} size={44} />}
+            <span className="min-w-0 flex-1 font-semibold leading-tight">{u.map((id) => ex.get(id)?.name ?? 'Ejercicio').join(' + ')}</span>
+          </button>
+        ))}
+        {!units.length && <p className="py-4 text-center text-sm text-mute">No hay otro ejercicio en la sesión con el que unirlo. Añade uno primero.</p>}
+      </div>
+      <p className="mt-3 text-xs text-mute">{SUPERSET_INFO.evidence} <a href={SUPERSET_INFO.source} target="_blank" rel="noreferrer" className="text-data underline">Fuente</a></p>
+    </Sheet>
+  );
+}
+
+// ---------- Panel del ejercicio actual ----------
+function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest, onNext, hasNext, joinable, exMap }: { session: Session; ex: ExerciseDef; sets: SetLog[]; history: ASet[]; readiness: number | null; halfRir: boolean; onRest: (sec: number) => void; onNext: () => void; hasNext: boolean; joinable: string[][]; exMap: Map<string, ExerciseDef> }) {
+  const run = useAction(); const { confirm, toast } = useUi();
+  const { target, last } = useExerciseCtx(session, ex, history, readiness);
+  const firstOpen = sets.find((s) => !s.done)?.id ?? null;
+  const [openId, setOpenId] = useState<string | null>(firstOpen);
+  useEffect(() => { setOpenId(firstOpen); }, [ex.id, firstOpen]);
+  const [join, setJoin] = useState(false);
+  const fams = familiesOf(sets);
+  const allDone = sets.length > 0 && sets.every((s) => s.done);
+  const done = (s: SetLog) => { onRest(target.restSec); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); };
+  const extend = (x: SetLog, pause: number) => { setOpenId(x.id); onRest(pause); };
+
+  return (
+    <div className="space-y-3">
+      <ExerciseHead session={session} ex={ex} history={history} readiness={readiness} />
 
       <div className="space-y-1.5">
-        {sets.map((s, i) => (
-          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={sets[i - 1]} halfRir={halfRir}
-            onOpen={() => setOpenId(s.id)}
-            onDone={() => { onRest(target.restSec); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); }} />
-        ))}
+        {fams.map((f, i) => [f.main, ...f.ext].map((s) => (
+          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir}
+            onOpen={() => setOpenId(s.id)} onDone={() => done(s)} onExtend={extend} />
+        )))}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <Btn icon="plus" onClick={async () => { const s = await run(() => addSet(session.id, ex.id)); if (s) setOpenId(s.id); }}>Añadir serie</Btn>
         <Btn icon="copy" disabled={!last} onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar sesión anterior</Btn>
       </div>
+      <Btn className="w-full" icon="plus" onClick={() => setJoin(true)}>Unir en biserie con otro ejercicio</Btn>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
       <button type="button" className="wd-c w-full py-2 text-sm text-mute underline" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
 
-      <Sheet open={editTarget} onClose={() => setEditTarget(false)} title="Objetivo de hoy">
-        <TargetEditor value={target} measure={ex.measure} onChange={(t) => run(() => updateSessionTarget(session.id, ex.id, t))} />
-        <p className="mt-3 text-xs text-mute">Cambia solo esta sesión. Para cambiarlo de forma permanente, edita la rutina.</p>
-      </Sheet>
-      <ExerciseDetail ex={detail ? ex : null} onClose={() => setDetail(false)} />
+      <JoinSheet open={join} onClose={() => setJoin(false)} session={session} units={joinable} ex={exMap} title="Unir en biserie"
+        onPick={(u) => run(() => groupInSession(session.id, ex.id, u[0]), u.length >= 2 ? 'Triserie creada' : 'Biserie creada')} />
+    </div>
+  );
+}
+
+// ---------- Panel de una biserie o triserie ----------
+function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, onNext, hasNext, joinable, exMap }: { session: Session; exs: ExerciseDef[]; sets: SetLog[]; history: ASet[]; readiness: number | null; halfRir: boolean; onRest: (sec: number) => void; onNext: () => void; hasNext: boolean; joinable: string[][]; exMap: Map<string, ExerciseDef> }) {
+  const run = useAction(); const { toast } = useUi();
+  const label = groupLabel(exs.length);
+  const byEx = exs.map((e) => ({ ex: e, fams: familiesOf(sets.filter((s) => s.exerciseId === e.id)) }));
+  const rounds = Math.max(0, ...byEx.map((b) => b.fams.length));
+  // Orden de trabajo: ronda a ronda, y dentro de cada ronda, ejercicio tras ejercicio.
+  const sequence = Array.from({ length: rounds }, (_, r) => byEx.flatMap((b) => (b.fams[r] ? [b.fams[r].main, ...b.fams[r].ext] : []))).flat();
+  const firstOpen = sequence.find((s) => !s.done)?.id ?? null;
+  const [openId, setOpenId] = useState<string | null>(firstOpen);
+  useEffect(() => { setOpenId(firstOpen); }, [firstOpen]);
+  const [join, setJoin] = useState(false);
+  const rest = Math.max(0, ...exs.map((e) => (session.targets[e.id] ?? defaultTarget(e)).restSec));
+  const allDone = sets.length > 0 && sets.every((s) => s.done);
+
+  const done = (s: SetLog, round: number) => {
+    const roundSets = byEx.flatMap((b) => (b.fams[round] ? [b.fams[round].main] : []));
+    const pendingInRound = roundSets.some((x) => !x.done && x.id !== s.id);
+    const nx = sequence.find((x) => !x.done && x.id !== s.id);
+    setOpenId(nx?.id ?? null);
+    // Dentro de la ronda no hay descanso: se pasa de inmediato al siguiente ejercicio.
+    onRest(pendingInRound ? 0 : rest);
+    if (!nx) toast(`${label} completada`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-panel bg-fire/10 p-3">
+        <div className="wd-x text-[13px] font-extrabold text-fire">{label.toUpperCase()}</div>
+        <p className="mt-0.5 text-sm text-chalk/90">Haz los {exs.length} ejercicios seguidos, sin descanso. Una serie es la ronda completa; el descanso de {rest} s empieza al terminarla.</p>
+      </div>
+
+      {byEx.map(({ ex }) => (
+        <ExerciseHead key={ex.id} session={session} ex={ex} history={history} readiness={readiness} compact
+          extra={<Btn size="sm" aria-label={`Separar ${ex.name} de la ${label.toLowerCase()}`} onClick={() => run(() => ungroupInSession(session.id, ex.id), 'Ejercicio separado')}>Separar</Btn>} />
+      ))}
+
+      {Array.from({ length: rounds }, (_, r) => (
+        <section key={r} aria-label={`Ronda ${r + 1}`}>
+          <div className="label mb-1.5">Ronda {r + 1} de {rounds}</div>
+          <div className="space-y-1.5">
+            {byEx.flatMap(({ ex, fams }) => (fams[r] ? [fams[r].main, ...fams[r].ext] : []).map((s) => (
+              <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name}
+                onOpen={() => setOpenId(s.id)} onDone={() => done(s, r)} onExtend={(x, pause) => { setOpenId(x.id); onRest(pause); }} />
+            )))}
+          </div>
+        </section>
+      ))}
+
+      <div className="grid grid-cols-2 gap-2">
+        <Btn icon="plus" onClick={() => run(async () => { for (const e of exs) await addSet(session.id, e.id); }, 'Ronda añadida')}>Añadir ronda</Btn>
+        <Btn icon="plus" disabled={exs.length >= MAX_GROUP} onClick={() => setJoin(true)}>Sumar un ejercicio</Btn>
+      </div>
+      {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
+
+      <JoinSheet open={join} onClose={() => setJoin(false)} session={session} units={joinable.filter((u) => u.length === 1)} ex={exMap} title="Pasar a triserie"
+        onPick={(u) => run(() => groupInSession(session.id, u[0], exs[0].id), 'Triserie creada')} />
     </div>
   );
 }
@@ -276,13 +423,46 @@ function Active({ session }: { session: Session }) {
   const now = useNow(rest ? 250 : 1000, !paused || !!rest);
 
   const ids = session.exerciseIds;
+  const units = useMemo(() => unitsOf(ids, session.supersets), [ids, session.supersets]);
   const current = cur && ids.includes(cur) ? cur : ids.find((id) => sets.some((s) => s.exerciseId === id && !s.done)) ?? ids[0] ?? null;
+  const unitIdx = current ? units.findIndex((u) => u.includes(current)) : -1;
+  const unit = unitIdx >= 0 ? units[unitIdx] : null;
+  const [slide, setSlide] = useState<'l' | 'r' | null>(null);
   const select = (id: string) => { setCur(id); try { localStorage.setItem(CUR_KEY, id); } catch { /* sin almacenamiento */ } window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  /** Pasa a la unidad anterior o siguiente (un ejercicio suelto o una biserie completa). */
+  const step = (dir: -1 | 1) => { const nx = units[unitIdx + dir]; if (!nx) return false; setSlide(dir > 0 ? 'l' : 'r'); select(nx[0]); return true; };
+  const [hint, setHint] = useState(() => { try { return !localStorage.getItem(HINT_KEY); } catch { return false; } });
+  const learned = () => { setHint(false); try { localStorage.setItem(HINT_KEY, '1'); } catch { /* sin almacenamiento */ } };
+
+  // Unir ejercicios: mantener presionado uno y soltarlo sobre otro.
+  const unitOf = (id: string) => units.find((u) => u.includes(id)) ?? [id];
+  const drag = useHoldDrag(
+    (dragId, targetId) => { void run(() => groupInSession(session.id, dragId, targetId), unitOf(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada').then(() => select(targetId)); learned(); },
+    (dragId, targetId) => unitOf(dragId).length === 1 && !unitOf(targetId).includes(dragId),
+  );
+
+  // Deslizar a los lados para cambiar de ejercicio.
+  const touch = useRef<{ x: number; y: number; t: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = e.target as HTMLElement;
+    touch.current = e.touches.length === 1 && !el.closest('input, textarea, select, canvas, [data-noswipe], [role=dialog]') ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const s = touch.current; touch.current = null;
+    if (!s || drag.dragging) return;
+    const dx = e.changedTouches[0].clientX - s.x, dy = e.changedTouches[0].clientY - s.y;
+    if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.8 && Date.now() - s.t < 800 && step(dx < 0 ? 1 : -1)) learned();
+  };
   const setRest = (r: Rest | null) => { storeRest(r && r.end > Date.now() ? r : null); setRestState(r && r.end > Date.now() ? r : null); };
+  /** Inicia el descanso; con 0 segundos lo cancela (paso inmediato al siguiente ejercicio de una biserie o a una bajada). */
+  const restFor = (sec: number) => setRest(sec > 0 ? { end: Date.now() + sec * 1000, total: sec } : null);
 
   useEffect(() => {
     if (rest && now >= rest.end) { setRest(null); try { navigator.vibrate?.([250, 120, 250]); } catch { /* sin vibración */ } toast('Descanso terminado'); }
   }, [now, rest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Al entrar, la sesión se muestra desde arriba aunque la pantalla anterior quedara desplazada.
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   // Mantiene la pantalla encendida durante el entrenamiento (si el navegador lo permite).
   useEffect(() => {
@@ -298,12 +478,14 @@ function Active({ session }: { session: Session }) {
     return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); void lock?.release().catch(() => undefined); };
   }, [paused]);
 
-  const done = sets.filter((s) => s.done).length;
+  // El avance cuenta series principales; los tramos de técnica son parte de su serie.
+  const mains = sets.filter((s) => !s.sub);
+  const done = mains.filter((s) => s.done).length;
   const curEx = current ? ex.get(current) : undefined;
-  const idx = current ? ids.indexOf(current) : -1;
+  const joinable = units.filter((u) => u !== unit && u.length < MAX_GROUP);
 
   const finish = async () => {
-    const pending = sets.length - done;
+    const pending = mains.length - done;
     const msg = done === 0 ? 'No completaste ninguna serie: la sesión se descartará.' : pending > 0 ? `Quedan ${pending} series sin completar; se descartarán. ¿Finalizar el entrenamiento?` : '¿Finalizar y guardar el entrenamiento?';
     if (!(await confirm(msg, { confirmLabel: done === 0 ? 'Descartar' : 'Finalizar', danger: done === 0 }))) return;
     const res = await run(() => finishSession(session.id));
@@ -326,27 +508,62 @@ function Active({ session }: { session: Session }) {
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Bar value={done} max={sets.length || 1} color="#3ddc84" height={5} />
-          <span className="wd-c shrink-0 text-sm font-semibold tnum text-mute">{done}/{sets.length} series</span>
+          <Bar value={done} max={mains.length || 1} color="#3ddc84" height={5} />
+          <span className="wd-c shrink-0 text-sm font-semibold tnum text-mute">{done}/{mains.length} series</span>
         </div>
       </div>
 
-      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
-        {ids.map((id, i) => {
-          const xs = sets.filter((s) => s.exerciseId === id); const d = xs.filter((s) => s.done).length;
-          return <Chip key={id} active={id === current} color={d === xs.length && xs.length ? '#3ddc84' : '#ff6a1a'} onClick={() => select(id)}>{i + 1}. {ex.get(id)?.name ?? 'Ejercicio'} <span className="tnum opacity-60">{d}/{xs.length}</span></Chip>;
+      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1" data-drop-scroll data-noswipe>
+        {units.map((u, i) => {
+          const xs = mains.filter((s) => u.includes(s.exerciseId)); const d = xs.filter((s) => s.done).length;
+          const name = u.map((id) => ex.get(id)?.name ?? 'Ejercicio').join(' + ');
+          const isCur = u === unit; const single = u.length === 1;
+          return (
+            <span key={u[0]} data-drop-id={u[0]} {...(single ? drag.bind(u[0], name) : {})}
+              className={cx('shrink-0 rounded-full transition', drag.over === u[0] && 'ring-2 ring-fire ring-offset-2 ring-offset-ink', drag.dragging === u[0] && 'opacity-40')}>
+              <Chip active={isCur} color={d === xs.length && xs.length ? '#3ddc84' : '#ff6a1a'} onClick={drag.guard(() => select(u[0]))}>
+                {/* Nombres largos se recortan para que quepan varios ejercicios en la fila. */}
+                <span className="inline-block max-w-[12.5rem] truncate align-bottom">{i + 1}. {single ? name : `${groupLabel(u.length)}: ${name}`}</span> <span className="tnum opacity-60">{d}/{xs.length}</span>
+              </Chip>
+            </span>
+          );
         })}
         <Chip onClick={() => setPicker(true)}>+ Ejercicio</Chip>
       </div>
+      {hint && units.length > 1 && <p className="wd-c -mt-1 mb-3 text-sm text-mute">Desliza a los lados para cambiar de ejercicio. Mantén presionado uno y arrástralo sobre otro para unirlos en biserie.</p>}
+      {drag.ghost}
+      {/* En el teléfono caben pocos ejercicios en la fila: al arrastrar se muestran todos los destinos en una lista. */}
+      {drag.dragging && (
+        <div className="fixed inset-x-0 bottom-[84px] z-40 px-3 md:bottom-4 md:left-60" data-drop-zone aria-hidden>
+          <div className="mx-auto max-w-xl rounded-panel bg-card2 p-2 shadow-[0_10px_30px_rgba(0,0,0,.6)] animate-rise">
+            <div className="label px-2 pb-1.5">Suelta sobre un ejercicio para unirlos</div>
+            <div className="space-y-1.5">
+              {units.filter((u) => !u.includes(drag.dragging!) && u.length < MAX_GROUP).map((u) => (
+                <div key={u[0]} data-drop-id={u[0]} className={cx('truncate rounded-ctl px-3 py-3 font-semibold transition-colors', drag.over === u[0] ? 'bg-fire text-ink' : 'bg-card')}>
+                  {u.length >= 2 ? `${groupLabel(u.length)}: ` : ''}{u.map((id) => ex.get(id)?.name ?? 'Ejercicio').join(' + ')}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {paused && <div className="mb-3 rounded-ctl bg-card2 p-3 text-sm text-mute">Sesión en pausa: el cronómetro está detenido. Puedes seguir registrando o reanudar.</div>}
 
-      {curEx ? (
-        <ExercisePanel key={curEx.id} session={session} ex={curEx} sets={sets.filter((s) => s.exerciseId === curEx.id)} history={history} readiness={readiness} halfRir={profile.halfRir}
-          onRest={(sec) => sec > 0 && setRest({ end: Date.now() + sec * 1000, total: sec })} hasNext={idx < ids.length - 1} onNext={() => select(ids[idx + 1])} />
-      ) : (
-        <Empty icon="dumbbell" title="Añade tu primer ejercicio" text="Elige un ejercicio de la biblioteca para empezar a registrar series."><Btn variant="primary" icon="plus" onClick={() => setPicker(true)}>Añadir ejercicio</Btn></Empty>
-      )}
+      {/* pan-y: el desplazamiento vertical sigue siendo del navegador; el horizontal queda para cambiar de ejercicio. */}
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touch.current = null; }} className="min-h-[50vh]" style={{ touchAction: 'pan-y' }}>
+        <div key={unit?.join('+') ?? 'none'} className={slide === 'l' ? 'animate-slidel' : slide === 'r' ? 'animate-slider' : undefined}>
+          {unit && unit.length >= 2 ? (
+            <GroupPanel session={session} exs={unit.map((id) => ex.get(id)).filter((e): e is ExerciseDef => !!e)} sets={sets.filter((s) => unit.includes(s.exerciseId))} history={history} readiness={readiness} halfRir={profile.halfRir}
+              onRest={restFor} hasNext={unitIdx < units.length - 1} onNext={() => step(1)} joinable={joinable} exMap={ex} />
+          ) : curEx ? (
+            <ExercisePanel session={session} ex={curEx} sets={sets.filter((s) => s.exerciseId === curEx.id)} history={history} readiness={readiness} halfRir={profile.halfRir}
+              onRest={restFor} hasNext={unitIdx < units.length - 1} onNext={() => step(1)} joinable={joinable} exMap={ex} />
+          ) : (
+            <Empty icon="dumbbell" title="Añade tu primer ejercicio" text="Elige un ejercicio de la biblioteca para empezar a registrar series."><Btn variant="primary" icon="plus" onClick={() => setPicker(true)}>Añadir ejercicio</Btn></Empty>
+          )}
+        </div>
+      </div>
 
       <ExercisePicker open={picker} onClose={() => setPicker(false)} exclude={ids} onPick={(e) => run(async () => { await addExerciseToSession(session.id, e.id); select(e.id); })} />
       {rest && <RestBar rest={rest} now={now} onChange={setRest} />}
