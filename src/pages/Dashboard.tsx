@@ -11,34 +11,35 @@ import type { Muscle } from '../domain/types';
 import { inWeek, mainSets, muscleVolume, personalRecords, tonnage } from '../domain/volume';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useSessions, useUserId } from '../hooks';
 import { BodyFigure } from '../ui/BodyFigure';
-import { Btn, Icon, Spark, useAction } from '../ui/components';
+import { Btn, Icon, Ring, Spark, useAction } from '../ui/components';
+import { ExerciseThumb } from '../ui/EquipmentArt';
 import { Logo } from '../ui/Layout';
 
 const hello = () => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const pctDelta = (a: number, b: number) => (b > 0 ? Math.round(((a - b) / b) * 100) : null);
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n} %`;
 
-/** Fila de una lista con filetes: rótulo, valor y un dato a la derecha. */
-function Row({ label, children, right, onClick }: { label: string; children: ReactNode; right?: ReactNode; onClick?: () => void }) {
+/** Acceso rápido: un panel de vidrio con su icono, el dato y a dónde lleva. */
+function Tile({ icon, tone, label, children, right, onClick }: { icon: string; tone: string; label: string; children: ReactNode; right?: ReactNode; onClick?: () => void }) {
   const Tag = onClick ? 'button' : 'div';
   return (
-    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className="flex w-full items-center gap-4 py-3.5 text-left">
-      <div className="min-w-0 flex-1">
-        <div className="label">{label}</div>
-        <div className="mt-0.5 truncate font-semibold">{children}</div>
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className="flex min-h-[132px] w-full flex-col rounded-panel bg-card p-4 text-left transition active:scale-[.98]">
+      <div className="flex items-start justify-between gap-2">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl" style={{ background: `${tone}24`, color: tone }}><Icon name={icon} size={20} /></span>
+        {right}
       </div>
-      {right}
-      {onClick && <Icon name="right" size={16} className="shrink-0 text-mute" />}
+      <div className="label mt-auto pt-3">{label}</div>
+      <div className="mt-0.5 text-[15px] font-semibold leading-snug">{children}</div>
     </Tag>
   );
 }
 
-function WeekFigure({ label, value, note, good }: { label: string; value: ReactNode; note?: string; good?: boolean }) {
+function RingStat({ value, max, color, figure, label, note, good }: { value: number; max: number; color: string; figure: ReactNode; label: string; note?: string; good?: boolean }) {
   return (
-    <div>
-      <div className="num text-[1.6rem] leading-none">{value}</div>
-      <div className="label mt-1">{label}</div>
-      {note && <div className="wd-c text-xs" style={{ color: good ? '#3ddc84' : '#9299a3' }}>{note}</div>}
+    <div className="flex min-w-0 flex-col items-center text-center">
+      <Ring value={value} max={max} color={color}><span className="num text-[1.35rem] leading-none">{figure}</span></Ring>
+      <div className="label mt-2">{label}</div>
+      {note && <div className="wd-c truncate text-xs" style={{ color: good ? '#3ddc84' : '#9a9fa9' }}>{note}</div>}
     </div>
   );
 }
@@ -79,42 +80,63 @@ export default function Dashboard() {
 
   const heading = active ? active.name : todayRoutine ? todayRoutine.name : routines.length ? 'Hoy no hay rutina programada' : 'Crea tu primera rutina';
   const detail = active ? `Entrenamiento en curso, ${fmtDuration(elapsedMs(active, now))} transcurridos. Tu sesión está guardada.`
-    : todayRoutine ? `Programada para hoy: ${todayItems.length} ejercicios, ${todayItems.reduce((a, i) => a + i.sets, 0)} series.`
+    : todayRoutine ? `${todayItems.length} ejercicios, ${todayItems.reduce((a, i) => a + i.sets, 0)} series.`
     : routines.length ? 'Puedes iniciar cualquier rutina o un entrenamiento libre.' : 'Parte de una plantilla o arma la tuya.';
+
+  const nSessions = new Set(week.map((x) => x.sessionId)).size;
+  const prevSets = mainSets(prevWeek).length, ton = tonnage(week), prevTon = tonnage(prevWeek);
+  const todayEx = todayItems.slice().sort((a, b) => a.order - b.order).map((i) => ex.get(i.exerciseId)).filter((e): e is NonNullable<typeof e> => !!e);
 
   return (
     <div>
       <header className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="mb-4 md:hidden"><Logo /></div>
+          <div className="mb-5 md:hidden"><Logo /></div>
           <p className="wd-c text-[15px] text-mute first-letter:uppercase">{new Date(now).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          <h1 className="wd-x text-[1.6rem] font-extrabold leading-[1.1] tracking-tight md:text-[1.9rem]" style={{ textWrap: 'balance' }}>{hello()}{profile.name ? `, ${profile.name}` : ''}</h1>
+          <h1 className="wd-x text-[1.75rem] font-extrabold leading-[1.08] tracking-tight md:text-[2rem]" style={{ textWrap: 'balance' }}>{hello()}{profile.name ? `, ${profile.name}` : ''}</h1>
         </div>
-        <Link to="/perfil" aria-label="Perfil" className="wd-x grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card2 text-lg font-extrabold">{profile.name ? profile.name[0].toUpperCase() : <Icon name="user" />}</Link>
+        <Link to="/perfil" aria-label="Perfil" className="wd-x grid h-12 w-12 shrink-0 place-items-center rounded-full bg-card2 text-lg font-extrabold">{profile.name ? profile.name[0].toUpperCase() : <Icon name="user" />}</Link>
       </header>
 
-      <div className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:[grid-template-areas:'today_figure''list_figure'] md:[grid-template-rows:auto_1fr]">
-        <section className="rounded-panel bg-card p-5 md:[grid-area:today]">
-          <h2 className="wd-x text-2xl font-extrabold leading-tight">{heading}</h2>
-          <p className="mt-1 text-[15px] text-mute">{detail}</p>
-          <Btn variant="primary" size="lg" className="mt-5 w-full" onClick={() => (routines.length || active ? begin() : nav('/rutinas'))}>
-            {active ? 'CONTINUAR ENTRENAMIENTO' : routines.length ? 'INICIAR ENTRENAMIENTO' : 'CREAR RUTINA'}
-          </Btn>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-8 md:[grid-template-areas:'today_figure''week_figure''list_figure'] md:[grid-template-rows:auto_auto_1fr]">
+        <section className="hero rounded-[28px] p-5 md:[grid-area:today]">
+          <div className="relative z-[1]">
+            <p className="wd-c text-sm font-semibold text-amber">{active ? 'En curso' : todayRoutine ? 'Rutina de hoy' : routines.length ? 'Día libre' : 'Para empezar'}</p>
+            <h2 className="wd-x mt-1 text-[1.7rem] font-extrabold leading-[1.05]">{heading}</h2>
+            <p className="mt-1.5 text-[15px] text-chalk/75">{detail}</p>
+            {!active && todayEx.length > 0 && (
+              <div className="mt-4 flex items-center" aria-hidden>
+                {todayEx.slice(0, 5).map((e, i) => <span key={e.id} className="rounded-2xl ring-2 ring-[#2b1a10]" style={{ marginLeft: i ? -10 : 0, zIndex: 9 - i }}><ExerciseThumb ex={e} size={46} /></span>)}
+                {todayEx.length > 5 && <span className="wd-c ml-2 text-sm font-semibold text-chalk/75">+{todayEx.length - 5}</span>}
+              </div>
+            )}
+            <Btn variant="primary" size="lg" className="mt-5 w-full" icon={active || routines.length ? 'play' : 'plus'} onClick={() => (routines.length || active ? begin() : nav('/rutinas'))}>
+              {active ? 'CONTINUAR ENTRENAMIENTO' : routines.length ? 'INICIAR ENTRENAMIENTO' : 'CREAR RUTINA'}
+            </Btn>
+          </div>
         </section>
 
-        <section className="md:[grid-area:figure]" aria-label="Grupos musculares de la semana">
-          <div className="relative h-[360px] md:h-[600px]">
+        <section className="rounded-panel bg-card p-4 md:[grid-area:week]" aria-label="Resumen de la semana">
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="wd-w text-[15px] font-bold">Esta semana</h2>
+            <Link to="/analisis" className="wd-c text-sm text-data">Ver análisis</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <RingStat value={nSessions} max={profile.daysAvailable} color="#ff6a1a" figure={nSessions} label="sesiones" note={`de ${profile.daysAvailable} días`} />
+            <RingStat value={nWeek} max={prevSets || nWeek || 1} color="#ffb054" figure={nWeek} label="series" note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
+            <RingStat value={ton} max={prevTon || ton || 1} color="#6fb4ff" figure={(ton / 1000).toFixed(1).replace('.', ',')} label="toneladas" note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
+          </div>
+        </section>
+
+        <section className="rounded-panel bg-card p-4 md:[grid-area:figure]" aria-label="Grupos musculares de la semana">
+          <h2 className="wd-w text-[15px] font-bold">Mapa muscular</h2>
+          <ul className="wd-c mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-mute">
+            {([['reciente', 'Últimas 48 h'], ['semana', 'Esta semana'], ['pendiente', 'Pendiente']] as const).map(([k, t]) => (
+              <li key={k} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: LEGEND[k] }} />{t}</li>
+            ))}
+          </ul>
+          <div className="relative mt-2 h-[340px] md:h-[560px]">
             <BodyFigure tones={heat.tones} selected={sel} onSelect={(m) => setSel(sel === m ? null : m)} className="absolute inset-0" />
-            <div className="pointer-events-none absolute left-0 top-1 space-y-4">
-              <WeekFigure label="sesiones" value={new Set(week.map((s) => s.sessionId)).size} note={`de ${profile.daysAvailable} días`} />
-              <WeekFigure label="series" value={nWeek} note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
-              <WeekFigure label="toneladas" value={(tonnage(week) / 1000).toFixed(1).replace('.', ',')} note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
-            </div>
-            <ul className="wd-c pointer-events-none absolute right-0 top-1 space-y-1.5 text-xs text-mute">
-              {([['reciente', 'Últimas 48 h'], ['semana', 'Esta semana'], ['pendiente', 'Pendiente']] as const).map(([k, t]) => (
-                <li key={k} className="flex items-center justify-end gap-2">{t}<span className="h-2.5 w-2.5 rounded-full" style={{ background: LEGEND[k] }} /></li>
-              ))}
-            </ul>
           </div>
           <p className="mt-2 min-h-[2.5rem] text-sm text-mute" aria-live="polite">
             {selVol ? <><b className="text-chalk">{MUSCLE_LABEL[selVol.muscle]}:</b> {selVol.direct} series directas y {selVol.indirect} indirectas esta semana, en {selVol.days} día{selVol.days === 1 ? '' : 's'}. <Link to="/analisis" className="text-data underline">Ver análisis</Link></>
@@ -123,36 +145,39 @@ export default function Dashboard() {
           </p>
         </section>
 
-        <section className="md:[grid-area:list]">
-          <div className="ruled border-t border-line">
-            <Row label="Última sesión" onClick={last ? () => nav(`/historial?s=${last.id}`) : undefined}
-              right={last && <span className="wd-c shrink-0 text-sm text-fire">{ago(last.endedAt ?? last.startedAt, now)}</span>}>
-              {last ? <>{last.name} <span className="wd-c font-normal text-mute">{fmtDate(last.startedAt)}, {fmtDuration(elapsedMs(last))}</span></> : <span className="font-normal text-mute">Aún no has completado ninguna sesión.</span>}
-            </Row>
-            <Row label="Fatiga y recuperación" onClick={() => nav('/recuperacion')}
-              right={<span className="num shrink-0 text-xl" style={{ color: LEVEL_COLOR[fatigue.level] }}>{fatigue.readiness ?? '–'}</span>}>
+        <section className="space-y-4 md:[grid-area:list]">
+          <div className="grid grid-cols-2 gap-3">
+            <Tile icon="calendar" tone="#ff6a1a" label="Última sesión" onClick={last ? () => nav(`/historial?s=${last.id}`) : undefined}
+              right={last && <span className="wd-c shrink-0 text-xs font-semibold text-fire">{ago(last.endedAt ?? last.startedAt, now)}</span>}>
+              {last ? <>{last.name} <span className="wd-c block text-sm font-normal text-mute">{fmtDate(last.startedAt)}, {fmtDuration(elapsedMs(last))}</span></> : <span className="text-sm font-normal text-mute">Aún no has completado ninguna sesión.</span>}
+            </Tile>
+            <Tile icon="heart" tone={LEVEL_COLOR[fatigue.level]} label="Fatiga y recuperación" onClick={() => nav('/recuperacion')}
+              right={<span className="num shrink-0 text-2xl leading-none" style={{ color: LEVEL_COLOR[fatigue.level] }}>{fatigue.readiness ?? '–'}</span>}>
               <span style={{ color: LEVEL_COLOR[fatigue.level] }}>{fatigue.label}</span>
-            </Row>
-            <Row label="Peso corporal" onClick={() => nav('/recuperacion')} right={<Spark values={weights.slice(-20).map((w) => w.kg)} width={84} height={28} />}>
-              {bw ? <>{fmtKg(bw.kg)} kg <span className="wd-c font-normal text-mute">{weights.length > 1 ? `${bw.kg - weights[0].kg >= 0 ? '+' : ''}${(bw.kg - weights[0].kg).toFixed(1)} kg desde ${weights[0].date}` : bw.date}</span></> : <span className="font-normal text-mute">Sin registros. Toca para añadir tu peso.</span>}
-            </Row>
-            <Row label="Asistente" onClick={() => nav('/asistente')}>¿Qué peso uso hoy? ¿Qué está estancado?</Row>
+            </Tile>
+            <Tile icon="chart" tone="#6fb4ff" label="Peso corporal" onClick={() => nav('/recuperacion')} right={<Spark values={weights.slice(-20).map((w) => w.kg)} width={64} height={26} color="#6fb4ff" />}>
+              {bw ? <>{fmtKg(bw.kg)} kg <span className="wd-c block text-sm font-normal text-mute">{weights.length > 1 ? `${bw.kg - weights[0].kg >= 0 ? '+' : ''}${(bw.kg - weights[0].kg).toFixed(1)} kg desde ${weights[0].date}` : bw.date}</span></> : <span className="text-sm font-normal text-mute">Sin registros. Toca para añadir tu peso.</span>}
+            </Tile>
+            <Tile icon="chat" tone="#ffb054" label="Asistente" onClick={() => nav('/asistente')}>¿Qué peso uso hoy? ¿Qué está estancado?</Tile>
           </div>
 
-          <div className="mb-3 flex items-baseline justify-between gap-3 border-t border-line pt-5">
-            <h2 className="wd-w text-[15px] font-bold">Récords de los últimos 30 días</h2>
-            <Link to="/historial" className="wd-c text-sm text-data">Ver historial</Link>
+          <div className="rounded-panel bg-card p-4">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <h2 className="wd-w text-[15px] font-bold">Récords de los últimos 30 días</h2>
+              <Link to="/historial" className="wd-c text-sm text-data">Ver historial</Link>
+            </div>
+            {prs.length ? (
+              <ul className="ruled">
+                {prs.map((p) => (
+                  <li key={p.exerciseId} className="flex items-center gap-3 py-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-go/15 text-go"><Icon name="trophy" size={16} /></span>
+                    <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                    <span className="num shrink-0 text-go">{fmtKg(p.weight)} kg × {p.reps}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-mute">Tus mejores marcas aparecerán aquí.</p>}
           </div>
-          {prs.length ? (
-            <ul className="space-y-2.5">
-              {prs.map((p) => (
-                <li key={p.exerciseId} className="flex items-baseline gap-3">
-                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                  <span className="num shrink-0 text-go">{fmtKg(p.weight)} kg × {p.reps}</span>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="text-sm text-mute">Tus mejores marcas aparecerán aquí.</p>}
         </section>
       </div>
     </div>

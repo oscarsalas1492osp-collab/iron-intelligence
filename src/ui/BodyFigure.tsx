@@ -29,7 +29,7 @@ export function BodyFigure({ tones, selected, onSelect, className, controls = tr
         </Suspense>
       )}
       {controls && state === 'ready' && (
-        <Btn size="sm" icon="rotate" className="absolute bottom-2 right-2 !bg-ink/70 backdrop-blur" aria-label={view === 'front' ? 'Ver espalda' : 'Ver frente'} onClick={() => setView(view === 'front' ? 'back' : 'front')}>
+        <Btn size="sm" icon="rotate" className="absolute bottom-2 right-2 !bg-ink/55 backdrop-blur-md" aria-label={view === 'front' ? 'Ver espalda' : 'Ver frente'} onClick={() => setView(view === 'front' ? 'back' : 'front')}>
           {view === 'front' ? 'Espalda' : 'Frente'}
         </Btn>
       )}

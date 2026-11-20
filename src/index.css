@@ -9,7 +9,13 @@
  *  - condensada      → rótulos y datos secundarios
  *  - normal          → lectura
  */
-:root { color-scheme: dark; --bg: #16181b; }
+/*
+ * Luz: el fondo es una sala oscura con una fuente de luz arriba. Las superficies son vidrio: dejan pasar esa luz y
+ * tienen un filo claro en el borde superior. El desenfoque real se reserva para lo que flota (barra, hojas, cabeceras);
+ * los paneles usan vidrio sin desenfoque para que el desplazamiento siga fluido en teléfonos modestos.
+ */
+:root { color-scheme: dark; --bg: #0a0a0c; }
+#root { isolation: isolate; }
 html, body, #root { height: 100%; }
 body {
   @apply bg-ink text-chalk antialiased;
@@ -20,19 +26,20 @@ body {
   overscroll-behavior: none; /* sin rebote ni navegación del navegador al deslizar a los lados */
 }
 /* Superficies del navegador: selección, cursor, foco y barras de desplazamiento con la paleta. */
-::selection { background: #ff6a1a; color: #16181b; }
-* { caret-color: #ff6a1a; scrollbar-color: #363b43 transparent; scrollbar-width: thin; }
+::selection { background: #ff6a1a; color: #0a0a0c; }
+* { caret-color: #ff6a1a; scrollbar-color: rgba(255,255,255,.16) transparent; scrollbar-width: thin; }
 :focus-visible { outline: 2px solid #ff6a1a; outline-offset: 2px; border-radius: 6px; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: #363b43; border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 8px; }
 
 input, select, textarea {
   @apply bg-card2 border border-line rounded-ctl px-3 py-2.5 text-chalk outline-none w-full;
   font-size: 16px; font-family: inherit;
 }
-input::placeholder, textarea::placeholder { color: #7d8590; }
-input:focus, select:focus, textarea:focus { @apply border-fire; }
-input[type='range'] { @apply p-0 border-0 bg-transparent accent-fire; }
+input::placeholder, textarea::placeholder { color: #7f848e; }
+input:focus, select:focus, textarea:focus { @apply border-fire; box-shadow: 0 0 0 4px rgb(255 106 26 / .16); }
+select option { background: #17171b; color: #f5f3ee; }
+input[type='range'] { @apply p-0 border-0 bg-transparent accent-fire; box-shadow: none; }
 input[type='file'] { @apply text-sm; }
 button { @apply select-none; touch-action: manipulation; font-family: inherit; }
 a { text-underline-offset: 3px; }
@@ -45,7 +52,7 @@ a { text-underline-offset: 3px; }
   /* Cifra estampada: ancha, pesada, de ancho fijo */
   .num { font-stretch: 118%; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   /* Rótulo: condensado, en minúsculas, sin versalitas espaciadas */
-  .label { font-stretch: 78%; font-weight: 600; font-size: 0.8125rem; line-height: 1.2; color: #9299a3; letter-spacing: 0.01em; }
+  .label { font-stretch: 78%; font-weight: 600; font-size: 0.8125rem; line-height: 1.2; color: #9a9fa9; letter-spacing: 0.01em; }
   .tnum { font-variant-numeric: tabular-nums; }
   /* Moleteado (el agarre de una barra): solo en la acción principal */
   .knurl { position: relative; overflow: hidden; }
@@ -58,8 +65,58 @@ a { text-underline-offset: 3px; }
   .knurl::before { left: 0; }
   .knurl::after { right: 0; }
   /* Lista con filetes: filas separadas por una línea, sin cajas */
-  .ruled > * + * { border-top: 1px solid #2c3037; }
+  .ruled > * + * { border-top: 1px solid rgba(255,255,255,.08); }
 }
+/* ---------- Luz ambiente ---------- */
+.ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; background: #0a0a0c; }
+.ambient::before, .ambient::after { content: ''; position: absolute; inset: 0; transition: opacity .7s ease; }
+.ambient::before {
+  background:
+    radial-gradient(115% 46% at 10% -6%, rgb(255 106 26 / .38), transparent 62%),
+    radial-gradient(80% 34% at 106% 2%, rgb(255 176 84 / .17), transparent 66%),
+    radial-gradient(90% 28% at 50% 112%, rgb(255 90 20 / .13), transparent 70%);
+}
+.ambient::after {
+  opacity: 0;
+  background:
+    radial-gradient(115% 46% at 10% -6%, rgb(56 126 255 / .34), transparent 62%),
+    radial-gradient(80% 34% at 106% 2%, rgb(120 205 255 / .14), transparent 66%),
+    radial-gradient(90% 28% at 50% 112%, rgb(60 110 255 / .11), transparent 70%);
+}
+.ambient[data-tone='cool']::before { opacity: 0; }
+.ambient[data-tone='cool']::after { opacity: 1; }
+
+/* ---------- Vidrio ---------- */
+.bg-card {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / .05), rgb(255 255 255 / 0) 70%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .065), inset 0 1px 0 rgb(255 255 255 / .11), 0 18px 40px -28px rgb(0 0 0 / .9);
+}
+.bg-card2 { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .05); }
+/* Lo que flota sobre el contenido: vidrio esmerilado de verdad. */
+.glass-bar {
+  background: rgb(19 19 23 / .68);
+  -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .09), inset 0 1px 0 rgb(255 255 255 / .16), 0 20px 46px -14px rgb(0 0 0 / .9);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass-bar { background: #151518; } }
+/* Panel protagonista: vidrio que recoge la luz cálida. */
+.hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(150deg, rgb(255 140 64 / .30), rgb(255 106 26 / .09) 48%, rgb(255 255 255 / .04));
+  box-shadow: inset 0 0 0 1px rgb(255 170 110 / .22), inset 0 1px 0 rgb(255 225 195 / .30), 0 26px 60px -30px rgb(255 106 26 / .6);
+}
+.hero::after { content: ''; position: absolute; right: -70px; top: -90px; width: 230px; height: 230px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 176 84 / .34), transparent); }
+/* Acción principal: brasa con brillo propio. */
+.btn-fire {
+  background: linear-gradient(180deg, #ff9148 0%, #ff6a1a 52%, #f0520a 100%);
+  box-shadow: 0 12px 28px -10px rgb(255 106 26 / .75), inset 0 1px 0 rgb(255 255 255 / .38), inset 0 -1px 0 rgb(0 0 0 / .14);
+}
+.btn-go { background: linear-gradient(180deg, #62ea9d, #2fcf75); box-shadow: 0 10px 24px -12px rgb(61 220 132 / .7), inset 0 1px 0 rgb(255 255 255 / .4); }
+.orb { background: radial-gradient(120% 120% at 30% 18%, #ffc078 0%, #ff7a26 38%, #e44c05 78%, #b83a00 100%);
+  box-shadow: 0 14px 30px -8px rgb(255 106 26 / .8), 0 0 0 5px rgb(10 10 12 / .55), inset 0 2px 1px rgb(255 255 255 / .5), inset 0 -6px 12px rgb(120 30 0 / .45); }
+/* Escenario de una figura de ejercicio: un foco suave desde arriba. */
+.thumb { background: radial-gradient(130% 100% at 50% 0%, rgb(255 255 255 / .14), rgb(255 255 255 / .04) 72%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 .safe-b { padding-bottom: env(safe-area-inset-bottom); }

@@ -41,13 +41,13 @@ export interface IntensityInfo { label: string; short: string; color: string; te
  * `color` es el relleno; `text` es la variante legible sobre fondo oscuro.
  */
 export function intensityOf(rir: number | null): IntensityInfo {
-  if (rir == null) return { label: 'Sin RIR registrado', short: 'sin RIR', color: '#4a505a', text: '#9299a3', level: 0 };
+  if (rir == null) return { label: 'Sin RIR registrado', short: 'sin RIR', color: '#4a505a', text: '#9a9fa9', level: 0 };
   if (rir <= 0) return { label: 'Fallo muscular reportado', short: 'Fallo', color: '#ffe2a8', text: '#ffe2a8', level: 5 };
   if (rir <= 1) return { label: 'Proximidad muy elevada', short: 'Muy cerca', color: '#ffa63d', text: '#ffb65c', level: 4 };
   if (rir <= 2) return { label: 'Proximidad elevada al fallo', short: 'Cerca', color: '#ff6a1a', text: '#ff8a4a', level: 3 };
   if (rir <= 3) return { label: 'Esfuerzo moderado-alto', short: 'Moderado-alto', color: '#c2412d', text: '#f0705a', level: 2 };
   if (rir <= 4) return { label: 'Intensidad relativamente baja', short: 'Moderado', color: '#8a4a3a', text: '#d08a78', level: 1 };
-  return { label: 'Muy lejos del fallo', short: 'Lejos', color: '#5e6670', text: '#9299a3', level: 1 };
+  return { label: 'Muy lejos del fallo', short: 'Lejos', color: '#5e6670', text: '#9a9fa9', level: 1 };
 }
 
 // ---- Fechas (hora local) ----

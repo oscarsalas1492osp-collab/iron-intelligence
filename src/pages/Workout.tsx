@@ -27,7 +27,7 @@ interface Rest { end: number; total: number }
 const loadRest = (): Rest | null => { try { const r = JSON.parse(localStorage.getItem(REST_KEY) || 'null'); return r && r.end > Date.now() ? r : null; } catch { return null; } };
 const storeRest = (r: Rest | null) => { try { r ? localStorage.setItem(REST_KEY, JSON.stringify(r)) : localStorage.removeItem(REST_KEY); } catch { /* sin almacenamiento */ } };
 
-const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#3ddc84', hold: '#5aa9ff', hold_add_reps: '#5aa9ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
+const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#3ddc84', hold: '#6fb4ff', hold_add_reps: '#6fb4ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
 
 export function RecommendationCard({ rec, compact, measure = 'reps' }: { rec: Recommendation; compact?: boolean; measure?: Measure }) {
   const [open, setOpen] = useState(false);
@@ -126,7 +126,7 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDon
   }
 
   return (
-    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-card/45', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && onOpen()}>
+    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-white/[.03]', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && onOpen()}>
       {(title || tag) && <div className="wd-c mb-1.5 truncate text-sm font-semibold text-mute">{title}{title && tag ? ', ' : ''}{tag && <span className="text-fire">{tag}</span>}</div>}
       <div className="flex items-center gap-2" data-noswipe>
         {!tag && <span className="num grid h-7 w-4 shrink-0 place-items-center text-base text-mute">{n}</span>}
@@ -392,9 +392,9 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
   const left = Math.max(0, rest.end - now);
   const pct = rest.total > 0 ? left / (rest.total * 1000) : 0;
   return (
-    <div className="fixed inset-x-0 bottom-[84px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
-      <div className="mx-auto flex max-w-xl items-center gap-3 rounded-panel bg-card2 p-3 shadow-[0_10px_30px_rgba(0,0,0,.55)] animate-rise">
-        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="#16181b" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#5aa9ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
+    <div className="fixed inset-x-0 bottom-[108px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
+      <div className="mx-auto flex max-w-xl items-center gap-3 glass-bar rounded-panel p-3 animate-rise">
+        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="rgba(255,255,255,.12)" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#6fb4ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
         <div className="flex-1">
           <div className="num text-2xl leading-none">{fmtDuration(left)}</div>
           <div className="label mt-0.5 !text-data">de descanso</div>
@@ -495,7 +495,7 @@ function Active({ session }: { session: Session }) {
 
   return (
     <div className={rest ? 'pb-24' : ''}>
-      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/95 px-4 pb-3 pt-2 backdrop-blur md:-mx-8 md:px-8">
+      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/70 px-4 pb-3 pt-2 backdrop-blur-xl md:-mx-8 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="wd-w truncate font-bold leading-tight">{session.name}</div>
@@ -534,8 +534,8 @@ function Active({ session }: { session: Session }) {
       {drag.ghost}
       {/* En el teléfono caben pocos ejercicios en la fila: al arrastrar se muestran todos los destinos en una lista. */}
       {drag.dragging && (
-        <div className="fixed inset-x-0 bottom-[84px] z-40 px-3 md:bottom-4 md:left-60" data-drop-zone aria-hidden>
-          <div className="mx-auto max-w-xl rounded-panel bg-card2 p-2 shadow-[0_10px_30px_rgba(0,0,0,.6)] animate-rise">
+        <div className="fixed inset-x-0 bottom-[112px] z-50 px-3 md:bottom-4 md:left-60" data-drop-zone aria-hidden>
+          <div className="glass-bar mx-auto max-w-xl rounded-panel p-2 animate-rise">
             <div className="label px-2 pb-1.5">Suelta sobre un ejercicio para unirlos</div>
             <div className="space-y-1.5">
               {units.filter((u) => !u.includes(drag.dragging!) && u.length < MAX_GROUP).map((u) => (

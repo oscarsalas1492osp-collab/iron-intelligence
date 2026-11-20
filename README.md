@@ -36,6 +36,8 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Módulo | Estado |
 |---|---|
 | Registro por serie (peso, reps, RIR, RPE, fallo, motivo de fin, descanso real, nota) | Completo |
+| Interfaz "brasa y vidrio": luz ambiente cálida al entrenar y fría al analizar, superficies de vidrio, barra de navegación flotante, anillos de avance semanal | Completo |
+| Figuras de ejercicio renderizadas en 3D (maniquí con volumen, músculos encendidos, implemento con profundidad); animadas en la ficha; el pictograma 2D queda de respaldo sin WebGL | Completo |
 | Inicio de sesión con Google (botón visible cuando el proveedor está activo en Supabase) | Código listo; falta activar el proveedor |
 | Eliminación de cuenta y datos, en la app y en `eliminar-cuenta.html` | Código listo; requiere la función `delete_account` de `supabase/schema.sql` |
 | Política de privacidad y términos de uso (`privacidad.html`, `terminos.html`) | Completo |

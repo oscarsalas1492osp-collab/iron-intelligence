@@ -42,7 +42,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
     <form onSubmit={submit} className="space-y-3">
       {google && (
         <>
-          <button type="button" onClick={withGoogle} disabled={leaving} className="flex h-12 w-full items-center justify-center rounded-ctl bg-chalk px-4 text-[15px] font-bold text-ink transition active:scale-[.98] disabled:opacity-60">
+          <button type="button" onClick={withGoogle} disabled={leaving} className="flex h-12 w-full items-center justify-center rounded-ctl bg-chalk px-4 shadow-[0_10px_24px_-12px_rgba(255,255,255,.5)] text-[15px] font-bold text-ink transition active:scale-[.98] disabled:opacity-60">
             {leaving ? 'Abriendo Google…' : 'Continuar con Google'}
           </button>
           <div className="flex items-center gap-3 text-xs text-mute" aria-hidden><span className="h-px flex-1 bg-line" />o con tu correo<span className="h-px flex-1 bg-line" /></div>
@@ -60,10 +60,11 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
 export default function Auth({ onSkip }: { onSkip: () => void }) {
   return (
     <div className="mx-auto flex min-h-full max-w-sm flex-col justify-center px-5 py-10">
-      <div className="mb-8"><Logo /></div>
-      <h1 className="text-3xl font-extrabold tracking-tight">Registra.<br />Analiza.<br /><span className="text-fire">Progresa.</span></h1>
-      <p className="mb-6 mt-3 text-sm text-mute">Inicia sesión para respaldar y sincronizar tus entrenamientos entre dispositivos.</p>
-      <AuthForm />
+      <div className="ambient" aria-hidden />
+      <div className="mb-10"><Logo /></div>
+      <h1 className="wd-x text-[2.6rem] font-black leading-[.98] tracking-tight">Registra.<br />Analiza.<br /><span className="bg-gradient-to-r from-amber to-fire bg-clip-text text-transparent">Progresa.</span></h1>
+      <p className="mb-6 mt-4 text-[15px] text-mute">Inicia sesión para respaldar y sincronizar tus entrenamientos entre dispositivos.</p>
+      <div className="rounded-panel bg-card p-4"><AuthForm /></div>
       <button type="button" className="mt-5 text-sm text-mute underline" onClick={onSkip}>Continuar sin cuenta (los datos quedan solo en este dispositivo)</button>
     </div>
   );

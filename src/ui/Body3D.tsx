@@ -70,18 +70,23 @@ export default function Body3D({ tones, selected, onSelect, className, onReady, 
       dirty = true;
     };
 
-    const frame = () => {
+    // Las transiciones avanzan por tiempo, no por cuadros: en un teléfono lento terminan igual de rápido, con menos cuadros.
+    let lastT = 0;
+    const frame = (now: number) => {
       raf = 0;
       if (disposed) return;
+      const steps = lastT ? Math.min(30, Math.max(0.5, (now - lastT) / 16.7)) : 1;
+      lastT = now;
+      const kf = (k: number) => 1 - Math.pow(1 - k, steps);
       let moving = false;
       if (targetYaw != null) {
         const d = targetYaw - yaw;
-        if (Math.abs(d) < 0.002) { yaw = targetYaw; targetYaw = null; } else { yaw += d * 0.085; moving = true; }
-      } else if (Math.abs(vel) > 0.0004) { yaw += vel; vel *= 0.93; moving = true; }
+        if (Math.abs(d) < 0.002) { yaw = targetYaw; targetYaw = null; } else { yaw += d * kf(0.085); moving = true; }
+      } else if (Math.abs(vel) > 0.0004) { yaw += vel * Math.min(steps, 4); vel *= Math.pow(0.93, steps); moving = true; }
       for (const m of mats.values()) {
         if (!m.mat.color.equals(m.color) || Math.abs(m.mat.emissiveIntensity - m.glow) > 0.004) {
-          m.mat.color.lerp(m.color, 0.14); m.mat.emissive.copy(m.mat.color);
-          m.mat.emissiveIntensity += (m.glow - m.mat.emissiveIntensity) * 0.14;
+          m.mat.color.lerp(m.color, kf(0.14)); m.mat.emissive.copy(m.mat.color);
+          m.mat.emissiveIntensity += (m.glow - m.mat.emissiveIntensity) * kf(0.14);
           if (Math.abs(m.mat.color.r - m.color.r) + Math.abs(m.mat.color.g - m.color.g) + Math.abs(m.mat.color.b - m.color.b) < 0.006) { m.mat.color.copy(m.color); m.mat.emissive.copy(m.color); m.mat.emissiveIntensity = m.glow; }
           moving = true;
         }
@@ -89,7 +94,7 @@ export default function Body3D({ tones, selected, onSelect, className, onReady, 
       pivot.rotation.set(base.pitch + pitch, base.yaw + yaw, 0);
       renderer.render(scene, camera);
       dirty = false;
-      if (moving) request();
+      if (moving) request(); else lastT = 0;
     };
     const request = () => { if (!raf && !disposed) raf = requestAnimationFrame(frame); };
 

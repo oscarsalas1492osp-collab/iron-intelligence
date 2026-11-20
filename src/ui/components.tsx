@@ -59,19 +59,19 @@ export function Card({ children, className, onClick }: { children: ReactNode; cl
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'soft' | 'ghost' | 'danger' | 'go'; size?: 'sm' | 'md' | 'lg'; icon?: string };
 export function Btn({ variant = 'soft', size = 'md', icon, className, children, ...rest }: BtnProps) {
   const v = {
-    primary: 'bg-fire text-ink hover:brightness-110',
-    go: 'bg-go text-ink hover:brightness-110',
+    primary: 'btn-fire text-ink hover:brightness-110',
+    go: 'btn-go text-ink hover:brightness-110',
     soft: 'bg-card2 text-chalk hover:bg-line',
     ghost: 'text-mute hover:text-chalk',
     danger: 'bg-ember/15 text-[#ff7a70] hover:bg-ember/25',
   }[variant];
   const s = {
-    sm: 'h-9 px-3 text-sm rounded-ctl font-semibold',
+    sm: 'h-9 px-3.5 text-sm rounded-full font-semibold',
     md: 'h-11 px-4 text-[15px] rounded-ctl font-semibold',
-    lg: 'h-14 px-10 text-[15px] rounded-2xl font-extrabold wd-w tracking-wide',
+    lg: 'h-14 px-5 text-[15px] rounded-[20px] font-extrabold wd-w tracking-wide whitespace-nowrap',
   }[size];
   return (
-    <button type="button" {...rest} className={cx('inline-flex items-center justify-center gap-2 transition active:scale-[.97] disabled:opacity-40 disabled:pointer-events-none', v, s, size === 'lg' && variant === 'primary' && 'knurl', className)}>
+    <button type="button" {...rest} className={cx('inline-flex items-center justify-center gap-2 transition active:scale-[.97] disabled:opacity-40 disabled:pointer-events-none', v, s, className)}>
       {icon && <Icon name={icon} size={size === 'lg' ? 20 : 18} />}
       {children}
     </button>
@@ -82,7 +82,7 @@ export function Title({ children, sub, right }: { children: ReactNode; sub?: Rea
   return (
     <div className="mb-5 flex items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="wd-x truncate text-[1.75rem] font-extrabold leading-tight tracking-tight">{children}</h1>
+        <h1 className="wd-x truncate text-[1.85rem] font-extrabold leading-tight tracking-tight">{children}</h1>
         {sub && <p className="wd-c mt-0.5 text-[15px] text-mute">{sub}</p>}
       </div>
       {right}
@@ -96,6 +96,24 @@ export const H2 = ({ children, right }: { children: ReactNode; right?: ReactNode
   </div>
 );
 
+/** Anillo de avance: cuánto llevas de una meta. El contenido va en el centro. */
+export function Ring({ value, max, size = 84, stroke = 9, color = '#ff6a1a', children }: { value: number; max: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const f = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90 overflow-visible" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth={stroke} />
+        {/* El resplandor es un segundo trazo más ancho y tenue: mismo efecto que un filtro, sin su costo al componer. */}
+        {f > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeOpacity={0.22} strokeWidth={stroke + 7} strokeLinecap="round" strokeDasharray={`${c * f} ${c}`} />}
+        {f > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${c * f} ${c}`}
+          style={{ transition: 'stroke-dasharray .6s cubic-bezier(.16,1,.3,1)' }} />}
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
+    </div>
+  );
+}
+
 export function Stat({ label, value, sub, color }: { label: string; value: ReactNode; sub?: ReactNode; color?: string }) {
   return (
     <div className="min-w-0">
@@ -108,8 +126,8 @@ export function Stat({ label, value, sub, color }: { label: string; value: React
 
 export function Empty({ icon = 'info', title, text, children }: { icon?: string; title: string; text?: string; children?: ReactNode }) {
   return (
-    <div className="rounded-panel bg-card/60 px-5 py-8 text-center">
-      <div className="mx-auto mb-3 grid h-10 w-10 place-items-center text-mute"><Icon name={icon} size={26} /></div>
+    <div className="rounded-panel bg-card px-5 py-8 text-center">
+      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-card2 text-amber"><Icon name={icon} size={24} /></div>
       <div className="wd-w font-bold">{title}</div>
       {text && <p className="mx-auto mt-1 max-w-sm text-sm text-mute">{text}</p>}
       {children && <div className="mt-5 flex flex-wrap justify-center gap-2">{children}</div>}
@@ -121,7 +139,7 @@ export function Chip({ active, children, onClick, color }: { active?: boolean; c
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
       className={cx('wd-c h-9 shrink-0 rounded-full px-3.5 text-[15px] font-semibold transition-colors', active ? 'bg-chalk text-ink' : 'bg-card2 text-mute hover:text-chalk')}
-      style={active && color ? { background: color, color: '#16181b' } : undefined}>
+      style={active && color ? { background: color, color: '#0a0a0c' } : undefined}>
       {children}
     </button>
   );
@@ -129,10 +147,10 @@ export function Chip({ active, children, onClick, color }: { active?: boolean; c
 
 export function Seg<T extends string | number>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="flex rounded-ctl bg-card2 p-1">
+    <div className="flex rounded-[16px] bg-card2 p-1">
       {options.map((o) => (
         <button type="button" key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={o.value === value}
-          className={cx('wd-c h-9 flex-1 rounded-lg px-2 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink' : 'text-mute hover:text-chalk')}>
+          className={cx('wd-c h-9 flex-1 rounded-xl px-2 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink shadow-[0_4px_14px_-6px_rgba(0,0,0,.8)]' : 'text-mute hover:text-chalk')}>
           {o.label}
         </button>
       ))}
@@ -189,8 +207,8 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal>
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className={cx('safe-b relative max-h-[92vh] w-full overflow-y-auto rounded-t-sheet bg-graphite p-5 shadow-[0_-12px_40px_rgba(0,0,0,.45)] animate-rise md:rounded-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[3px]" onClick={onClose} />
+      <div className={cx('safe-b relative max-h-[92vh] w-full overflow-y-auto rounded-t-sheet glass-bar p-5 animate-rise md:rounded-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden />
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="wd-w min-w-0 truncate text-lg font-bold">{title}</h3>
@@ -202,7 +220,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   );
 }
 
-export function Bar({ value, max, color = '#5aa9ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
+export function Bar({ value, max, color = '#6fb4ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
   return (
     <div className="w-full overflow-hidden rounded-full bg-card2" style={{ height }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} />
@@ -210,7 +228,7 @@ export function Bar({ value, max, color = '#5aa9ff', height = 8 }: { value: numb
   );
 }
 
-export function Spark({ values, color = '#5aa9ff', width = 120, height = 36 }: { values: number[]; color?: string; width?: number; height?: number }) {
+export function Spark({ values, color = '#6fb4ff', width = 120, height = 36 }: { values: number[]; color?: string; width?: number; height?: number }) {
   if (values.length < 2) return null;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
   const pts = values.map((v, i) => `${(i / (values.length - 1)) * (width - 4) + 2},${height - 3 - ((v - min) / span) * (height - 6)}`).join(' ');

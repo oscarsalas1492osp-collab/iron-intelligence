@@ -1,6 +1,6 @@
 // Icono de ejercicio: un maniquí en la postura característica del movimiento, con el implemento que se usa
 // y los músculos que trabajan encendidos. En la ficha se anima entre la postura inicial y la final.
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { patternOf } from '../../domain/exerciseLibrary';
 import type { Equipment, ExerciseDef, Muscle } from '../../domain/types';
 import { add, DIM, mix, sameLimb, solve, type Joints, type Limb, type V } from './rig';
@@ -252,10 +252,98 @@ function frameOf(sc: Scene, both: boolean): string {
 
 const noMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// ---------- Figura renderizada en 3D ----------
+// El pictograma de arriba se muestra al instante y queda como respaldo; cuando el render 3D está listo lo reemplaza.
+// Cada combinación de postura, implemento y músculos se renderiza una sola vez y se reutiliza.
+type Mod = typeof import('./render3d');
+let mod: Promise<Mod> | null = null;
+let broken = typeof WebGLRenderingContext === 'undefined';
+const load3d = () => (mod ??= import('./render3d'));
+const thumbs = new Map<string, string>();
+const waiters = new Map<string, Set<() => void>>();
+const queue: { key: string; ex: FigureEx; sc: Scene }[] = [];
+const sceneIds = new WeakMap<Scene, number>();
+let nextId = 1, pumping = false;
+const keyOf = (ex: FigureEx, sc: Scene) => {
+  let id = sceneIds.get(sc); if (!id) { id = nextId++; sceneIds.set(sc, id); }
+  return `${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
+};
+function pump(): void {
+  if (pumping) return;
+  pumping = true;
+  void load3d().then((m) => {
+    const step = () => {
+      const t0 = performance.now();
+      // Unas pocas por cuadro, para no trabar el desplazamiento de la lista.
+      while (queue.length && performance.now() - t0 < 10) {
+        const job = queue.shift()!;
+        // Nadie espera ya esta figura (la fila salió de pantalla): se descarta y se volverá a pedir si hace falta.
+        if (!waiters.get(job.key)?.size) { waiters.delete(job.key); continue; }
+        try { thumbs.set(job.key, m.renderThumb(job.ex, job.sc)); } catch { broken = true; queue.length = 0; }
+        waiters.get(job.key)?.forEach((cb) => cb()); waiters.delete(job.key);
+      }
+      if (queue.length) requestAnimationFrame(step); else pumping = false;
+    };
+    requestAnimationFrame(step);
+  }).catch(() => { broken = true; pumping = false; });
+}
+function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
+  const key = keyOf(ex, sc);
+  const [url, setUrl] = useState<string | null>(() => thumbs.get(key) ?? null);
+  useEffect(() => {
+    if (!on || broken) { setUrl(null); return; }
+    const hit = thumbs.get(key);
+    if (hit) { setUrl(hit); return; }
+    setUrl(null);
+    const cb = () => setUrl(thumbs.get(key) ?? null);
+    if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc }); }
+    waiters.get(key)!.add(cb);
+    pump();
+    return () => { waiters.get(key)?.delete(cb); };
+  // La clave resume el ejercicio y la escena.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, on]);
+  return url;
+}
+
+/** Movimiento en vivo: el render 3D se copia cuadro a cuadro a un lienzo visible. */
+function Motion3D({ ex, sc, size, className, onFail }: { ex: FigureEx; sc: Scene; size: number; className?: string; onFail: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let raf = 0, dead = false, fig: InstanceType<Mod['Figure3D']> | null = null;
+    const px = Math.min(520, Math.round(size * Math.min(2.5, window.devicePixelRatio || 1)));
+    void load3d().then((m) => {
+      if (dead || !ref.current) return;
+      fig = new m.Figure3D(ex, sc, !sc.still);
+      const ctx = ref.current.getContext('2d')!;
+      const paintAt = (t: number) => { ctx.clearRect(0, 0, px, px); ctx.drawImage(fig!.draw(t, px), 0, 0); };
+      paintAt(1); setReady(true);
+      if (sc.still || noMotion()) return;
+      const t0 = performance.now(); let last = 0;
+      const tick = (now: number) => {
+        raf = requestAnimationFrame(tick);
+        if (now - last < 33) return;
+        last = now;
+        const ph = ((now - t0) % 3000) / 3000, u = ph < 0.5 ? ph * 2 : 2 - ph * 2, e = Math.min(1, Math.max(0, (u - 0.12) / 0.76));
+        paintAt(1 - (1 - Math.cos(Math.PI * e)) / 2);
+      };
+      raf = requestAnimationFrame(tick);
+    }).catch(() => { broken = true; onFail(); });
+    return () => { dead = true; cancelAnimationFrame(raf); fig?.dispose(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ex.id, sc, size]);
+  const px = Math.min(520, Math.round(size * Math.min(2.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)));
+  return <canvas ref={ref} width={px} height={px} role="img" aria-label="Ilustración del movimiento" className={className} style={{ width: className ? undefined : size, height: className ? undefined : size, opacity: ready ? 1 : 0, transition: 'opacity .25s' }} />;
+}
+
 /** `animate`: recorre el movimiento en bucle (solo en la ficha). Sin animar muestra la postura característica; con `ghost`, también la inicial, tenue. */
 export const ExerciseFigure = memo(function ExerciseFigure({ ex, size = 56, animate = false, ghost = false, className }: { ex: FigureEx; size?: number; animate?: boolean; ghost?: boolean; className?: string }) {
   const sc = sceneFor(ex, patternOf(ex.id));
-  const moving = animate && !sc.still && !noMotion();
+  const [fail, setFail] = useState(false);
+  const live = animate && !broken && !fail;
+  const url = useThumb(ex, sc, !animate);
+  const moving = animate && !live && !sc.still && !noMotion();
   const [t, setT] = useState(1);
   useEffect(() => {
     if (!moving) { setT(1); return; }
@@ -272,6 +360,8 @@ export const ExerciseFigure = memo(function ExerciseFigure({ ex, size = 56, anim
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [moving, ex.id]);
+  if (live) return <Motion3D ex={ex} sc={sc} size={size} className={className} onFail={() => setFail(true)} />;
+  if (url) return <img src={url} width={size} height={size} alt="" role="img" aria-label="Ilustración del movimiento" className={className} draggable={false} />;
   return (
     <svg width={size} height={size} viewBox={frameOf(sc, animate || ghost)} className={className} role="img" aria-label="Ilustración del movimiento" style={{ overflow: 'hidden' }}>
       {drawScene(sc, ex, moving ? t : 1, !moving && !sc.still && (ghost || animate))}

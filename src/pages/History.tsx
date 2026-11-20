@@ -57,7 +57,7 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
                   const n = all.filter((x) => !x.sub && x.order <= s.order).length;
                   const tag = s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag ?? 'Tramo'} ${s.sub}` : null;
                   return (
-                    <button type="button" key={s.id} onClick={() => setEdit(s)} className={`flex w-full items-center gap-3 rounded-lg bg-card2/60 px-3 py-2 text-left text-sm ${tag ? 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50' : ''}`} aria-label={tag ? `Editar ${tag.toLowerCase()} de la serie ${n}` : `Editar serie ${n}`}>
+                    <button type="button" key={s.id} onClick={() => setEdit(s)} className={`flex w-full items-center gap-3 rounded-xl bg-card2 px-3 py-2 text-left text-sm ${tag ? 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50' : ''}`} aria-label={tag ? `Editar ${tag.toLowerCase()} de la serie ${n}` : `Editar serie ${n}`}>
                       <span className={tag ? 'wd-c text-xs font-semibold text-fire' : 'w-5 text-xs text-mute'}>{tag ?? n}</span>
                       <span className="flex-1 font-bold tnum">{fmtKg(s.weight)} kg × {s.reps}</span>
                       <span className="text-xs font-semibold tnum" style={{ color: intensityOf(s.rir).color }}>{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
@@ -112,8 +112,8 @@ function Calendar({ sessions, month, setMonth, onPick }: { sessions: Session[]; 
 
 const METRICS = [
   { value: 'maxWeight', label: 'Peso', unit: ' kg', color: '#ff6a1a' },
-  { value: 'totalReps', label: 'Reps', unit: ' reps', color: '#5aa9ff' },
-  { value: 'volume', label: 'Volumen', unit: ' kg', color: '#5aa9ff' },
+  { value: 'totalReps', label: 'Reps', unit: ' reps', color: '#6fb4ff' },
+  { value: 'volume', label: 'Volumen', unit: ' kg', color: '#6fb4ff' },
   { value: 'avgRir', label: 'RIR', unit: ' RIR', color: '#f5c542' },
   { value: 'e1rm', label: '1RM est.', unit: ' kg', color: '#3ddc84' },
 ] as const;

@@ -74,7 +74,7 @@ export default function Recovery() {
               <div className="flex-1"><Stepper label="Peso de hoy (kg)" value={kg} step={0.1} min={25} max={300} onChange={setKg} /></div>
               <Btn variant="primary" className="h-12" onClick={() => run(() => saveBodyWeight(kg), 'Peso registrado')}>Guardar</Btn>
             </div>
-            {weights && weights.length >= 2 ? <div className="mt-3"><LineC data={weights.map((w) => ({ label: w.date.slice(5), kg: w.kg }))} x="label" y="kg" unit=" kg" color="#5aa9ff" height={170} /></div>
+            {weights && weights.length >= 2 ? <div className="mt-3"><LineC data={weights.map((w) => ({ label: w.date.slice(5), kg: w.kg }))} x="label" y="kg" unit=" kg" color="#6fb4ff" height={170} /></div>
               : <p className="mt-3 text-xs text-mute">Registra tu peso al menos dos días para ver la evolución.</p>}
             {!!weights?.length && <div className="mt-2 space-y-1">{[...weights].reverse().slice(0, 5).map((w) => (
               <div key={w.id} className="flex items-center justify-between text-sm"><span className="text-mute">{w.date}</span><span className="flex items-center gap-2 font-semibold tnum">{fmtKg(w.kg)} kg<button type="button" aria-label={`Eliminar peso del ${w.date}`} className="text-mute" onClick={() => run(() => softDelete('bodyWeights', w.id))}><Icon name="x" size={14} /></button></span></div>

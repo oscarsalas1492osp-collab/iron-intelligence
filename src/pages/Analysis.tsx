@@ -56,7 +56,7 @@ export default function Analysis() {
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Sesiones" value={sessionsN} />
           <Stat label="Series" value={nWeek} sub={delta != null ? `${delta > 0 ? '+' : ''}${delta} % vs. semana previa` : undefined} />
-          <Stat label="Carga movida" value={`${(tonnage(week) / 1000).toFixed(1)} t`} color="#5aa9ff" />
+          <Stat label="Carga movida" value={`${(tonnage(week) / 1000).toFixed(1)} t`} color="#6fb4ff" />
         </div>
       </Card>
 
@@ -106,7 +106,7 @@ export default function Analysis() {
             {trends.length ? <div className="space-y-1.5">{trends.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-3 text-sm">
                 <span className="truncate">{t.name}</span>
-                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#3ddc84' : t.trend === 'declining' ? '#ff6a1a' : '#9299a3' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
+                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#3ddc84' : t.trend === 'declining' ? '#ff6a1a' : '#9a9fa9' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
               </div>
             ))}</div> : <p className="text-sm text-mute">Se necesitan 3 o más sesiones por ejercicio.</p>}
             <p className="mt-3 text-xs text-mute">Cambio del 1RM estimado: últimas 2 sesiones frente a las 3 anteriores.</p>
@@ -115,10 +115,10 @@ export default function Analysis() {
       </div>
 
       <H2>Evolución semanal</H2>
-      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">{MUSCLES.map((m) => <Chip key={m} active={m === muscle} color="#5aa9ff" onClick={() => setMuscle(m)}>{MUSCLE_LABEL[m]}</Chip>)}</div>
+      <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">{MUSCLES.map((m) => <Chip key={m} active={m === muscle} color="#6fb4ff" onClick={() => setMuscle(m)}>{MUSCLE_LABEL[m]}</Chip>)}</div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
         <Card>
-          <BarC data={evo} x="label" bars={[{ key: 'direct', color: '#5aa9ff', name: 'Directas', stack: 'a' }, { key: 'indirect', color: '#5aa9ff66', name: `Indirectas × ${coef}`, stack: 'a' }]} />
+          <BarC data={evo} x="label" bars={[{ key: 'direct', color: '#6fb4ff', name: 'Directas', stack: 'a' }, { key: 'indirect', color: '#6fb4ff66', name: `Indirectas × ${coef}`, stack: 'a' }]} />
           <p className="mt-2 text-xs text-mute">Últimas 8 semanas de {MUSCLE_LABEL[muscle].toLowerCase()}. Más volumen se asocia con más hipertrofia con rendimientos decrecientes; súbelo de forma gradual y solo si te recuperas bien.</p>
         </Card>
         <Card>

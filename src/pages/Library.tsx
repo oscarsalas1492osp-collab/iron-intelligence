@@ -39,7 +39,7 @@ function Filters({ f, set }: { f: Filter; set: (f: Filter) => void }) {
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1" role="group" aria-label="Filtrar por implemento">
         <Chip active={!f.eq} onClick={() => set({ ...f, eq: null })}>Todo el equipo</Chip>
-        {EQUIPMENT.map((m) => <Chip key={m} active={f.eq === m} onClick={() => set({ ...f, eq: f.eq === m ? null : m })} color="#5aa9ff">{EQUIPMENT_LABEL[m]}</Chip>)}
+        {EQUIPMENT.map((m) => <Chip key={m} active={f.eq === m} onClick={() => set({ ...f, eq: f.eq === m ? null : m })} color="#6fb4ff">{EQUIPMENT_LABEL[m]}</Chip>)}
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1" role="group" aria-label="Filtrar por tipo de entrenamiento">
         <Chip active={!f.cat} onClick={() => set({ ...f, cat: null })}>Todo tipo</Chip>
@@ -104,8 +104,8 @@ export function ExerciseDetail({ ex, onClose, onEdit }: { ex: ExerciseDef | null
   return (
     <Sheet open onClose={onClose} title={ex.name} wide>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[220px_1fr]">
-        <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-center gap-3 md:grid-cols-1">
-          <div className="aspect-square overflow-hidden rounded-panel bg-card2">
+        <div className="grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-3 md:grid-cols-1">
+          <div className="thumb aspect-square overflow-hidden rounded-panel">
             {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <ExerciseFigure ex={ex} animate size={220} className="h-full w-full" />}
           </div>
           <div className="relative h-60 md:h-72"><BodyFigure tones={exerciseTones(ex.primary, ex.secondary)} className="absolute inset-0" /></div>
@@ -268,7 +268,7 @@ function Machines({ all, onExercise, onEquipment }: { all: ExerciseDef[]; onExer
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {list.filter((m) => m.zone === z).map((m) => (
               <button key={m.id} type="button" onClick={() => setOpen(m)} className="flex w-full items-center gap-3 rounded-panel bg-card p-2.5 text-left transition active:scale-[.99]">
-                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-ctl bg-card2">{byId.get(m.ex[0]) ? <ExerciseFigure ex={byId.get(m.ex[0])!} size={56} /> : <EquipmentArt equipment={artOf(m)} size={44} />}</div>
+                <div className="thumb grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl">{byId.get(m.ex[0]) ? <ExerciseFigure ex={byId.get(m.ex[0])!} size={56} /> : <EquipmentArt equipment={artOf(m)} size={44} />}</div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold leading-tight truncate">{m.name}</div>
                   <div className="wd-c text-sm text-mute truncate">{musclesOf(m)}</div>

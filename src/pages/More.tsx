@@ -19,7 +19,7 @@ export default function More() {
         {MORE.map((n) => (
           <Link key={n.to} to={n.to}>
             <Card className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card2 text-fire"><Icon name={n.icon} /></span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-card2 text-amber"><Icon name={n.icon} /></span>
               <span className="min-w-0 flex-1"><span className="block font-bold">{n.label}</span><span className="block text-xs text-mute truncate">{DESC[n.to]}</span></span>
               <Icon name="right" className="text-mute" size={18} />
             </Card>

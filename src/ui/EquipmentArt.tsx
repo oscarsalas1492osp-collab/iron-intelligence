@@ -93,7 +93,7 @@ export function EquipmentArt({ equipment, size = 56, className }: { equipment: E
 /** Miniatura de un ejercicio: foto del usuario si existe; si no, la figura en la postura del movimiento. */
 export function ExerciseThumb({ ex, size = 56, animate = false }: { ex: Pick<ExerciseDef, 'id' | 'primary' | 'secondary' | 'type' | 'equipment' | 'photo' | 'name'>; size?: number; animate?: boolean }) {
   return (
-    <div className="shrink-0 grid place-items-center overflow-hidden rounded-ctl bg-card2" style={{ width: size, height: size }}>
+    <div className="thumb shrink-0 grid place-items-center overflow-hidden rounded-2xl" style={{ width: size, height: size }}>
       {ex.photo ? <img src={ex.photo} alt={ex.name} className="h-full w-full object-cover" /> : <ExerciseFigure ex={ex} size={size} animate={animate} />}
     </div>
   );
