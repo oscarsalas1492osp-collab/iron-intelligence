@@ -395,7 +395,7 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
         )}
         {/* En una biserie la cabecera es breve: la recomendación completa se abre a pedido para llegar antes a las series. */}
         {compact && !more && (
-          <button type="button" onClick={() => setMore(true)} aria-expanded={false} className="wd-c mt-2 block w-full truncate text-left text-sm text-mute">
+          <button type="button" onClick={() => setMore(true)} aria-expanded={false} className="wd-c -mb-3 block w-full truncate py-3 text-left text-sm text-mute">
             <span className="font-semibold text-data">{rec.weight != null ? `Sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido'}</span>. Ver recomendación y última sesión
           </button>
         )}

@@ -79,7 +79,7 @@ export default function Recovery() {
             {weights && weights.length >= 2 ? <div className="mt-3"><LineC data={weights.map((w) => ({ label: w.date.slice(5), kg: w.kg }))} x="label" y="kg" unit=" kg" color="#58c7ff" height={170} /></div>
               : <p className="mt-3 text-xs text-mute">Registra tu peso al menos dos días para ver la evolución.</p>}
             {!!weights?.length && <div className="mt-2 space-y-1">{[...weights].reverse().slice(0, 5).map((w) => (
-              <div key={w.id} className="flex items-center justify-between text-sm"><span className="text-mute">{w.date}</span><span className="flex items-center gap-2 font-semibold tnum">{fmtKg(w.kg)} kg<button type="button" aria-label={`Eliminar peso del ${w.date}`} className="text-mute" onClick={() => run(() => softDelete('bodyWeights', w.id))}><Icon name="x" size={14} /></button></span></div>
+              <div key={w.id} className="flex items-center justify-between text-sm"><span className="text-mute">{w.date}</span><span className="flex items-center gap-2 font-semibold tnum">{fmtKg(w.kg)} kg<button type="button" aria-label={`Eliminar peso del ${w.date}`} className="hit text-mute" onClick={() => run(() => softDelete('bodyWeights', w.id))}><Icon name="x" size={14} /></button></span></div>
             ))}</div>}
           </Card>
 
@@ -88,7 +88,7 @@ export default function Recovery() {
             <div key={l.id} className="flex items-center justify-between gap-2 rounded-ctl bg-card px-3 py-2 text-sm">
               <span className="text-mute">{l.date}</span>
               <span className="text-xs text-mute tnum">{l.sleepHours} h, fatiga {l.fatigue}, dolor {l.soreness}, estrés {l.stress}</span>
-              <span className="flex items-center gap-2"><b className="tnum">{readinessOf(l)}</b><button type="button" aria-label={`Eliminar registro del ${l.date}`} className="text-mute" onClick={() => run(() => softDelete('recovery', l.id))}><Icon name="x" size={14} /></button></span>
+              <span className="flex items-center gap-2"><b className="tnum">{readinessOf(l)}</b><button type="button" aria-label={`Eliminar registro del ${l.date}`} className="hit text-mute" onClick={() => run(() => softDelete('recovery', l.id))}><Icon name="x" size={14} /></button></span>
             </div>
           ))}</div> : <Empty icon="heart" title="Sin registros" text="Un registro diario de 20 segundos mejora el contexto de las recomendaciones." />}
         </div>

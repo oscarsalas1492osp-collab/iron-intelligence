@@ -66,7 +66,7 @@ export function Btn({ variant = 'soft', size = 'md', icon, className, children, 
     danger: 'bg-ember/15 text-[#ff7a70] hover:bg-ember/25',
   }[variant];
   const s = {
-    sm: 'h-9 px-3.5 text-sm rounded-full font-semibold',
+    sm: 'hit h-9 px-3.5 text-sm rounded-full font-semibold',
     md: 'h-11 px-4 text-[15px] rounded-ctl font-semibold',
     lg: 'h-14 px-5 text-[15px] rounded-[20px] font-extrabold wd-w tracking-wide whitespace-nowrap',
   }[size];
@@ -138,7 +138,7 @@ export function Empty({ icon = 'info', title, text, children }: { icon?: string;
 export function Chip({ active, children, onClick, color }: { active?: boolean; children: ReactNode; onClick?: () => void; color?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={cx('wd-c h-9 shrink-0 rounded-full px-3.5 text-[15px] font-semibold transition-colors', active ? 'bg-chalk text-ink' : 'bg-card2 text-mute hover:text-chalk')}
+      className={cx('hit wd-c h-9 shrink-0 rounded-full px-3.5 text-[15px] font-semibold transition-colors', active ? 'bg-chalk text-ink' : 'bg-card2 text-mute hover:text-chalk')}
       style={active && color ? { background: color, color: '#070d10' } : undefined}>
       {children}
     </button>
@@ -150,7 +150,7 @@ export function Seg<T extends string | number>({ options, value, onChange }: { o
     <div className="flex rounded-[16px] bg-card2 p-1">
       {options.map((o) => (
         <button type="button" key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={o.value === value}
-          className={cx('wd-c h-9 min-w-0 flex-1 truncate rounded-xl px-1.5 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink shadow-[0_4px_14px_-6px_rgba(0,0,0,.8)]' : 'text-mute hover:text-chalk')}>
+          className={cx('hit wd-c h-9 min-w-0 flex-1 truncate rounded-xl px-1.5 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink shadow-[0_4px_14px_-6px_rgba(0,0,0,.8)]' : 'text-mute hover:text-chalk')}>
           {o.label}
         </button>
       ))}
@@ -210,12 +210,12 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal>
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[3px]" onClick={onClose} />
-      <div className={cx('safe-b relative max-h-[92vh] w-full overflow-y-auto rounded-t-sheet glass-bar p-5 animate-rise md:rounded-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[3px] animate-fade" onClick={onClose} />
+      <div className={cx('safe-b relative max-h-[92vh] w-full overflow-y-auto rounded-t-sheet glass-bar p-5 animate-sheet md:animate-pop md:rounded-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden />
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="wd-w min-w-0 truncate text-lg font-bold">{title}</h3>
-          <button type="button" aria-label="Cerrar" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card2 text-mute hover:text-chalk"><Icon name="x" size={18} /></button>
+          <button type="button" aria-label="Cerrar" onClick={onClose} className="-mr-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card2 text-mute hover:text-chalk"><Icon name="x" size={18} /></button>
         </div>
         {children}
       </div>
@@ -226,7 +226,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
 export function Bar({ value, max, color = '#58c7ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
   return (
     <div className="w-full overflow-hidden rounded-full bg-card2" style={{ height }}>
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} />
+      <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} />
     </div>
   );
 }

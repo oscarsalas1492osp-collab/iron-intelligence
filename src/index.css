@@ -41,7 +41,10 @@ input:focus, select:focus, textarea:focus { @apply border-fire; box-shadow: 0 0 
 select option { background: #17171b; color: #f2f6f6; }
 input[type='range'] { @apply p-0 border-0 bg-transparent accent-fire; box-shadow: none; }
 input[type='file'] { @apply text-sm; }
-button { @apply select-none; touch-action: manipulation; font-family: inherit; }
+button { @apply select-none; touch-action: manipulation; font-family: inherit; transition: scale 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+/* Todo lo que se toca responde al dedo. Se usa la propiedad `scale` (no `transform`) para no pisar posiciones ni giros. */
+button:active:not(:disabled):not([class*='active:scale']) { scale: .97; }
+button.w-full:active:not(:disabled):not([class*='active:scale']) { scale: .985; }
 a { text-underline-offset: 3px; }
 
 @layer components {
@@ -64,6 +67,9 @@ a { text-underline-offset: 3px; }
   }
   .knurl::before { left: 0; }
   .knurl::after { right: 0; }
+  /* Zona de toque: el control conserva su tamaño a la vista, pero responde en al menos 44 x 44 px. */
+  .hit { position: relative; }
+  .hit::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
   /* Lista con filetes: filas separadas por una línea, sin cajas */
   .ruled > * + * { border-top: 1px solid rgba(255,255,255,.08); }
 }
@@ -80,7 +86,7 @@ a { text-underline-offset: 3px; }
   opacity: 0;
   background:
     radial-gradient(110% 44% at 8% -6%, rgb(54 120 255 / .40), transparent 60%),
-    radial-gradient(85% 38% at 108% 6%, rgb(132 104 255 / .22), transparent 66%),
+    radial-gradient(85% 38% at 108% 6%, rgb(40 170 230 / .20), transparent 66%),
     radial-gradient(100% 34% at 40% 112%, rgb(20 170 220 / .18), transparent 72%);
 }
 .ambient[data-tone='cool']::before { opacity: 0; }
@@ -120,4 +126,12 @@ a { text-underline-offset: 3px; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 .safe-b { padding-bottom: env(safe-area-inset-bottom); }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+/* Movimiento reducido: se quita el desplazamiento, no la respuesta. Lo que entraba moviéndose aparece con un fundido corto
+   y los cambios de color y opacidad se conservan, porque indican estado. */
+@keyframes soft-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-pop, .animate-sheet, .animate-slidel, .animate-slider, .animate-strike { animation: soft-fade .16s ease-out both !important; }
+  .animate-breathe { animation: none !important; }
+  * { scroll-behavior: auto !important; transition-property: color, background-color, border-color, opacity, box-shadow !important; }
+  button:active { scale: 1 !important; }
+}

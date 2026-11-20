@@ -62,7 +62,7 @@ export default function Auth({ onSkip }: { onSkip: () => void }) {
     <div className="mx-auto flex min-h-full max-w-sm flex-col justify-center px-5 py-10">
       <div className="ambient" aria-hidden />
       <div className="mb-10"><Logo /></div>
-      <h1 className="wd-x text-[2.6rem] font-black leading-[.98] tracking-tight">Registra.<br />Analiza.<br /><span className="bg-gradient-to-r from-amber to-fire bg-clip-text text-transparent">Progresa.</span></h1>
+      <h1 className="wd-x text-[2.6rem] font-black leading-[.98] tracking-tight">Registra.<br />Analiza.<br /><span className="text-fire">Progresa.</span></h1>
       <p className="mb-6 mt-4 text-[15px] text-mute">Inicia sesión para respaldar y sincronizar tus entrenamientos entre dispositivos.</p>
       <div className="rounded-panel bg-card p-4"><AuthForm /></div>
       <button type="button" className="mt-5 text-sm text-mute underline" onClick={onSkip}>Continuar sin cuenta (los datos quedan solo en este dispositivo)</button>

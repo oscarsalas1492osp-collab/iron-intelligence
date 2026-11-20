@@ -79,8 +79,8 @@ export default function Analysis() {
                     <span className="tnum text-xs text-mute"><b className="text-chalk">{v.direct}</b> directas, {v.indirect} indirectas, {v.days} día{v.days === 1 ? '' : 's'}</span>
                   </div>
                   <div className="flex h-2 w-full overflow-hidden rounded-full bg-card2">
-                    <div className="h-full bg-data transition-all duration-500" style={{ width: `${(v.direct / max) * 100}%` }} />
-                    <div className="h-full bg-data/40 transition-all duration-500" style={{ width: `${((v.indirect * coef) / max) * 100}%` }} />
+                    <div className="h-full bg-data transition-[width] duration-500" style={{ width: `${(v.direct / max) * 100}%` }} />
+                    <div className="h-full bg-data/40 transition-[width] duration-500" style={{ width: `${((v.indirect * coef) / max) * 100}%` }} />
                   </div>
                 </button>
               ))}
@@ -94,7 +94,7 @@ export default function Analysis() {
               {dist.map((d, i) => (
                 <div key={d.bucket} className="flex items-center gap-3 text-sm">
                   <span className="w-20 shrink-0 text-mute">RIR {d.bucket.replace('Sin RIR', '—')}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-card2"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${nWeek ? (d.count / nWeek) * 100 : 0}%`, background: RIR_COLORS[i] }} /></div>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-card2"><div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${nWeek ? (d.count / nWeek) * 100 : 0}%`, background: RIR_COLORS[i] }} /></div>
                   <span className="w-14 shrink-0 text-right tnum text-xs"><b>{d.count}</b> <span className="text-mute">{nWeek ? Math.round((d.count / nWeek) * 100) : 0} %</span></span>
                 </div>
               ))}

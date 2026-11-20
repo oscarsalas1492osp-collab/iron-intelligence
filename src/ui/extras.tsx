@@ -112,9 +112,9 @@ export function WeekExtras() {
   };
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-      <span className="wd-c inline-flex items-center gap-1.5 rounded-full bg-card2 px-3 py-1.5 text-sm font-semibold"><Icon name="trophy" size={15} className="text-amber" />{streak ? `Racha: ${streak} ${streak === 1 ? 'semana' : 'semanas'}` : 'Sin racha todavía'}</span>
-      <button type="button" onClick={() => nav('/perfil')} className="wd-c inline-flex items-center gap-1.5 rounded-full bg-card2 px-3 py-1.5 text-sm font-semibold"><Icon name="rotate" size={15} className="text-data" />{info ? info.label : 'Sin ciclo'}</button>
-      <button type="button" disabled={busy || !sessions.length} onClick={share} className="wd-c ml-auto inline-flex items-center gap-1.5 rounded-full bg-fire/15 px-3 py-1.5 text-sm font-semibold text-amber disabled:opacity-40"><Icon name="up" size={15} />Compartir semana</button>
+      <span className="hit wd-c inline-flex items-center gap-1.5 rounded-full bg-card2 px-3 py-1.5 text-sm font-semibold"><Icon name="trophy" size={15} className="text-amber" />{streak ? `Racha: ${streak} ${streak === 1 ? 'semana' : 'semanas'}` : 'Sin racha todavía'}</span>
+      <button type="button" onClick={() => nav('/perfil')} className="hit wd-c inline-flex items-center gap-1.5 rounded-full bg-card2 px-3 py-1.5 text-sm font-semibold"><Icon name="rotate" size={15} className="text-data" />{info ? info.label : 'Sin ciclo'}</button>
+      <button type="button" disabled={busy || !sessions.length} onClick={share} className="hit wd-c ml-auto inline-flex items-center gap-1.5 rounded-full bg-fire/15 px-3 py-1.5 text-sm font-semibold text-amber disabled:opacity-40"><Icon name="up" size={15} />Compartir semana</button>
     </div>
   );
 }

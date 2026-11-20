@@ -28,6 +28,12 @@ JS = r'''() => {
     const r=vis(b); if(!r) continue; const cx=r.left+r.width/2, cy=r.top+r.height/2; if(cy<0||cy>innerHeight||cx<0||cx>W) continue;
     const top=document.elementFromPoint(cx,cy); if(top && top!==b && !b.contains(top) && !top.contains(b)) { const f=top.closest('nav, [role=timer], [data-session-head], header, [role=status]'); if(!f) say('TAPADO', b, 'por '+(top.className||top.tagName).toString().slice(0,40)); }
   }
+  // zonas de toque bajo 44 px (enlaces dentro de un párrafo no cuentan)
+  for (const b of document.querySelectorAll('button, a[href], [role=button], select, input[type=checkbox], input[type=radio]')) {
+    const r=vis(b); if(!r) continue; if (b.tagName==='A' && b.closest('p, li, label')) continue;
+    const af=getComputedStyle(b,'::after'); const ext=af.content!=='none'&&af.position==='absolute'; const hw=ext?Math.max(r.width,parseFloat(af.width)||0):r.width, hh=ext?Math.max(r.height,parseFloat(af.height)||0):r.height;
+    if (Math.min(hw, hh) < 43.5) say('CHICO', b, Math.round(hw)+'x'+Math.round(hh));
+  }
   return out;
 }'''
 REACH = r'''async () => {

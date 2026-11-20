@@ -88,8 +88,8 @@ export default function RoutineEditor() {
                 className={cx('flex items-center gap-2 rounded-panel bg-card p-2.5 transition', drag.over === it.id && 'ring-2 ring-fire', drag.dragging === it.id && 'opacity-40')}>
                 {!grouped && (
                   <div className="flex flex-col">
-                    <button type="button" aria-label="Subir" disabled={ui === 0} onClick={() => run(() => moveItem(id, it.id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
-                    <button type="button" aria-label="Bajar" disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, it.id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
+                    <button type="button" aria-label="Subir" disabled={ui === 0} onClick={() => run(() => moveItem(id, it.id, -1))} className="hit grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
+                    <button type="button" aria-label="Bajar" disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, it.id, 1))} className="hit grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
                   </div>
                 )}
                 {e && <ExerciseThumb ex={e} size={48} />}
@@ -109,8 +109,8 @@ export default function RoutineEditor() {
             <section key={u[0].id} aria-label={groupLabel(u.length)} className="rounded-panel bg-fire/10 p-2">
               <div className="mb-2 flex items-center gap-2 px-1">
                 <div className="flex">
-                  <button type="button" aria-label={`Subir ${groupLabel(u.length).toLowerCase()}`} disabled={ui === 0} onClick={() => run(() => moveItem(id, u[0].id, -1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
-                  <button type="button" aria-label={`Bajar ${groupLabel(u.length).toLowerCase()}`} disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, u[0].id, 1))} className="grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
+                  <button type="button" aria-label={`Subir ${groupLabel(u.length).toLowerCase()}`} disabled={ui === 0} onClick={() => run(() => moveItem(id, u[0].id, -1))} className="hit grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="up" size={16} /></button>
+                  <button type="button" aria-label={`Bajar ${groupLabel(u.length).toLowerCase()}`} disabled={ui === units.length - 1} onClick={() => run(() => moveItem(id, u[0].id, 1))} className="hit grid h-7 w-7 place-items-center text-mute disabled:opacity-20"><Icon name="down" size={16} /></button>
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="wd-x text-[13px] font-extrabold text-fire">{groupLabel(u.length).toUpperCase()}</span>

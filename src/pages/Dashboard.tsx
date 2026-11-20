@@ -121,7 +121,7 @@ export default function Dashboard() {
         <section className="rounded-panel bg-card p-4 md:[grid-area:week]" aria-label="Resumen de la semana">
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <h2 className="wd-w text-[15px] font-bold">Esta semana</h2>
-            <Link to="/analisis" className="wd-c text-sm text-data">Ver análisis</Link>
+            <Link to="/analisis" className="hit wd-c inline-block text-sm text-data">Ver análisis</Link>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <RingStat value={nSessions} max={profile.daysAvailable} color="#ff6a1a" figure={nSessions} label="sesiones" note={`de ${profile.daysAvailable} días`} />
@@ -167,7 +167,7 @@ export default function Dashboard() {
           <div className="rounded-panel bg-card p-4">
             <div className="mb-3 flex items-baseline justify-between gap-3">
               <h2 className="wd-w text-[15px] font-bold">Récords de los últimos 30 días</h2>
-              <Link to="/historial" className="wd-c shrink-0 whitespace-nowrap text-sm text-data">Ver historial</Link>
+              <Link to="/historial" className="hit wd-c inline-block shrink-0 whitespace-nowrap text-sm text-data">Ver historial</Link>
             </div>
             {prs.length ? (
               <ul className="ruled">
