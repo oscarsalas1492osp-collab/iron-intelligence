@@ -38,12 +38,16 @@ export async function drawCard(d: CardData): Promise<Blob> {
   glow(120, 60, 900, 'rgba(255,106,26,.42)'); glow(W - 60, H - 120, 820, 'rgba(26,140,150,.34)');
 
   // Marca
-  const og = c.createRadialGradient(P + 34, 106, 4, P + 34, 106, 40); og.addColorStop(0, '#ffb054'); og.addColorStop(1, '#ff4d1a');
-  c.fillStyle = og; c.beginPath(); c.arc(P + 34, 110, 34, 0, Math.PI * 2); c.fill();
-  c.strokeStyle = '#070d10'; c.lineWidth = 6; c.beginPath(); c.arc(P + 34, 110, 17, 0, Math.PI * 2); c.stroke();
+  // Marca: el disco que se va completando.
+  const mx = P + 36, my = 108, lg = c.createLinearGradient(mx + 22, my - 34, mx - 22, my + 34); lg.addColorStop(0, '#ffc56e'); lg.addColorStop(0.45, '#ff7a22'); lg.addColorStop(1, '#ff4a12');
+  c.lineCap = 'round'; c.lineWidth = 8;
+  c.strokeStyle = 'rgba(185,232,242,.16)'; c.beginPath(); c.arc(mx, my, 32, 0, Math.PI * 2); c.stroke();
+  c.strokeStyle = lg; c.beginPath(); c.arc(mx, my, 32, -Math.PI / 2, -Math.PI / 2 + (282 * Math.PI) / 180); c.stroke();
+  c.fillStyle = '#2f505a'; c.beginPath(); c.arc(mx, my, 22, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#070d10'; c.beginPath(); c.arc(mx, my, 6, 0, Math.PI * 2); c.fill();
   c.fillStyle = '#f2f6f6'; c.textBaseline = 'alphabetic';
-  c.font = `800 40px ${FONT}`; c.fillText('IRON', P + 88, 108);
-  c.font = `500 24px ${FONT}`; c.fillStyle = '#93a4ab'; c.fillText('I N T E L L I G E N C E', P + 88, 140);
+  c.font = `800 40px ${FONT}`; c.fillText('IRON', P + 92, 108);
+  c.font = `500 24px ${FONT}`; c.fillStyle = '#93a4ab'; c.fillText('I N T E L L I G E N C E', P + 92, 140);
 
   // Título
   c.fillStyle = '#ffb054'; c.font = `600 34px ${FONT}`; c.fillText(fit(c, d.kicker, W - 2 * P), P, 300);

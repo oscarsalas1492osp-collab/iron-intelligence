@@ -1,8 +1,8 @@
 // Service worker: permite abrir la app sin conexión.
 // Los datos del usuario NO viven aquí: están en IndexedDB y se sincronizan con Supabase.
-const CACHE = 'iron-shell-v1';
+const CACHE = 'iron-shell-v2';
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png'])));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-v2-192.png'])));
   self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {

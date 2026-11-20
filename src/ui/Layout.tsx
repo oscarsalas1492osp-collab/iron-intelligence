@@ -38,14 +38,16 @@ export function Plate({ size = 48, active }: { size?: number; active?: boolean }
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
       <defs>
-        <radialGradient id={id} cx="32%" cy="22%" r="90%">
-          <stop offset="0" stopColor="#ffc078" /><stop offset=".42" stopColor="#ff7a26" /><stop offset="1" stopColor="#d94600" />
-        </radialGradient>
+        <linearGradient id={id} x1="78%" y1="6%" x2="22%" y2="96%">
+          <stop offset="0" stopColor="#ffc56e" /><stop offset=".45" stopColor="#ff7a22" /><stop offset="1" stopColor="#ff4a12" />
+        </linearGradient>
       </defs>
-      <circle cx="24" cy="24" r="23" fill={`url(#${id})`} />
-      <circle cx="24" cy="24" r="17.5" fill="none" stroke="#3a1400" strokeOpacity=".3" strokeWidth="1.5" />
-      <circle cx="24" cy="24" r="10.5" fill="none" stroke="#3a1400" strokeOpacity=".3" strokeWidth="1.5" />
-      <circle cx="24" cy="24" r="4.6" fill="#070d10" />
+      {/* El disco que se va completando: el aro es el avance, el centro es el disco con sus agarres. */}
+      <circle cx="24" cy="24" r="20.5" fill="none" stroke="#b9e8f2" strokeOpacity=".16" strokeWidth="5" />
+      <path d="M24 3.5A20.5 20.5 0 1 1 3.95 19.74" fill="none" stroke={`url(#${id})`} strokeWidth="5" strokeLinecap="round" />
+      <circle cx="24" cy="24" r="14.2" fill="#2f505a" stroke="#d6f1f6" strokeOpacity=".28" strokeWidth=".6" />
+      <circle cx="24" cy="24" r="6" fill="none" stroke="#d6f1f6" strokeOpacity=".34" strokeWidth=".9" />
+      <circle cx="24" cy="24" r="3.6" fill="#070d10" />
       {active && <circle cx="24" cy="24" r="1.8" fill="#ffb054" />}
     </svg>
   );

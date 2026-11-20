@@ -35,7 +35,7 @@ export async function notifyRestEnd(body: string): Promise<void> {
   if (!notifyGranted() || !document.hidden) return;
   try {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('Descanso terminado', { body, tag: 'descanso', icon: './icon-192.png', badge: './icon-192.png', renotify: true, vibrate: [250, 120, 250] } as NotificationOptions);
+    await reg.showNotification('Descanso terminado', { body, tag: 'descanso', icon: './icon-v2-192.png', badge: './icon-v2-192.png', renotify: true, vibrate: [250, 120, 250] } as NotificationOptions);
   } catch { /* sin permiso o sin service worker */ }
 }
 export async function clearRestNotice(): Promise<void> {
