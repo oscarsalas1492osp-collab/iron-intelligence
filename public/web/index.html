@@ -20,6 +20,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/web/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>document.documentElement.classList.add('js');</script>
 <style>
 @font-face {
   font-family: 'Archivo'; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap;
@@ -27,16 +28,16 @@
 }
 :root {
   color-scheme: dark;
-  --ink: #070d10; --graphite: #0c161a; --panel: #101d22; --line: rgba(185, 232, 242, .14); --line-strong: rgba(185, 232, 242, .26);
+  --ink: #070d10; --graphite: #0c161a; --line: rgba(185, 232, 242, .14); --line-strong: rgba(185, 232, 242, .26);
   --chalk: #f2f6f6; --mute: #9fb0b6; --fire: #ff6a1a; --amber: #ffb054; --go: #34e0a1; --data: #58c7ff; --ember: #ff8f86;
-  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  --out: cubic-bezier(0.23, 1, 0.32, 1); --drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --edge: clamp(20px, 5vw, 64px);
   --nav: 68px;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav) + 12px); -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; background: var(--ink); color: var(--chalk);
+  margin: 0; background: var(--ink); color: var(--chalk); overflow-x: hidden;
   font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 1.0625rem; line-height: 1.55;
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
 }
@@ -46,56 +47,62 @@ img { max-width: 100%; display: block; }
 h1, h2, h3, p, ol, ul, fieldset { margin: 0; padding: 0; }
 ol, ul { list-style: none; }
 a { color: inherit; text-underline-offset: 4px; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
 
 .wrap { width: min(100% - 2 * var(--edge), 1180px); margin-inline: auto; }
-.skip { position: absolute; left: 12px; top: -80px; z-index: 50; background: var(--chalk); color: var(--ink); padding: 12px 16px; border-radius: 12px; font-weight: 700; text-decoration: none; }
+.skip { position: absolute; left: 12px; top: -80px; z-index: 60; background: var(--chalk); color: var(--ink); padding: 12px 16px; border-radius: 12px; font-weight: 700; text-decoration: none; }
 .skip:focus { top: 12px; }
+.progress { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 40; background: var(--fire); transform-origin: 0 50%; transform: scaleX(0); pointer-events: none; }
 
-/* Tipografía por el eje de ancho: ancha y pesada en títulos, condensada en rótulos, normal en lectura. */
+/* Tipografía por el eje de ancho */
 .display { font-stretch: 112%; font-weight: 900; letter-spacing: -0.02em; line-height: .98; text-wrap: balance; }
 h1.display { font-size: clamp(2.5rem, 5.4vw, 4.6rem); }
 h2.display { font-size: clamp(2rem, 3.8vw, 3.25rem); }
-h3 { font-stretch: 106%; font-weight: 800; font-size: 1.25rem; line-height: 1.2; letter-spacing: -0.005em; }
+h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.2; letter-spacing: -0.005em; }
 .lead { font-size: clamp(1.0625rem, 1.5vw, 1.25rem); line-height: 1.5; color: var(--mute); max-width: 34em; }
 .note { color: var(--mute); font-size: 1rem; }
-.cond { font-stretch: 78%; font-weight: 600; letter-spacing: .01em; }
 .num { font-stretch: 118%; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* Botones: suben un paso con el puntero y se hunden al presionar. */
+/* Botones */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px;
   border: 0; border-radius: 18px; cursor: pointer; text-decoration: none; white-space: nowrap;
   font: inherit; font-stretch: 108%; font-weight: 800; font-size: 1rem; letter-spacing: .01em;
-  transition: translate 160ms var(--out), scale 140ms var(--out), background-color 160ms var(--out), border-color 160ms var(--out);
+  transition: translate 160ms var(--out), scale 140ms var(--out), background-color 160ms var(--out);
 }
 .btn:active { scale: .97; }
 .btn-fire { color: #160a02; background: linear-gradient(180deg, #ff9148 0%, #ff6a1a 52%, #f0520a 100%); box-shadow: 0 14px 30px -12px rgb(255 106 26 / .7), inset 0 1px 0 rgb(255 255 255 / .38); }
 .btn-ghost { color: var(--chalk); background: rgb(190 240 245 / .07); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .btn-small { min-height: 44px; padding: 0 18px; border-radius: 14px; font-size: .9375rem; }
-.btn[disabled] { opacity: .55; cursor: default; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.icon-btn { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgb(190 240 245 / .08); box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--chalk); transition: scale 140ms var(--out), background-color 160ms var(--out); }
+.icon-btn:active { scale: .94; }
+.icon-btn[disabled] { opacity: .35; cursor: default; }
+.link { text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 220ms var(--out), color 160ms var(--out); }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover { translate: 0 -2px; }
-  .btn-ghost:hover { background: rgb(190 240 245 / .12); }
+  .btn-ghost:hover, .icon-btn:hover { background-color: rgb(190 240 245 / .14); }
   .link:hover { background-size: 100% 1px; }
   .nav a.link:hover { color: var(--chalk); }
+  .chip:hover, .tab:hover { color: var(--chalk); }
+  .chip[aria-selected='true']:hover, .tab[aria-selected='true']:hover { color: var(--ink); }
+  .card:hover { translate: 0 -4px; }
 }
-.link { text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 220ms var(--out), color 160ms var(--out); padding-block: 4px; }
 
 /* Cabecera */
-.nav { position: sticky; top: 0; z-index: 20; height: var(--nav); background: rgb(7 13 16 / .78); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border-bottom: 1px solid var(--line); }
+.nav { position: sticky; top: 0; z-index: 30; height: var(--nav); background: rgb(7 13 16 / .78); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border-bottom: 1px solid var(--line); }
 .nav .wrap { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; min-height: 44px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; min-height: 44px; min-width: 44px; flex: none; }
 .brand img { width: 36px; height: 36px; border-radius: 10px; }
 .brand span { font-stretch: 118%; font-weight: 800; font-size: .9375rem; letter-spacing: .05em; line-height: 1.05; }
-.nav nav { display: flex; align-items: center; gap: 28px; }
+.nav nav { display: flex; align-items: center; gap: 26px; flex: none; }
 .nav a.link { display: inline-flex; align-items: center; min-height: 44px; color: var(--mute); font-size: .9375rem; font-weight: 600; background-position: 0 calc(100% - 8px); }
-.brand, .nav nav { flex: none; }
-.brand { min-width: 44px; }
-@media (max-width: 859px) { .nav a.link { display: none; } }
+@media (max-width: 939px) { .nav a.link { display: none; } }
 @media (max-width: 430px) { .brand { gap: 9px; } .brand span { font-size: .8125rem; letter-spacing: .03em; } .nav .btn-small { padding: 0 13px; font-size: .875rem; } .nav .wrap { gap: 10px; } }
 @media (max-width: 350px) { .brand span { display: none; } }
 
-/* Portada */
+/* ---------- Portada con escenario 3D ---------- */
 .hero { position: relative; overflow: hidden; isolation: isolate; }
 .hero::before {
   content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -103,89 +110,176 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.25rem; line-height: 1.2;
     radial-gradient(70% 60% at 4% -8%, rgb(255 110 30 / .34), transparent 62%),
     radial-gradient(60% 55% at 104% 10%, rgb(18 190 170 / .20), transparent 66%);
 }
-.hero .wrap { display: grid; gap: 40px; padding-block: clamp(36px, 6vw, 72px) 0; }
-.hero-copy { display: flex; flex-direction: column; gap: 22px; align-self: center; padding-bottom: clamp(8px, 5vw, 72px); }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+.hero .wrap { display: grid; gap: 28px; padding-block: clamp(32px, 5vw, 64px) 0; }
+.hero-copy { display: flex; flex-direction: column; gap: 22px; align-self: center; padding-bottom: clamp(8px, 4vw, 56px); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
 .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .9375rem; }
 .facts li { display: inline-flex; align-items: center; gap: 8px; }
 .facts svg { flex: none; color: var(--go); }
-.hero-shot { justify-self: center; align-self: end; margin-bottom: -120px; }
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); align-self: flex-start; max-width: 100%; }
+.seg button { position: relative; overflow: hidden; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: none; cursor: pointer; font-stretch: 106%; font-weight: 700; font-size: .9375rem; color: var(--mute); transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
+.seg button:active { scale: .96; }
+.seg button[aria-selected='true'] { background: var(--chalk); color: var(--ink); }
+.seg button i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--fire); transform-origin: 0 50%; transform: scaleX(0); }
+.seg button.run i { animation: fill 4200ms linear forwards; }
+@keyframes fill { to { transform: scaleX(1); } }
+
+.stage { position: relative; justify-self: center; align-self: end; width: min(100%, 420px); height: 540px; margin-bottom: -70px; perspective: 1400px; }
+.tilt { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); will-change: transform; }
+.phone { aspect-ratio: 1 / 2; padding: 8px; border-radius: 46px; background: #0b1519; box-shadow: inset 0 0 0 1px var(--line-strong), 0 50px 90px -50px rgb(0 0 0 / .95), 0 0 0 1px rgb(0 0 0 / .6); }
+.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 38px; -webkit-user-drag: none; user-select: none; }
+.stage .phone { position: absolute; right: 0; bottom: 0; height: 100%; transform: translateZ(40px); transform-style: preserve-3d; }
+.stage .phone .flip { width: 100%; height: 100%; backface-visibility: hidden; }
+
+/* Disco en 3D hecho con capas: se puede girar con el dedo o el puntero. */
+.plate { position: absolute; left: -4%; top: 2%; width: 56%; aspect-ratio: 1; transform-style: preserve-3d; transform: translateZ(-130px) rotateX(var(--px, 14deg)) rotateY(var(--py, -34deg)); cursor: grab; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.plate:active { cursor: grabbing; }
+.plate > * { position: absolute; inset: 0; border-radius: 50%; }
+.plate i { background: #12272f; box-shadow: inset 0 0 0 2px rgb(0 0 0 / .35); transform: translateZ(calc(var(--k) * 2px)); }
+.plate .face { transform: translateZ(15px); }
+.plate .back { transform: translateZ(-15px) rotateY(180deg); }
+.plate .arc { inset: -17%; transform: translateZ(46px); pointer-events: none; }
+.plate .arc path { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 1600ms var(--out) 400ms forwards; }
+@keyframes draw { to { stroke-dashoffset: 22; } }
+.plate svg { width: 100%; height: 100%; display: block; }
+.motion { position: absolute; left: 0; bottom: 84px; z-index: 5; transform: translateZ(60px); }
 @media (min-width: 900px) {
-  .hero .wrap { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px; min-height: calc(100svh - var(--nav)); }
-  .hero-shot { justify-self: end; margin-bottom: -64px; }
+  .hero .wrap { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; min-height: calc(100svh - var(--nav)); }
+  .stage { justify-self: end; width: 460px; height: min(740px, calc(100svh - var(--nav) - 40px)); min-height: 540px; margin-bottom: -60px; }
+  .plate { left: -14%; top: 4%; width: 62%; }
 }
 @media (max-width: 899px) { .actions .btn { flex: 1 1 100%; } }
 
-/* Marco de teléfono con una pantalla real de la app */
-.phone { width: min(100%, 330px); aspect-ratio: 1 / 2; padding: 8px; border-radius: 46px; background: #0b1519; box-shadow: inset 0 0 0 1px var(--line-strong), 0 50px 90px -50px rgb(0 0 0 / .95), 0 0 0 1px rgb(0 0 0 / .6); }
-.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 38px; }
-.hero .phone { width: auto; height: min(760px, calc(100svh - var(--nav) - 36px)); min-height: 520px; }
-@media (max-width: 899px) { .hero .phone { height: 560px; min-height: 0; } }
+/* ---------- Secciones ---------- */
+.section { padding-block: clamp(72px, 9vw, 124px); border-top: 1px solid var(--line); }
+#recorrido { overflow: hidden; }
+.section-head { display: flex; flex-direction: column; gap: 18px; max-width: 42rem; }
+.head-row { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 24px 40px; }
+.arrows { display: flex; gap: 10px; }
 
-/* Secciones */
-.section { padding-block: clamp(72px, 10vw, 132px); border-top: 1px solid var(--line); }
-.section-head { display: flex; flex-direction: column; gap: 18px; max-width: 40rem; }
-.split { display: grid; gap: 48px; align-items: center; }
-.split .phone { justify-self: center; }
-@media (min-width: 900px) {
-  .split { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 72px; }
-  .split.flip > .phone { order: -1; justify-self: start; }
-  .split > .phone { justify-self: end; }
-}
-.points { display: grid; gap: 22px; margin-top: 34px; }
-.points li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
-.points svg { color: var(--amber); margin-top: 2px; }
-.points p { color: var(--mute); margin-top: 4px; }
+/* ---------- Recorrido: pantallas en pestañas 3D ---------- */
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-top: 30px; padding: 4px var(--edge); margin-inline: calc(var(--edge) * -1); scroll-behavior: smooth; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); color: var(--mute); font-weight: 700; font-size: .9375rem; transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
+.chip:active { scale: .96; }
+.chip[aria-selected='true'] { background: var(--chalk); color: var(--ink); box-shadow: none; }
+.flow { position: relative; height: 470px; margin-top: 26px; perspective: 1500px; touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; outline-offset: 8px; }
+.flow:active { cursor: grabbing; }
+.slide { position: absolute; left: 50%; top: 10px; width: 215px; padding: 0; border: 0; background: none; cursor: pointer; transform-style: preserve-3d; transition: transform 560ms var(--drawer), opacity 400ms var(--out); will-change: transform; }
+.slide .phone { display: block; border-radius: 34px; padding: 6px; }
+.slide .phone img { border-radius: 28px; }
+.slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(7 13 16 / .5); opacity: var(--dim, 0); transition: opacity 400ms var(--out); pointer-events: none; }
+.caption { display: grid; justify-items: center; text-align: center; gap: 8px; margin: 26px auto 0; max-width: 34rem; min-height: 6.4rem; align-content: start; }
+.caption p { color: var(--mute); }
+.count { display: block; text-align: center; margin-top: 14px; font-size: .9375rem; color: var(--mute); }
+@media (min-width: 900px) { .flow { height: 560px; } .slide { width: 262px; } .slide .phone { border-radius: 40px; padding: 7px; } .slide .phone img { border-radius: 33px; } .slide::after { border-radius: 40px; } }
 
-.duo { display: grid; gap: 44px; align-items: end; }
-.duo-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; justify-items: center; }
-.duo-shots .phone { border-radius: 30px; padding: 5px; }
-.duo-shots .phone img { border-radius: 25px; }
-@media (min-width: 900px) {
-  .duo { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: center; }
-  .duo-shots { gap: 28px; }
-  .duo-shots .phone { border-radius: 46px; padding: 8px; }
-  .duo-shots .phone img { border-radius: 38px; }
-  .duo-shots .phone:last-child { margin-top: 72px; }
-}
+/* ---------- Demostración ---------- */
+.demo { display: grid; gap: 40px; }
+@media (min-width: 900px) { .demo { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: center; } }
+.tabs { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); }
+.tab { flex: 1 1 0; min-width: 0; min-height: 48px; padding: 0 6px; border: 0; border-radius: 12px; background: none; cursor: pointer; color: var(--mute); font-weight: 700; font-size: .9375rem; white-space: nowrap; transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
+.tab:active { scale: .96; }
+.tab[aria-selected='true'] { background: var(--chalk); color: var(--ink); }
+@media (max-width: 380px) { .tab { font-size: .8125rem; } }
+.cube { perspective: 1300px; margin-top: 16px; }
+.panel { padding: clamp(20px, 3vw, 32px); border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); min-height: 450px; display: grid; align-content: start; gap: 20px; transform-origin: 50% 0; backface-visibility: hidden; }
+.panel > * { min-width: 0; }
+.big { font-size: clamp(2.6rem, 9vw, 4.2rem); line-height: 1; text-align: center; }
+.big small { display: block; font-size: .9375rem; font-weight: 600; color: var(--mute); font-stretch: 100%; margin-top: 6px; }
+.readout { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.wheel-box { position: relative; margin-inline: calc(clamp(20px, 3vw, 32px) * -1); }
+.wheel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-inline: calc(50% - 30px); height: 64px; align-items: center; cursor: grab; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel span { flex: 0 0 60px; scroll-snap-align: center; text-align: center; font-stretch: 112%; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.0625rem; color: #6f8389; transition: color 160ms var(--out), scale 160ms var(--out); }
+.wheel span.on { color: var(--chalk); scale: 1.18; }
+.wheel-box::after { content: ''; position: absolute; left: 50%; top: 6px; bottom: 6px; width: 64px; translate: -50% 0; border-radius: 14px; box-shadow: inset 0 0 0 2px var(--fire); pointer-events: none; }
+.barbell { display: flex; align-items: center; justify-content: center; gap: 3px; height: 140px; }
+.barbell .rod { height: 8px; border-radius: 4px; background: linear-gradient(180deg, #c9d6da, #7d8a90); }
+.barbell .rod.mid { width: clamp(40px, 12vw, 110px); }
+.barbell .rod.end { width: 16px; }
+.barbell .collar { width: 9px; height: 26px; border-radius: 3px; background: #9aa7ad; }
+.barbell b { display: block; border-radius: 5px; animation: plate-in 260ms var(--out) both; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .35), inset 0 2px 0 rgb(255 255 255 / .22); }
+@keyframes plate-in { from { opacity: 0; translate: 0 8px; } }
+.legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; }
+.mini { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); }
+.mini button { position: relative; min-height: 40px; min-width: 52px; padding: 0 10px; border: 0; border-radius: 10px; background: none; cursor: pointer; color: var(--mute); font-weight: 700; font-size: .875rem; }
+.mini button::after { content: ''; position: absolute; inset: -4px 0; }
+.mini button[aria-pressed='true'] { background: var(--chalk); color: var(--ink); }
+.warm { display: grid; gap: 12px; }
+.warm li { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr) 5.4rem; align-items: center; gap: 12px; animation: plate-in 300ms var(--out) both; }
+.warm .track { height: 12px; border-radius: 6px; background: rgb(190 240 245 / .08); overflow: hidden; }
+.warm .track i { display: block; height: 100%; border-radius: 6px; background: var(--data); transform-origin: 0 50%; animation: grow 520ms var(--out) both; }
+.warm li.work .track i { background: var(--fire); }
+.warm li span:last-child { text-align: right; }
+@keyframes grow { from { transform: scaleX(0); } }
+.ring { position: relative; width: 190px; aspect-ratio: 1; margin-inline: auto; }
+.ring svg { width: 100%; height: 100%; rotate: -90deg; }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .bg { stroke: rgb(190 240 245 / .1); }
+.ring .fg { stroke: var(--data); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; }
+.ring.done .fg { stroke: var(--go); }
+.ring .time { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; text-align: center; }
+.ring .time b { font-size: 2.6rem; line-height: 1; }
+.ring.done { animation: pulse 700ms var(--out) 2; }
+@keyframes pulse { 50% { scale: 1.06; } }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; color: var(--mute); font-weight: 600; font-size: .9375rem; }
+.toggle input { width: 22px; height: 22px; margin: 0; accent-color: var(--fire); }
 
-/* La prueba */
+/* ---------- Funciones: carril deslizable ---------- */
+.stats { display: flex; flex-wrap: wrap; gap: 14px 44px; margin-top: 34px; }
+.stats div { display: grid; }
+.stats b { font-size: clamp(2.4rem, 5vw, 3.4rem); line-height: 1; color: var(--amber); }
+.stats span { color: var(--mute); font-size: .9375rem; }
+.rail { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; margin-top: 36px; padding: 6px var(--edge) 10px; margin-inline: calc(var(--edge) * -1); cursor: grab; overscroll-behavior-x: contain; }
+.rail::-webkit-scrollbar { display: none; }
+.rail.drag { scroll-snap-type: none; cursor: grabbing; }
+.card { flex: 0 0 min(78vw, 280px); scroll-snap-align: start; display: grid; align-content: start; gap: 12px; min-height: 200px; padding: 24px; border-radius: 26px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); transition: translate 220ms var(--out); -webkit-user-select: none; user-select: none; }
+.card svg { color: var(--amber); }
+.card p { color: var(--mute); font-size: 1rem; line-height: 1.45; }
+.railbar { height: 4px; border-radius: 2px; background: rgb(190 240 245 / .1); margin-top: 18px; overflow: hidden; }
+.railbar i { display: block; height: 100%; width: 30%; border-radius: 2px; background: var(--fire); }
+
+/* ---------- La prueba ---------- */
 .trial { display: grid; gap: 48px; }
 @media (min-width: 900px) { .trial { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 72px; align-items: start; } }
-.steps { display: grid; gap: 0; margin-top: 36px; counter-reset: paso; }
+.steps { display: grid; margin-top: 36px; counter-reset: paso; }
 .steps li { counter-increment: paso; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 18px; padding-block: 24px; border-top: 1px solid var(--line); }
 .steps li::before { content: counter(paso); font-stretch: 118%; font-weight: 800; font-size: 2rem; line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; }
 .steps p { color: var(--mute); margin-top: 6px; }
 .slots { padding: 28px; border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
-.discs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; max-width: 320px; }
-.disc { aspect-ratio: 1; border-radius: 50%; border: 3px solid #4b5d63; display: grid; place-items: center; transition: background-color 300ms var(--out), border-color 300ms var(--out); }
-.disc::after { content: ''; width: 28%; aspect-ratio: 1; border-radius: 50%; background: var(--graphite); border: 3px solid #4b5d63; transition: border-color 300ms var(--out); }
-.disc.on { background: var(--fire); border-color: var(--fire); }
+.discs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; max-width: 320px; margin-top: 22px; }
+.disc { aspect-ratio: 1; border-radius: 50%; border: 3px solid #4b5d63; display: grid; place-items: center; transition: background-color 360ms var(--out), border-color 360ms var(--out), scale 360ms var(--out); }
+.disc::after { content: ''; width: 28%; aspect-ratio: 1; border-radius: 50%; background: var(--graphite); border: 3px solid #4b5d63; transition: border-color 360ms var(--out); }
+.disc.on { background: var(--fire); border-color: var(--fire); scale: 1.04; }
 .disc.on::after { border-color: var(--fire); }
 .slots-count { margin-top: 22px; font-size: clamp(1.125rem, 4.6vw, 1.375rem); line-height: 1.2; }
 .slots .note { margin-top: 10px; }
 
-/* Formulario */
+/* ---------- Inscripción por pasos ---------- */
 .join { display: grid; gap: 44px; }
 @media (min-width: 900px) { .join { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; } }
-.form { display: grid; gap: 24px; padding: clamp(22px, 3.2vw, 36px); border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
-.field { display: grid; gap: 8px; border: 0; min-width: 0; }
-.field > label, .field > legend { font-weight: 700; font-size: 1rem; }
-.field > legend { margin-bottom: 8px; }
-.hint { color: var(--mute); font-size: .9375rem; }
-.input {
-  width: 100%; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgb(190 240 245 / .06);
-  color: var(--chalk); font: inherit; font-size: 1rem; outline: none; transition: border-color 160ms var(--out), box-shadow 160ms var(--out);
-}
-select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239fb0b6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 44px; }
-select.input option { background: #101d22; color: var(--chalk); }
+.form { display: grid; gap: 22px; padding: clamp(22px, 3.2vw, 36px); border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
+.wz-top { display: grid; gap: 10px; }
+.wz-top span { color: var(--mute); font-size: .9375rem; font-weight: 600; }
+.wz-bar { height: 6px; border-radius: 3px; background: rgb(190 240 245 / .1); overflow: hidden; }
+.wz-bar i { display: block; height: 100%; border-radius: 3px; background: var(--fire); transform-origin: 0 50%; transform: scaleX(.25); transition: transform 360ms var(--out); }
+.wz-step { display: grid; gap: 18px; border: 0; min-width: 0; min-height: 232px; align-content: start; outline: none; }
+.wz-step > legend, .q { font-stretch: 106%; font-weight: 800; font-size: 1.375rem; line-height: 1.2; padding: 0; }
+.wz-step > legend { margin-bottom: 18px; }
+.wz-nav { display: flex; justify-content: space-between; gap: 12px; }
+.field { display: grid; gap: 8px; min-width: 0; }
+.field > label { font-weight: 700; font-size: 1rem; }
+.hint { color: var(--mute); font-size: .9375rem; font-weight: 400; }
+.input { width: 100%; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgb(190 240 245 / .06); color: var(--chalk); font: inherit; font-size: 1rem; outline: none; transition: border-color 160ms var(--out), box-shadow 160ms var(--out); }
 .input::placeholder { color: #7f9198; }
 .input:focus { border-color: var(--fire); box-shadow: 0 0 0 4px rgb(255 106 26 / .18); }
 .input[aria-invalid='true'] { border-color: var(--ember); }
-.pills { display: flex; flex-wrap: wrap; gap: 10px; }
-.pill { position: relative; flex: 1 1 0; min-width: 0; }
+.pills { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.pill { position: relative; min-width: 0; }
 .pill input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.pill span { display: grid; place-items: center; min-height: 52px; padding: 0 8px; border-radius: 14px; border: 1px solid var(--line-strong); font-weight: 700; text-align: center; white-space: nowrap; transition: background-color 160ms var(--out), color 160ms var(--out), border-color 160ms var(--out), scale 140ms var(--out); }
+.pill span { display: grid; place-items: center; min-height: 60px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--line-strong); font-weight: 700; text-align: center; transition: background-color 160ms var(--out), color 160ms var(--out), border-color 160ms var(--out), scale 140ms var(--out); }
 .pill input:checked + span { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
 .pill input:focus-visible + span { outline: 2px solid var(--fire); outline-offset: 3px; }
 .pill input:active + span { scale: .97; }
@@ -193,53 +287,66 @@ select.input option { background: #101d22; color: var(--chalk); }
 .check input { width: 24px; height: 24px; margin: 0; accent-color: var(--fire); }
 .error { color: var(--ember); font-size: .9375rem; font-weight: 600; }
 .error:empty { display: none; }
-.form .btn { width: 100%; }
 .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .done { display: grid; gap: 18px; }
 .done ol { display: grid; gap: 10px; counter-reset: paso; }
 .done ol li { counter-increment: paso; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; color: var(--mute); }
 .done ol li::before { content: counter(paso); color: var(--amber); font-weight: 800; font-stretch: 118%; }
-[hidden] { display: none !important; }
 
-/* Preguntas */
+/* ---------- Preguntas ---------- */
 .faq { display: grid; gap: 44px; }
 @media (min-width: 900px) { .faq { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; } }
 .qa { border-top: 1px solid var(--line); }
 .qa:last-child { border-bottom: 1px solid var(--line); }
 .qa summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 64px; padding-block: 14px; cursor: pointer; list-style: none; font-stretch: 106%; font-weight: 800; font-size: 1.125rem; line-height: 1.25; }
 .qa summary::-webkit-details-marker { display: none; }
-.qa summary svg { flex: none; color: var(--mute); transition: rotate 200ms var(--out); }
+.qa summary svg { flex: none; color: var(--mute); transition: rotate 220ms var(--out); }
 .qa[open] summary svg { rotate: 45deg; }
 .qa p { color: var(--mute); padding-bottom: 22px; max-width: 38em; }
+.qa[open] p { animation: open 320ms var(--out); }
+@keyframes open { from { opacity: 0; translate: 0 -8px; } }
 
-/* Pie */
-.foot { border-top: 1px solid var(--line); padding-block: clamp(56px, 8vw, 104px) 40px; }
-.motto { font-stretch: 125%; font-weight: 900; font-size: clamp(2.6rem, 9.4vw, 8.2rem); line-height: .92; letter-spacing: -0.03em; }
-.motto span { display: block; }
-.motto span:last-child { color: var(--fire); }
-.foot-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; margin-top: clamp(40px, 6vw, 72px); color: var(--mute); font-size: .9375rem; }
+/* ---------- Frase en movimiento y pie ---------- */
+.marq { overflow: hidden; border-top: 1px solid var(--line); padding-block: clamp(36px, 6vw, 72px); }
+.marq-track { display: flex; width: max-content; animation: marq 26s linear infinite; }
+.marq-track p { flex: none; font-stretch: 125%; font-weight: 900; font-size: clamp(2.6rem, 9vw, 7.4rem); line-height: 1; letter-spacing: -0.03em; white-space: nowrap; padding-right: .5em; }
+.marq-track p span { color: var(--fire); }
+@keyframes marq { to { transform: translateX(-50%); } }
+.foot { border-top: 1px solid var(--line); padding-block: 28px 36px; }
+.foot-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; color: var(--mute); font-size: .9375rem; }
 .foot-row nav { display: flex; flex-wrap: wrap; gap: 8px 28px; }
-.foot-row a { display: inline-flex; align-items: center; min-height: 44px; }
+.foot-row a { display: inline-flex; align-items: center; min-height: 44px; background-position: 0 calc(100% - 8px); }
 
-/* La portada entra una sola vez al cargar. */
+/* ---------- Entradas ---------- */
 @keyframes enter { from { opacity: 0; translate: 0 14px; } }
-@keyframes fade { from { opacity: 0; } }
 .hero-copy > * { animation: enter 520ms var(--out) both; }
 .hero-copy > :nth-child(2) { animation-delay: 60ms; }
 .hero-copy > :nth-child(3) { animation-delay: 110ms; }
 .hero-copy > :nth-child(4) { animation-delay: 150ms; }
-.hero-shot { animation: enter 700ms var(--out) 120ms both; }
+.hero-copy > :nth-child(5) { animation-delay: 190ms; }
+.stage { animation: enter 800ms var(--out) 140ms both; }
+.js .rv { opacity: 0; translate: 0 26px; transition: opacity 700ms var(--out), translate 700ms var(--out); }
+.js .rv.in { opacity: 1; translate: 0 0; }
+
+/* Movimiento en pausa (botón de la portada) o reducido por el sistema */
+[data-motion='off'] .marq-track { animation-play-state: paused; }
+[data-motion='off'] .seg button.run i { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero-copy > *, .hero-shot { animation: fade 200ms ease-out both; animation-delay: 0ms; }
-  .btn, .pill span, .qa summary svg { transition-property: background-color, border-color, color; }
-  .btn:active, .pill input:active + span { scale: 1; }
-  .btn:hover { translate: none; }
+  .hero-copy > *, .stage { animation: none; }
+  .js .rv { translate: none; transition: opacity 300ms ease-out; }
+  .slide { transition: opacity 200ms ease-out; }
+  .btn:active, .icon-btn:active, .chip:active, .tab:active, .seg button:active, .pill input:active + span { scale: 1; }
+  .btn:hover, .card:hover { translate: none; }
+  .barbell b, .warm li, .warm .track i, .qa[open] p, .ring.done { animation: none; }
+  .plate .arc path { animation: none; stroke-dashoffset: 22; }
+  .marq-track { animation: none; }
 }
 </style>
 </head>
 <body>
 <a class="skip" href="#contenido">Ir al contenido</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
 
 <header class="nav">
   <div class="wrap">
@@ -248,9 +355,10 @@ select.input option { background: #101d22; color: var(--chalk); }
       <span>IRON<br>INTELLIGENCE</span>
     </a>
     <nav aria-label="Secciones">
-      <a class="link" href="#registra">Cómo funciona</a>
+      <a class="link" href="#recorrido">Recorrido</a>
+      <a class="link" href="#demo">Pruébala</a>
+      <a class="link" href="#funciones">Funciones</a>
       <a class="link" href="#prueba">La prueba</a>
-      <a class="link" href="#preguntas">Preguntas</a>
       <a class="btn btn-fire btn-small" href="#inscripcion">Quiero probarla</a>
     </nav>
   </div>
@@ -265,7 +373,12 @@ select.input option { background: #101d22; color: var(--chalk); }
       <p class="lead">Registra cada serie en segundos, mira cómo progresas y entra a la próxima sesión sabiendo qué cargar. Está en prueba y busco 25 personas que entrenen con pesas.</p>
       <div class="actions">
         <a class="btn btn-fire" href="#inscripcion">Quiero probarla</a>
-        <a class="btn btn-ghost" href="#registra">Ver cómo funciona</a>
+        <a class="btn btn-ghost" href="#demo">Tocar la demostración</a>
+      </div>
+      <div class="seg" role="tablist" aria-label="Pantalla que muestra el teléfono" id="hero-tabs">
+        <button type="button" role="tab" aria-selected="true" data-img="/web/img/serie.webp" data-alt="Pantalla de entrenamiento: una serie hecha, la serie activa con la rueda de peso y el descanso corriendo.">Registra<i></i></button>
+        <button type="button" role="tab" aria-selected="false" data-img="/web/img/analisis.webp" data-alt="Pantalla de análisis: sesiones, series y carga de la semana con un cuerpo en 3D.">Analiza<i></i></button>
+        <button type="button" role="tab" aria-selected="false" data-img="/web/img/progresion.webp" data-alt="Pantalla de progresión: gráfico del press de banca que sube de 80 a 92,5 kg.">Progresa<i></i></button>
       </div>
       <ul class="facts">
         <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Android y iPhone</li>
@@ -273,116 +386,183 @@ select.input option { background: #101d22; color: var(--chalk); }
         <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No pide fotos tuyas</li>
       </ul>
     </div>
-    <div class="phone hero-shot">
-      <img src="/web/img/serie.webp" width="702" height="1404" alt="Pantalla de entrenamiento: una serie hecha con 80 kg por 7, la serie activa con la rueda de peso y la escala de repeticiones en reserva, y el descanso corriendo abajo." fetchpriority="high">
+
+    <div class="stage" id="stage">
+      <div class="tilt" id="tilt">
+        <div class="plate" id="plate" role="img" aria-label="Disco de 20 kilos en 3D. Se puede girar arrastrándolo.">
+          <svg class="face" viewBox="0 0 276 276" aria-hidden="true">
+            <defs>
+              <linearGradient id="iron" x1="18%" y1="6%" x2="82%" y2="96%"><stop offset="0" stop-color="#3d6470"/><stop offset="1" stop-color="#16303a"/></linearGradient>
+              <path id="rim" d="M17 138 a121 121 0 1 1 242 0 a121 121 0 1 1 -242 0"/>
+            </defs>
+            <circle cx="138" cy="138" r="136" fill="url(#iron)" stroke="#d6f1f6" stroke-opacity=".3" stroke-width="3"/>
+            <text fill="#d6f1f6" fill-opacity=".55" font-family="Archivo, sans-serif" font-weight="800" font-size="12.5" letter-spacing="3.2"><textPath href="#rim" startOffset="0">IRON INTELLIGENCE     20 KG     IRON INTELLIGENCE     20 KG</textPath></text>
+            <g fill="none" stroke="#07131a" stroke-width="25" stroke-linecap="round">
+              <path d="M194.48 54.27 A101 101 0 0 1 238.75 130.95"/><path d="M182.28 228.78 A101 101 0 0 1 93.72 228.78"/><path d="M37.25 130.95 A101 101 0 0 1 81.52 54.27"/>
+            </g>
+            <circle cx="138" cy="138" r="55" fill="none" stroke="#d6f1f6" stroke-opacity=".34" stroke-width="6"/>
+            <circle cx="138" cy="138" r="33" fill="#05090b"/>
+          </svg>
+          <svg class="back" viewBox="0 0 276 276" aria-hidden="true">
+            <circle cx="138" cy="138" r="136" fill="#16303a" stroke="#d6f1f6" stroke-opacity=".22" stroke-width="3"/>
+            <g fill="none" stroke="#07131a" stroke-width="25" stroke-linecap="round">
+              <path d="M194.48 54.27 A101 101 0 0 1 238.75 130.95"/><path d="M182.28 228.78 A101 101 0 0 1 93.72 228.78"/><path d="M37.25 130.95 A101 101 0 0 1 81.52 54.27"/>
+            </g>
+            <circle cx="138" cy="138" r="33" fill="#05090b"/>
+          </svg>
+          <svg class="arc" viewBox="0 0 400 400" aria-hidden="true">
+            <defs><linearGradient id="fire" x1="78%" y1="6%" x2="22%" y2="96%"><stop offset="0" stop-color="#ffc56e"/><stop offset=".45" stop-color="#ff7a22"/><stop offset="1" stop-color="#ff4a12"/></linearGradient></defs>
+            <circle cx="200" cy="200" r="182" fill="none" stroke="#b9e8f2" stroke-opacity=".12" stroke-width="22"/>
+            <path d="M200 18 A182 182 0 1 1 199.9 18" pathLength="100" fill="none" stroke="url(#fire)" stroke-width="22" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="phone">
+          <div class="flip" id="hero-flip"><img id="hero-img" src="/web/img/serie.webp" width="702" height="1404" alt="Pantalla de entrenamiento: una serie hecha, la serie activa con la rueda de peso y el descanso corriendo." fetchpriority="high"></div>
+        </div>
+        <button class="icon-btn motion" type="button" id="motion" aria-pressed="false" aria-label="Pausar el movimiento de la página">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="registra">
-  <div class="wrap split">
-    <div>
+<section class="section" id="recorrido">
+  <div class="wrap">
+    <div class="head-row rv">
       <div class="section-head">
-        <h2 class="display">Pensada para usarse entre una serie y la siguiente.</h2>
-        <p class="lead">Con una mano, el pulso alto y poco tiempo. Cada serie queda con su peso, sus repeticiones y cuántas te quedaban.</p>
+        <h2 class="display">Recorre la app sin instalarla.</h2>
+        <p class="lead">Trece pantallas reales. Desliza, usa las flechas o toca una pestaña.</p>
       </div>
-      <ul class="points">
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8v8"/><path d="M12 6v12"/><path d="M17 8v8"/></svg>
-          <div><h3>Rueda de peso</h3><p>Deslizas y el peso cambia. Las series que vienen toman el mismo valor.</p></div>
-        </li>
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>
-          <div><h3>Descanso con aviso</h3><p>Marcas la serie, corre la cuenta y te avisa cuando toca volver.</p></div>
-        </li>
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
-          <div><h3>Discos y calentamiento calculados</h3><p>Qué discos van por lado para el peso que elegiste y qué series hacer antes de la pesada.</p></div>
-        </li>
-      </ul>
+      <div class="arrows">
+        <button class="icon-btn" type="button" id="flow-prev" aria-label="Pantalla anterior"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="icon-btn" type="button" id="flow-next" aria-label="Pantalla siguiente"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+      </div>
     </div>
-    <div class="phone">
-      <img src="/web/img/ejercicio-en-curso.webp" width="702" height="1404" loading="lazy" alt="Ejercicio en curso: press inclinado con barra, objetivo de 4 series de 8 a 12 repeticiones, la última sesión, la recomendación de mantener el peso y aumentar repeticiones, y dos series ya hechas.">
+    <div class="chips rv" id="chips" role="tablist" aria-label="Pantallas de la app"></div>
+    <div class="flow rv" id="flow" tabindex="0" role="group" aria-roledescription="carrusel" aria-label="Pantallas de la app en 3D"></div>
+    <div class="caption" aria-live="polite">
+      <h3 id="cap-t"></h3>
+      <p id="cap-d"></p>
+    </div>
+    <span class="count num" id="flow-count">1 / 13</span>
+  </div>
+</section>
+
+<section class="section" id="demo">
+  <div class="wrap demo">
+    <div class="section-head rv">
+      <h2 class="display">Tócala antes de instalarla.</h2>
+      <p class="lead">Tres controles de la app funcionando aquí mismo, con los mismos cálculos. Mueve la rueda y mira qué discos van por lado.</p>
+      <p class="note">En la app, la rueda está en cada serie y el peso que eliges pasa a las series que vienen.</p>
+    </div>
+    <div class="rv">
+      <div class="tabs" role="tablist" aria-label="Demostraciones" id="demo-tabs">
+        <button class="tab" type="button" role="tab" id="t-rueda" aria-controls="p-rueda" aria-selected="true">Rueda y discos</button>
+        <button class="tab" type="button" role="tab" id="t-calentar" aria-controls="p-calentar" aria-selected="false" tabindex="-1">Calentamiento</button>
+        <button class="tab" type="button" role="tab" id="t-descanso" aria-controls="p-descanso" aria-selected="false" tabindex="-1">Descanso</button>
+      </div>
+      <div class="cube">
+        <div class="panel" role="tabpanel" id="p-rueda" aria-labelledby="t-rueda">
+          <div class="readout">
+            <button class="icon-btn" type="button" id="w-minus" aria-label="Bajar 2,5 kilos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <p class="big num" aria-live="polite"><span id="w-val">80</span><small>kilos en total</small></p>
+            <button class="icon-btn" type="button" id="w-plus" aria-label="Subir 2,5 kilos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+          </div>
+          <div class="wheel-box"><div class="wheel" id="wheel" tabindex="0" role="slider" aria-label="Peso total en kilos" aria-valuemin="20" aria-valuemax="200" aria-valuenow="80"></div></div>
+          <div class="barbell" id="barbell" role="img" aria-label="Barra cargada"></div>
+          <div class="legend">
+            <p><span class="note">Por lado:</span> <b class="num" id="w-side">25 + 5</b></p>
+            <div class="mini" role="group" aria-label="Peso de la barra" id="bars">
+              <button type="button" aria-pressed="true" data-bar="20">Barra 20</button>
+              <button type="button" aria-pressed="false" data-bar="15">15</button>
+              <button type="button" aria-pressed="false" data-bar="10">10</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel" role="tabpanel" id="p-calentar" aria-labelledby="t-calentar" hidden>
+          <div class="readout">
+            <button class="icon-btn" type="button" id="c-minus" aria-label="Bajar 2,5 kilos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <p class="big num" aria-live="polite"><span id="c-val">80</span><small>kilos en la serie de trabajo</small></p>
+            <button class="icon-btn" type="button" id="c-plus" aria-label="Subir 2,5 kilos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+          </div>
+          <ol class="warm" id="warm"></ol>
+          <p class="note">Pocas repeticiones y carga creciente, para llegar a la serie pesada sin fatiga acumulada.</p>
+        </div>
+        <div class="panel" role="tabpanel" id="p-descanso" aria-labelledby="t-descanso" hidden>
+          <div class="ring" id="ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="ring-fg" cx="60" cy="60" r="52" pathLength="100"/></svg>
+            <div class="time"><b class="num" id="ring-t" role="timer">0:15</b><span class="note" id="ring-l">descanso</span></div>
+          </div>
+          <div class="row">
+            <button class="btn btn-ghost btn-small" type="button" id="r-less" disabled>−5 s</button>
+            <button class="btn btn-fire" type="button" id="r-go">Completar serie</button>
+            <button class="btn btn-ghost btn-small" type="button" id="r-more" disabled>+5 s</button>
+          </div>
+          <div class="row"><label class="toggle"><input type="checkbox" id="r-sound"><span>Con sonido al terminar</span></label></div>
+          <p class="note" style="text-align: center">Aquí dura 15 segundos. En la app, lo que fije tu rutina para cada ejercicio.</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="analiza">
-  <div class="wrap duo">
-    <div>
+<section class="section" id="funciones">
+  <div class="wrap">
+    <div class="head-row rv">
       <div class="section-head">
-        <h2 class="display">Tus números, ordenados para decidir.</h2>
-        <p class="lead">Cuántas series llevas por músculo esta semana, cómo avanza cada ejercicio y cuál es tu mejor marca. Con eso la app propone la carga de la próxima sesión, y tú decides.</p>
+        <h2 class="display">Todo lo que trae.</h2>
+        <p class="lead">Dieciséis funciones. Desliza para verlas.</p>
       </div>
-      <ul class="points">
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
-          <div><h3>Volumen por grupo muscular</h3><p>Series directas e indirectas de la semana sobre un cuerpo en 3D.</p></div>
-        </li>
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg>
-          <div><h3>Progresión por ejercicio</h3><p>Peso, repeticiones, volumen y 1RM estimado, sesión a sesión.</p></div>
-        </li>
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
-          <div><h3>Ciclos con semana de descarga</h3><p>La app lleva la cuenta de las semanas y te avisa cuándo toca bajar la carga.</p></div>
-        </li>
-      </ul>
-    </div>
-    <div class="duo-shots">
-      <div class="phone"><img src="/web/img/analisis.webp" width="702" height="1404" loading="lazy" alt="Pantalla de análisis: 3 sesiones, 57 series y 37,5 toneladas movidas en la semana, con un cuerpo en 3D que muestra los músculos trabajados."></div>
-      <div class="phone"><img src="/web/img/progresion.webp" width="702" height="1404" loading="lazy" alt="Pantalla de progresión del press de banca con barra: gráfico de peso que sube de 80 a 92,5 kg entre septiembre y noviembre."></div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="biblioteca">
-  <div class="wrap split flip">
-    <div>
-      <div class="section-head">
-        <h2 class="display"><span class="num">448</span> ejercicios, cada uno con su figura en movimiento.</h2>
-        <p class="lead">Antes de cargar el peso ves qué vas a hacer: la máquina o el banco, el recorrido y los músculos que trabajan.</p>
+      <div class="arrows">
+        <button class="icon-btn" type="button" id="rail-prev" aria-label="Funciones anteriores"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="icon-btn" type="button" id="rail-next" aria-label="Más funciones"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
-      <ul class="points">
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
-          <div><h3>Indicaciones y errores frecuentes</h3><p>Cada ficha trae cómo ejecutarlo y qué evitar.</p></div>
-        </li>
-        <li>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/></svg>
-          <div><h3>Rutinas propias o desde una plantilla</h3><p>Armas la tuya, partes de una de las nueve plantillas o generas un plan según tu perfil.</p></div>
-        </li>
-      </ul>
     </div>
-    <div class="phone">
-      <img src="/web/img/ficha.webp" width="702" height="1404" loading="lazy" alt="Ficha de la prensa de piernas: figura del ejercicio en la máquina, cuerpo con cuádriceps y glúteos marcados, indicaciones técnicas y errores frecuentes.">
+    <div class="stats rv">
+      <div><b class="num" data-count="448">448</b><span>ejercicios con figura</span></div>
+      <div><b class="num" data-count="76">76</b><span>equipos y máquinas</span></div>
+      <div><b class="num" data-count="9">9</b><span>plantillas de rutina</span></div>
     </div>
+    <ul class="rail rv" id="rail" tabindex="0" aria-label="Funciones de la app">
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg><h3>Recomendación de carga</h3><p>Te dice si subir, mantener o bajar el peso, y te muestra el motivo.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8v8"/><path d="M12 6v12"/><path d="M17 8v8"/></svg><h3>Rueda de peso</h3><p>Deslizas y la carga cambia, sin teclado y con una mano.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg><h3>Descanso con aviso</h3><p>La cuenta parte al marcar la serie y te avisa cuando toca volver.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg><h3>Discos por lado</h3><p>Con tu barra y los discos que tiene tu gimnasio.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4V10H4z"/><path d="M10 20h4V4h-4z"/><path d="M16 20h4v-7h-4z"/></svg><h3>Calentamiento calculado</h3><p>Las series previas con su peso, según la carga de trabajo.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 16h10"/></svg><h3>Repeticiones en reserva</h3><p>Después de cada serie anotas cuántas te quedaban.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h4a3 3 0 0 1 3 3v4"/></svg><h3>Biseries y técnicas</h3><p>Dos ejercicios como una ronda, dropset y descanso-pausa.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><h3>Ciclos con descarga</h3><p>Lleva la cuenta de las semanas y avisa cuándo bajar la carga.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/><path d="M12 9h5"/><path d="M12 14h5"/></svg><h3>Plan según tu perfil</h3><p>Genera una rutina con tu objetivo, experiencia y equipo disponible.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg><h3>Récords y 1RM estimado</h3><p>Tu mayor carga en cada ejercicio, siempre a la vista.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Mapa muscular en 3D</h3><p>Qué trabajaste en las últimas 48 horas y en la semana.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6"/><path d="M4 20h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-6"/></svg><h3>Niveles de fuerza</h3><p>Dónde estás en cada levantamiento principal.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m9 15 2 2 4-4"/></svg><h3>Racha y constancia</h3><p>Semanas seguidas entrenando y cuánto cumples de lo planificado.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5 15.4 6.5"/><path d="M8.6 13.5 15.4 17.5"/></svg><h3>Comparte tu progreso</h3><p>Tu sesión o tu semana como tarjeta, y tus rutinas por enlace.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg><h3>Respaldo y exportación</h3><p>Copia de seguridad completa y tus series en un archivo CSV.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M6 13a9 9 0 0 1 12 0"/><path d="M9.5 16.5a4 4 0 0 1 5 0"/><path d="m3 3 18 18"/></svg><h3>Sin conexión</h3><p>Todo se guarda en el teléfono y se respalda cuando vuelve la señal.</p></li>
+    </ul>
+    <div class="railbar" aria-hidden="true"><i id="railbar"></i></div>
   </div>
 </section>
 
 <section class="section" id="prueba">
   <div class="wrap trial">
-    <div>
+    <div class="rv">
       <div class="section-head">
         <h2 class="display">La prueba dura dos semanas.</h2>
         <p class="lead">Antes de lanzarla necesito que la use gente que entrena de verdad. Lo que reportes lo reviso yo y se ve en la app.</p>
       </div>
       <ol class="steps">
-        <li><div><h3>Te inscribes</h3><p>Dejas tu correo y tu tipo de teléfono. Toma un minuto.</p></div></li>
+        <li><div><h3>Te inscribes</h3><p>Cuatro pasos cortos. Toma un minuto.</p></div></li>
         <li><div><h3>La instalas</h3><p>Al inscribirte se abre el acceso. Se instala desde el navegador, sin pasar por una tienda.</p></div></li>
         <li><div><h3>Entrenas y me cuentas</h3><p>La usas en tus sesiones y me dices qué falló, qué te confundió y qué te faltó.</p></div></li>
       </ol>
       <p class="note" style="margin-top: 22px">Si usas Android, más adelante puede que te pida un paso más: unirte a la prueba dentro de Google Play y mantenerte inscrito 14 días. Es lo que Google pide antes de publicar una app nueva.</p>
     </div>
-    <aside class="slots" aria-labelledby="cupos-titulo">
+    <aside class="slots rv" aria-labelledby="cupos-titulo">
       <h3 id="cupos-titulo">Cupos de la primera ronda</h3>
-      <div class="discs" id="discos" role="img" aria-label="25 cupos" style="margin-top: 22px">
-        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
-        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
-        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
-        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
-        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
-      </div>
+      <div class="discs" id="discos" role="img" aria-label="25 cupos"></div>
       <p class="slots-count num" id="cupos" aria-live="polite">25 cupos</p>
       <p class="note">Un disco por persona. Se llenan a medida que llegan las inscripciones.</p>
       <a class="btn btn-fire" href="#inscripcion" style="margin-top: 22px; width: 100%">Tomar un cupo</a>
@@ -392,69 +572,82 @@ select.input option { background: #101d22; color: var(--chalk); }
 
 <section class="section" id="inscripcion">
   <div class="wrap join">
-    <div class="section-head">
+    <div class="section-head rv">
       <h2 class="display">Inscríbete en la prueba.</h2>
-      <p class="lead">Seis preguntas. Al enviar se abre el acceso a la app.</p>
+      <p class="lead">Cuatro pasos cortos. Al terminar se abre el acceso a la app.</p>
       <p class="note">Uso tu correo solo para darte acceso a la prueba y escribirte sobre ella. Puedes pedir que lo borre respondiendo a cualquier correo de la prueba. Más detalle en la <a href="/privacidad.html">política de privacidad</a>.</p>
     </div>
 
-    <div>
+    <div class="rv">
       <form class="form" id="form" novalidate>
-        <div class="field">
-          <label for="nombre">Nombre o apodo</label>
-          <input class="input" id="nombre" name="nombre" type="text" autocomplete="given-name" maxlength="60" required aria-describedby="e-nombre">
-          <p class="error" id="e-nombre" role="alert"></p>
-        </div>
-        <div class="field">
-          <label for="correo">Correo</label>
-          <input class="input" id="correo" name="correo" type="email" inputmode="email" autocomplete="email" maxlength="120" required aria-describedby="h-correo e-correo">
-          <p class="hint" id="h-correo">Si usas Android, que sea el de tu cuenta de Google: sirve después para la prueba en Google Play.</p>
-          <p class="error" id="e-correo" role="alert"></p>
-        </div>
-        <fieldset class="field" aria-describedby="e-telefono">
+        <div class="wz-top"><span id="wz-n">Paso 1 de 4</span><div class="wz-bar"><i id="wz-bar"></i></div></div>
+
+        <fieldset class="wz-step" data-name="telefono" tabindex="-1">
           <legend>¿Qué teléfono usas?</legend>
           <div class="pills">
-            <label class="pill"><input type="radio" name="telefono" value="android" required><span>Android</span></label>
+            <label class="pill"><input type="radio" name="telefono" value="android"><span>Android</span></label>
             <label class="pill"><input type="radio" name="telefono" value="iphone"><span>iPhone</span></label>
           </div>
           <p class="error" id="e-telefono" role="alert"></p>
         </fieldset>
-        <fieldset class="field" aria-describedby="e-dias">
+
+        <fieldset class="wz-step" data-name="dias" tabindex="-1" hidden>
           <legend>¿Cuántos días entrenas por semana?</legend>
           <div class="pills">
-            <label class="pill"><input type="radio" name="dias" value="1-2" required><span>1 a 2</span></label>
+            <label class="pill"><input type="radio" name="dias" value="1-2"><span>1 a 2</span></label>
             <label class="pill"><input type="radio" name="dias" value="3-4"><span>3 a 4</span></label>
             <label class="pill"><input type="radio" name="dias" value="5+"><span>5 o más</span></label>
           </div>
           <p class="error" id="e-dias" role="alert"></p>
         </fieldset>
-        <div class="field">
-          <label for="anota">¿Dónde anotas hoy tus entrenamientos?</label>
-          <select class="input" id="anota" name="anota" required aria-describedby="e-anota">
-            <option value="" selected disabled>Elige una opción</option>
-            <option value="notas">En las notas del teléfono</option>
-            <option value="papel">En papel</option>
-            <option value="otra_app">En otra app</option>
-            <option value="ninguna">En ninguna parte</option>
-          </select>
+
+        <fieldset class="wz-step" data-name="anota" tabindex="-1" hidden>
+          <legend>¿Dónde anotas hoy tus entrenamientos?</legend>
+          <div class="pills">
+            <label class="pill"><input type="radio" name="anota" value="notas"><span>Notas del teléfono</span></label>
+            <label class="pill"><input type="radio" name="anota" value="papel"><span>Papel</span></label>
+            <label class="pill"><input type="radio" name="anota" value="otra_app"><span>Otra app</span></label>
+            <label class="pill"><input type="radio" name="anota" value="ninguna"><span>En ninguna parte</span></label>
+          </div>
           <p class="error" id="e-anota" role="alert"></p>
+        </fieldset>
+
+        <div class="wz-step" data-name="datos" tabindex="-1" hidden>
+          <p class="q">¿A dónde te envío el acceso?</p>
+          <div class="field">
+            <label for="nombre">Nombre o apodo</label>
+            <input class="input" id="nombre" name="nombre" type="text" autocomplete="given-name" maxlength="60" aria-describedby="e-nombre">
+            <p class="error" id="e-nombre" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="correo">Correo</label>
+            <input class="input" id="correo" name="correo" type="email" inputmode="email" autocomplete="email" maxlength="120" aria-describedby="h-correo e-correo">
+            <p class="hint" id="h-correo">Si usas Android, que sea el de tu cuenta de Google: sirve después para la prueba en Google Play.</p>
+            <p class="error" id="e-correo" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="contacto">¿Por dónde prefieres que te escriba? <span class="hint">(opcional)</span></label>
+            <input class="input" id="contacto" name="contacto" type="text" maxlength="120" placeholder="Correo, Instagram o WhatsApp">
+          </div>
+          <div class="field">
+            <label class="check"><input type="checkbox" id="adulto" name="adulto" aria-describedby="e-adulto"><span>Tengo 18 años o más</span></label>
+            <p class="error" id="e-adulto" role="alert"></p>
+          </div>
+          <div class="trap" aria-hidden="true"><label>No completar <input type="text" name="sitio" tabindex="-1" autocomplete="off"></label></div>
+          <p class="error" id="e-envio" role="alert"></p>
         </div>
-        <div class="field">
-          <label for="contacto">¿Por dónde prefieres que te escriba? <span class="hint">(opcional)</span></label>
-          <input class="input" id="contacto" name="contacto" type="text" maxlength="120" placeholder="Correo, Instagram o WhatsApp">
+
+        <div class="wz-nav">
+          <button class="btn btn-ghost" type="button" id="wz-back" hidden>Atrás</button>
+          <span></span>
+          <button class="btn btn-ghost" type="button" id="wz-next">Siguiente</button>
+          <button class="btn btn-fire" type="submit" id="enviar" hidden>Inscribirme</button>
         </div>
-        <div class="field">
-          <label class="check"><input type="checkbox" id="adulto" name="adulto" required aria-describedby="e-adulto"><span>Tengo 18 años o más</span></label>
-          <p class="error" id="e-adulto" role="alert"></p>
-        </div>
-        <div class="trap" aria-hidden="true"><label>No completar <input type="text" name="sitio" tabindex="-1" autocomplete="off"></label></div>
-        <p class="error" id="e-envio" role="alert"></p>
-        <button class="btn btn-fire" type="submit" id="enviar">Inscribirme en la prueba</button>
       </form>
 
       <div class="form done" id="listo" hidden tabindex="-1">
         <h3 class="display" style="font-size: 1.75rem">Ya tienes tu cupo.</h3>
-        <p class="lead" id="listo-texto">Abre la app desde tu teléfono e instálala así:</p>
+        <p class="lead">Abre la app desde tu teléfono e instálala así:</p>
         <ol id="pasos-android">
           <li>Abre el enlace en Chrome.</li>
           <li>Toca el menú de los tres puntos y elige Instalar app.</li>
@@ -474,10 +667,10 @@ select.input option { background: #101d22; color: var(--chalk); }
 
 <section class="section" id="preguntas">
   <div class="wrap faq">
-    <div class="section-head">
+    <div class="section-head rv">
       <h2 class="display">Preguntas antes de inscribirte.</h2>
     </div>
-    <div>
+    <div class="rv">
       <details class="qa">
         <summary>¿Cuánto cuesta?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
         <p>Probarla no cuesta nada. El precio final todavía no está definido.</p>
@@ -508,26 +701,349 @@ select.input option { background: #101d22; color: var(--chalk); }
 
 </main>
 
+<div class="marq" aria-hidden="true">
+  <div class="marq-track">
+    <p>Registra. Analiza. <span>Progresa.</span></p><p>Registra. Analiza. <span>Progresa.</span></p>
+    <p>Registra. Analiza. <span>Progresa.</span></p><p>Registra. Analiza. <span>Progresa.</span></p>
+  </div>
+</div>
+
 <footer class="foot">
-  <div class="wrap">
-    <p class="motto" aria-label="Registra. Analiza. Progresa."><span>Registra.</span><span>Analiza.</span><span>Progresa.</span></p>
-    <div class="foot-row">
-      <span>IRON INTELLIGENCE, app de entrenamiento de fuerza en prueba.</span>
-      <nav aria-label="Legal">
-        <a class="link" href="/privacidad.html">Política de privacidad</a>
-        <a class="link" href="/terminos.html">Términos de uso</a>
-      </nav>
-    </div>
+  <div class="wrap foot-row">
+    <span>IRON INTELLIGENCE, app de entrenamiento de fuerza en prueba.</span>
+    <nav aria-label="Legal">
+      <a class="link" href="/privacidad.html">Política de privacidad</a>
+      <a class="link" href="/terminos.html">Términos de uso</a>
+    </nav>
   </div>
 </footer>
 
 <script>
 (function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var motionOn = !reduced;
+  var OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
+  var kg = function (n) { return String(n).replace('.', ','); };
+  var safe = function (fn) { try { fn(); } catch (err) { if (window.console) console.error(err); } };
+  var PAUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>';
+  var PLAY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  function setMotion(on) {
+    motionOn = on;
+    root.setAttribute('data-motion', on ? 'on' : 'off');
+    var b = $('motion');
+    b.setAttribute('aria-pressed', on ? 'false' : 'true');
+    b.setAttribute('aria-label', on ? 'Pausar el movimiento de la página' : 'Reanudar el movimiento de la página');
+    b.innerHTML = on ? PAUSE : PLAY;
+  }
+
+  /* ---- Barra de avance y apariciones ---- */
+  safe(function () {
+    var bar = $('progress'), tick = false;
+    function upd() { tick = false; var h = root.scrollHeight - innerHeight; bar.style.transform = 'scaleX(' + (h > 0 ? Math.min(1, scrollY / h) : 0) + ')'; }
+    addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(upd); } }, { passive: true });
+    upd();
+    var els = document.querySelectorAll('.rv');
+    if (!('IntersectionObserver' in window)) { for (var i = 0; i < els.length; i++) els[i].classList.add('in'); return; }
+    var io = new IntersectionObserver(function (list) {
+      list.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    for (var j = 0; j < els.length; j++) io.observe(els[j]);
+  });
+
+  /* ---- Portada: disco 3D, inclinación con el puntero y pestañas del teléfono ---- */
+  safe(function () {
+    var stage = $('stage'), tilt = $('tilt'), plate = $('plate');
+    for (var k = -6; k <= 6; k++) { var layer = document.createElement('i'); layer.style.setProperty('--k', k); plate.insertBefore(layer, plate.firstChild); }
+    var py = -34, px = 14, vy = 0, dragging = false, lastX = 0, lastY = 0, visible = true;
+    var rx = 0, ry = 0, trx = 0, tryy = 0;
+    plate.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; vy = 0; try { plate.setPointerCapture(e.pointerId); } catch (err) {} });
+    plate.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+      py += dx * 0.6; vy = dx * 0.6; px = Math.max(-55, Math.min(55, px - dy * 0.4));
+    });
+    function end() { dragging = false; }
+    plate.addEventListener('pointerup', end); plate.addEventListener('pointercancel', end); plate.addEventListener('lostpointercapture', end);
+    if (fine) {
+      var hero = $('inicio');
+      hero.addEventListener('pointermove', function (e) {
+        var r = stage.getBoundingClientRect();
+        tryy = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / innerWidth * 2)) * 9;
+        trx = -Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / innerHeight * 2)) * 6;
+      });
+      hero.addEventListener('pointerleave', function () { trx = 0; tryy = 0; });
+    }
+    var running = false;
+    function frame() {
+      if (!visible) { running = false; return; }
+      if (!dragging) { if (Math.abs(vy) > 0.02) { py += vy; vy *= 0.955; } else if (motionOn) py += 0.22; }
+      if (motionOn) { rx += (trx - rx) * 0.08; ry += (tryy - ry) * 0.08; } else { rx = 0; ry = 0; }
+      plate.style.setProperty('--py', py.toFixed(2) + 'deg'); plate.style.setProperty('--px', px.toFixed(2) + 'deg');
+      tilt.style.setProperty('--rx', rx.toFixed(2) + 'deg'); tilt.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      requestAnimationFrame(frame);
+    }
+    function loop() { if (!running) { running = true; requestAnimationFrame(frame); } }
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (l) { visible = l[0].isIntersecting; if (visible) loop(); }).observe(stage);
+    loop();
+
+    var tabs = [].slice.call($('hero-tabs').children), img = $('hero-img'), flip = $('hero-flip'), cur = 0, auto = null, turns = 0, busy = false;
+    tabs.forEach(function (t) { var pre = new Image(); pre.src = t.getAttribute('data-img'); });
+    function mark() { if (motionOn && auto) { tabs[cur].classList.remove('run'); void tabs[cur].offsetWidth; tabs[cur].classList.add('run'); } }
+    function stop() { if (auto) { clearInterval(auto); auto = null; } tabs.forEach(function (b) { b.classList.remove('run'); }); }
+    function show(i, user) {
+      if (user) stop();
+      if (i === cur || busy) return;
+      var t = tabs[i];
+      tabs.forEach(function (b, n) { b.setAttribute('aria-selected', n === i ? 'true' : 'false'); b.classList.remove('run'); });
+      cur = i;
+      function swap() { img.src = t.getAttribute('data-img'); img.alt = t.getAttribute('data-alt'); }
+      if (reduced || !flip.animate) { swap(); }
+      else {
+        busy = true;
+        flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-90deg)' }], { duration: 170, easing: 'cubic-bezier(.4,0,.7,.3)' }).onfinish = function () {
+          swap();
+          flip.animate([{ transform: 'rotateY(90deg)' }, { transform: 'rotateY(0deg)' }], { duration: 380, easing: OUT }).onfinish = function () { busy = false; };
+        };
+      }
+      if (!user) mark();
+    }
+    function start() {
+      if (reduced || auto) return;
+      auto = setInterval(function () {
+        if (!motionOn || !visible || document.hidden) return;
+        turns++; show((cur + 1) % tabs.length, false);
+        if (turns >= 6) stop();
+      }, 4200);
+      mark();
+    }
+    tabs.forEach(function (t, i) { t.addEventListener('click', function () { show(i, true); }); });
+    $('motion').addEventListener('click', function () { setMotion(!motionOn); if (!motionOn) stop(); loop(); });
+    setMotion(motionOn);
+    start();
+  });
+
+  /* ---- Recorrido: pantallas en 3D ---- */
+  safe(function () {
+    var S = [
+      ['inicio', 'Inicio', 'Tu día de entrenamiento', 'La rutina que toca hoy, tu semana en tres números y el botón para empezar.'],
+      ['ejercicio-en-curso', 'Ejercicio', 'El ejercicio en curso', 'Objetivo, última sesión y la recomendación: mantener, subir o bajar la carga, con su motivo.'],
+      ['serie', 'Serie', 'La serie activa', 'Peso con la rueda, repeticiones, cuántas te quedaban y el descanso corriendo.'],
+      ['biserie', 'Biseries', 'Biseries y técnicas', 'Dos ejercicios seguidos como una ronda, además de dropset y descanso-pausa.'],
+      ['mapa', 'Mapa muscular', 'Qué trabajaste', 'Un cuerpo en 3D con lo que entrenaste en las últimas 48 horas y en la semana.'],
+      ['analisis', 'Análisis', 'La semana en números', 'Sesiones, series y carga movida, comparadas con la semana anterior.'],
+      ['volumen', 'Volumen', 'Series por grupo muscular', 'Directas e indirectas por músculo, para ver qué quedó corto.'],
+      ['progresion', 'Progresión', 'Cómo avanza cada ejercicio', 'Peso, repeticiones, volumen, RIR y 1RM estimado, sesión a sesión.'],
+      ['records', 'Récords', 'Tus mejores marcas', 'La mayor carga de cada ejercicio con su 1RM estimado.'],
+      ['historial', 'Historial', 'Cada sesión en el calendario', 'Los días entrenados del mes y el detalle de cada sesión.'],
+      ['biblioteca', 'Biblioteca', '448 ejercicios y 76 equipos', 'Filtra por músculo, equipo o tipo y busca por nombre o máquina.'],
+      ['ficha', 'Ficha', 'Cada ejercicio explicado', 'Figura en movimiento, músculos, indicaciones técnicas y errores frecuentes.'],
+      ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Créalas desde cero, desde una plantilla o genera un plan según tu perfil.']
+    ];
+    var flow = $('flow'), chips = $('chips'), active = 2, slides = [], tabs = [], moved = false;
+    S.forEach(function (s, i) {
+      var c = document.createElement('button');
+      c.type = 'button'; c.className = 'chip'; c.setAttribute('role', 'tab'); c.textContent = s[1];
+      c.addEventListener('click', function () { go(i); });
+      chips.appendChild(c); tabs.push(c);
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'slide'; b.setAttribute('aria-label', 'Ver ' + s[2]); b.tabIndex = -1;
+      b.innerHTML = '<span class="phone"><img loading="lazy" width="540" height="1080" alt="" src="/web/img/s/' + s[0] + '.webp"></span>';
+      b.addEventListener('click', function () { if (!moved) go(i); });
+      flow.appendChild(b); slides.push(b);
+    });
+    function layout() {
+      var w = slides[0].offsetWidth, gap = w * 0.74;
+      slides.forEach(function (el, i) {
+        var d = i - active, a = Math.abs(d), sg = d < 0 ? -1 : 1;
+        var x = a === 0 ? 0 : sg * (gap + (a - 1) * gap * 0.56);
+        var z = a === 0 ? 0 : -150 - (a - 1) * 90;
+        var r = a === 0 ? 0 : -sg * 46;
+        el.style.transform = 'translateX(calc(-50% + ' + x.toFixed(1) + 'px)) translateZ(' + z + 'px) rotateY(' + r + 'deg)';
+        el.style.opacity = a > 3 ? 0 : 1;
+        el.style.pointerEvents = a > 3 ? 'none' : 'auto';
+        el.style.visibility = a > 4 ? 'hidden' : 'visible';
+        el.style.zIndex = 50 - a;
+        el.style.setProperty('--dim', a === 0 ? 0 : Math.min(0.75, 0.3 + a * 0.15));
+        el.setAttribute('aria-hidden', a === 0 ? 'false' : 'true');
+        el.querySelector('img').alt = a === 0 ? 'Pantalla de la app: ' + S[i][2] + '. ' + S[i][3] : '';
+      });
+    }
+    function go(i) {
+      i = Math.max(0, Math.min(S.length - 1, i));
+      active = i;
+      tabs.forEach(function (t, n) { t.setAttribute('aria-selected', n === i ? 'true' : 'false'); t.tabIndex = n === i ? 0 : -1; });
+      var t = tabs[i]; chips.scrollLeft = t.offsetLeft - chips.clientWidth / 2 + t.offsetWidth / 2;
+      $('cap-t').textContent = S[i][2]; $('cap-d').textContent = S[i][3];
+      $('flow-count').textContent = (i + 1) + ' / ' + S.length;
+      $('flow-prev').disabled = i === 0; $('flow-next').disabled = i === S.length - 1;
+      layout();
+    }
+    $('flow-prev').addEventListener('click', function () { go(active - 1); });
+    $('flow-next').addEventListener('click', function () { go(active + 1); });
+    flow.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { go(active - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { go(active + 1); e.preventDefault(); } });
+    chips.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { go(active + (e.key === 'ArrowLeft' ? -1 : 1)); tabs[active].focus(); e.preventDefault(); } });
+    var sx = 0, down = false;
+    flow.addEventListener('pointerdown', function (e) { down = true; moved = false; sx = e.clientX; });
+    addEventListener('pointermove', function (e) { if (down && Math.abs(e.clientX - sx) > 8) moved = true; });
+    addEventListener('pointerup', function (e) {
+      if (!down) return; down = false;
+      var dx = e.clientX - sx;
+      if (Math.abs(dx) > 36) { var w = slides[0].offsetWidth * 0.74; go(active - (dx > 0 ? 1 : -1) * Math.max(1, Math.round(Math.abs(dx) / w))); }
+      setTimeout(function () { moved = false; }, 0);
+    });
+    addEventListener('pointercancel', function () { down = false; });
+    addEventListener('resize', layout);
+    go(active);
+  });
+
+  /* ---- Demostración: rueda, discos, calentamiento y descanso ---- */
+  safe(function () {
+    var MIN = 20, MAX = 200, STEP = 2.5, W = 60, weight = 80, bar = 20;
+    var PL = [25, 20, 15, 10, 5, 2.5, 1.25];
+    var LOOK = { 25: [128, 18, '#ff6a1a'], 20: [118, 18, '#58c7ff'], 15: [104, 16, '#ffb054'], 10: [90, 14, '#34e0a1'], 5: [72, 12, '#f2f6f6'], 2.5: [56, 10, '#9fb0b6'], 1.25: [44, 8, '#5d7178'] };
+    var r2 = function (n) { return Math.round(n * 100) / 100; };
+    // Mismos cálculos que usa la app (src/domain/tools.ts).
+    function platesPerSide(total, b) {
+      var left = r2((total - b) / 2), side = [];
+      if (left < 0) return { side: side, rest: r2(total - b) };
+      PL.forEach(function (p) { while (left >= p - 1e-9) { side.push(p); left = r2(left - p); } });
+      return { side: side, rest: r2(left * 2) };
+    }
+    function warmupSets(work, inc, b) {
+      if (!(work > 0)) return [];
+      var steps = work < 30 ? [[0.5, 8], [0.75, 4]] : work < 80 ? [[0.4, 8], [0.6, 5], [0.8, 3]] : [[0.4, 8], [0.55, 5], [0.7, 3], [0.85, 2]], out = [];
+      steps.forEach(function (s) {
+        var w = r2(Math.max(b, Math.round((work * s[0]) / inc) * inc));
+        if (w >= work || w <= 0 || out.some(function (o) { return o.weight === w; })) return;
+        out.push({ weight: w, reps: s[1], pct: s[0] });
+      });
+      return out;
+    }
+    var wheel = $('wheel'), ticks = [], hold = 0; // mientras la rueda se mueve sola hacia un valor, no se lee su posición
+    for (var v = MIN; v <= MAX + 1e-9; v += STEP) { var s = document.createElement('span'); s.textContent = kg(v); wheel.appendChild(s); ticks.push(s); }
+    function plateHtml(x, i) { var l = LOOK[x]; return '<b style="height:' + l[0] + 'px;width:' + l[1] + 'px;background:' + l[2] + ';animation-delay:' + (i * 35) + 'ms"></b>'; }
+    function render(fromWheel) {
+      $('w-val').textContent = kg(weight); $('c-val').textContent = kg(weight);
+      wheel.setAttribute('aria-valuenow', weight); wheel.setAttribute('aria-valuetext', kg(weight) + ' kilos');
+      var idx = Math.round((weight - MIN) / STEP);
+      ticks.forEach(function (t, i) { t.classList.toggle('on', i === idx); });
+      if (!fromWheel) { hold = performance.now() + 650; wheel.scrollTo({ left: idx * W, behavior: reduced ? 'auto' : 'smooth' }); }
+      var p = platesPerSide(weight, bar);
+      var left = p.side.slice().reverse().map(function (x, i) { return plateHtml(x, p.side.length - 1 - i); }).join('');
+      var right = p.side.map(plateHtml).join('');
+      $('barbell').innerHTML = '<span class="rod end"></span>' + left + '<span class="collar"></span><span class="rod mid"></span><span class="collar"></span>' + right + '<span class="rod end"></span>';
+      $('w-side').textContent = weight < bar ? 'menos que la barra' : p.side.length ? p.side.map(kg).join(' + ') : 'solo la barra';
+      $('barbell').setAttribute('aria-label', 'Barra de ' + bar + ' kilos con ' + (p.side.length ? p.side.map(kg).join(', ') + ' kilos por lado' : 'ningún disco'));
+      var ws = warmupSets(weight, 2.5, bar), rows = '';
+      ws.forEach(function (o, i) { rows += '<li style="animation-delay:' + (i * 60) + 'ms"><span class="note">' + o.reps + ' reps</span><span class="track"><i style="width:' + Math.round(o.pct * 100) + '%;animation-delay:' + (i * 60) + 'ms"></i></span><span class="num">' + kg(o.weight) + ' kg</span></li>'; });
+      rows += '<li class="work" style="animation-delay:' + (ws.length * 60) + 'ms"><span class="note">Trabajo</span><span class="track"><i style="width:100%;animation-delay:' + (ws.length * 60) + 'ms"></i></span><span class="num">' + kg(weight) + ' kg</span></li>';
+      $('warm').innerHTML = rows;
+    }
+    function set(w, fromWheel) { w = Math.max(MIN, Math.min(MAX, Math.round(w / STEP) * STEP)); if (w === weight) return; weight = w; render(fromWheel); }
+    var wt = false;
+    wheel.addEventListener('scroll', function () { if (wt || performance.now() < hold) return; wt = true; requestAnimationFrame(function () { wt = false; set(MIN + Math.round(wheel.scrollLeft / W) * STEP, true); }); }, { passive: true });
+    wheel.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? STEP : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -STEP : e.key === 'PageUp' ? 10 : e.key === 'PageDown' ? -10 : 0;
+      if (d) { set(weight + d); e.preventDefault(); }
+    });
+    // Arrastre con el ratón (en táctil el desplazamiento ya es nativo).
+    var md = false, mx = 0, ml = 0;
+    wheel.addEventListener('mousedown', function (e) { md = true; mx = e.clientX; ml = wheel.scrollLeft; wheel.style.scrollSnapType = 'none'; e.preventDefault(); });
+    addEventListener('mousemove', function (e) { if (md) { hold = 0; wheel.scrollLeft = ml - (e.clientX - mx); } });
+    addEventListener('mouseup', function () { if (!md) return; md = false; wheel.style.scrollSnapType = ''; wheel.scrollTo({ left: Math.round(wheel.scrollLeft / W) * W, behavior: reduced ? 'auto' : 'smooth' }); });
+    [['w-minus', -STEP], ['w-plus', STEP], ['c-minus', -STEP], ['c-plus', STEP]].forEach(function (p) { $(p[0]).addEventListener('click', function () { set(weight + p[1]); }); });
+    [].forEach.call($('bars').children, function (b) {
+      b.addEventListener('click', function () { bar = +b.getAttribute('data-bar'); [].forEach.call($('bars').children, function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); render(true); });
+    });
+    render(true);
+    wheel.scrollLeft = Math.round((weight - MIN) / STEP) * W;
+
+    // Pestañas con giro en 3D
+    var tabs = [].slice.call($('demo-tabs').children), panels = tabs.map(function (t) { return $(t.getAttribute('aria-controls')); }), cur = 0;
+    function pick(i, focus) {
+      if (i === cur) return;
+      var from = panels[cur], to = panels[i], dir = i > cur ? 1 : -1;
+      tabs.forEach(function (t, n) { t.setAttribute('aria-selected', n === i ? 'true' : 'false'); t.tabIndex = n === i ? 0 : -1; });
+      cur = i; from.hidden = true; to.hidden = false;
+      if (!reduced && to.animate) to.animate([{ transform: 'rotateX(' + (-70 * dir) + 'deg)', opacity: 0 }, { transform: 'rotateX(0deg)', opacity: 1 }], { duration: 460, easing: OUT });
+      if (to.id === 'p-rueda') wheel.scrollLeft = Math.round((weight - MIN) / STEP) * W;
+      if (focus) tabs[i].focus();
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { pick(i); });
+      t.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') { pick((i + 1) % tabs.length, true); e.preventDefault(); } if (e.key === 'ArrowLeft') { pick((i + tabs.length - 1) % tabs.length, true); e.preventDefault(); } });
+    });
+
+    // Descanso
+    var total = 15, endAt = 0, timer = null, state = 'idle', ring = $('ring'), fg = $('ring-fg');
+    function fmt(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2); }
+    function beep() {
+      if (!$('r-sound').checked) return;
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 880; g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+        o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.55);
+      } catch (err) {}
+    }
+    function reset() { clearInterval(timer); timer = null; state = 'idle'; total = 15; ring.classList.remove('done'); $('ring-t').textContent = '0:15'; $('ring-l').textContent = 'descanso'; fg.style.strokeDashoffset = '0'; $('r-go').textContent = 'Completar serie'; $('r-less').disabled = true; $('r-more').disabled = true; }
+    function finish() {
+      clearInterval(timer); timer = null; state = 'done'; ring.classList.add('done');
+      $('ring-t').textContent = '0:00'; fg.style.strokeDashoffset = '0'; $('ring-l').textContent = 'a la barra';
+      $('r-go').textContent = 'Otra serie'; $('r-less').disabled = true; $('r-more').disabled = true; beep();
+    }
+    function tickRest() {
+      var left = (endAt - performance.now()) / 1000;
+      if (left <= 0) { finish(); return; }
+      $('ring-t').textContent = fmt(left); fg.style.strokeDashoffset = String(100 - Math.max(0, Math.min(100, left / total * 100)));
+    }
+    $('r-go').addEventListener('click', function () {
+      if (state === 'running') { reset(); return; }
+      reset(); state = 'running'; endAt = performance.now() + total * 1000; $('r-go').textContent = 'Omitir'; $('r-less').disabled = false; $('r-more').disabled = false;
+      tickRest(); timer = setInterval(tickRest, 100);
+    });
+    $('r-less').addEventListener('click', function () { if (state === 'running') { endAt -= 5000; total = Math.max(5, total - 5); tickRest(); } });
+    $('r-more').addEventListener('click', function () { if (state === 'running') { endAt += 5000; total += 5; tickRest(); } });
+  });
+
+  /* ---- Carril de funciones y contadores ---- */
+  safe(function () {
+    var rail = $('rail'), thumb = $('railbar');
+    function upd() {
+      var max = rail.scrollWidth - rail.clientWidth, frac = Math.min(1, rail.clientWidth / rail.scrollWidth), pos = max > 0 ? rail.scrollLeft / max : 0;
+      thumb.style.width = (frac * 100) + '%'; thumb.style.transform = 'translateX(' + (pos * (1 / frac - 1) * 100) + '%)';
+      $('rail-prev').disabled = rail.scrollLeft < 4; $('rail-next').disabled = rail.scrollLeft > max - 4;
+    }
+    rail.addEventListener('scroll', function () { requestAnimationFrame(upd); }, { passive: true });
+    addEventListener('resize', upd);
+    function by(dir) { var c = rail.querySelector('.card'); rail.scrollBy({ left: dir * (c.offsetWidth + 16) * (innerWidth > 900 ? 3 : 1), behavior: reduced ? 'auto' : 'smooth' }); }
+    $('rail-prev').addEventListener('click', function () { by(-1); });
+    $('rail-next').addEventListener('click', function () { by(1); });
+    var md = false, mx = 0, ml = 0;
+    rail.addEventListener('mousedown', function (e) { md = true; mx = e.clientX; ml = rail.scrollLeft; });
+    addEventListener('mousemove', function (e) { if (!md) return; if (Math.abs(e.clientX - mx) > 4) rail.classList.add('drag'); rail.scrollLeft = ml - (e.clientX - mx); });
+    addEventListener('mouseup', function () { md = false; rail.classList.remove('drag'); });
+    upd();
+
+    var nums = document.querySelectorAll('[data-count]');
+    if (reduced || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (list) {
+      list.forEach(function (e) {
+        if (!e.isIntersecting) return; io.unobserve(e.target);
+        var el = e.target, to = +el.getAttribute('data-count'), t0 = performance.now(), dur = 1100;
+        (function step(now) { var p = Math.min(1, (now - t0) / dur), ease = 1 - Math.pow(1 - p, 4); el.textContent = Math.round(to * ease); if (p < 1) requestAnimationFrame(step); })(t0);
+      });
+    }, { threshold: 0.6 });
+    [].forEach.call(nums, function (n) { n.textContent = '0'; io.observe(n); });
+  });
+
+  /* ---- Cupos e inscripción ---- */
   var SB = 'https://flwbkclkebkmebtfljcg.supabase.co';
   var KEY = 'sb_publishable_RgAOFfsMq21HfSWfGgO7nA_QpnPGfSG';
   var TOTAL = 25;
-  var $ = function (id) { return document.getElementById(id); };
-
   function rpc(fn, body) {
     return fetch(SB + '/rest/v1/rpc/' + fn, {
       method: 'POST',
@@ -538,21 +1054,24 @@ select.input option { background: #101d22; color: var(--chalk); }
       return r.json().catch(function () { return {}; }).then(function (e) { throw new Error((e && e.message) || String(r.status)); });
     });
   }
-
-  // Cupos: un disco por inscripción real.
+  var discs = $('discos');
+  for (var d = 0; d < TOTAL; d++) { var sp = document.createElement('span'); sp.className = 'disc'; sp.style.transitionDelay = (d * 45) + 'ms'; discs.appendChild(sp); }
+  var slotsSeen = false, slotsN = null;
   function paint(n) {
     var taken = Math.max(0, Math.min(TOTAL, n));
-    var discs = $('discos').children;
-    for (var i = 0; i < discs.length; i++) discs[i].classList.toggle('on', i < taken);
+    for (var i = 0; i < discs.children.length; i++) discs.children[i].classList.toggle('on', i < taken);
     var left = TOTAL - taken;
     var text = taken === 0 ? '25 cupos' : left === 0 ? 'Cupos completos' : left === 1 ? 'Queda 1 cupo de 25' : 'Quedan ' + left + ' cupos de 25';
-    $('cupos').textContent = text;
-    $('discos').setAttribute('aria-label', text);
+    $('cupos').textContent = text; discs.setAttribute('aria-label', text);
+    var w = $('espera'); if (w) w.remove();
     if (left === 0) $('cupos').insertAdjacentHTML('afterend', '<p class="note" id="espera">La inscripción sigue abierta como lista de espera.</p>');
   }
-  rpc('tester_count').then(function (n) { if (typeof n === 'number') paint(n); }).catch(function () {});
+  function slots(n) { slotsN = n; if (slotsSeen) paint(n); }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (l, io) { if (l[0].isIntersecting) { slotsSeen = true; io.disconnect(); if (slotsN != null) paint(slotsN); } }, { threshold: 0.4 }).observe(discs);
+  else slotsSeen = true;
+  rpc('tester_count').then(function (n) { if (typeof n === 'number') slots(n); }).catch(function () {});
 
-  var form = $('form');
+  var form = $('form'), steps = [].slice.call(form.querySelectorAll('.wz-step')), step = 0, lastTap = 0;
   var MSG = {
     nombre: 'Escribe tu nombre o un apodo.',
     correo: 'Escribe un correo válido, por ejemplo nombre@gmail.com.',
@@ -562,60 +1081,56 @@ select.input option { background: #101d22; color: var(--chalk); }
     adulto: 'La prueba es para mayores de 18 años.'
   };
   function setError(name, on) {
-    var box = $('e-' + name);
-    box.textContent = on ? MSG[name] : '';
-    var els = form.elements[name];
-    var list = els && els.length && !els.tagName ? els : [els];
+    $('e-' + name).textContent = on ? MSG[name] : '';
+    var els = form.elements[name], list = els && els.length && !els.tagName ? els : [els];
     for (var i = 0; i < list.length; i++) if (list[i]) list[i].setAttribute('aria-invalid', on ? 'true' : 'false');
   }
   function read() {
     var f = form.elements;
-    return {
-      nombre: f.nombre.value.trim(),
-      correo: f.correo.value.trim(),
-      telefono: f.telefono.value,
-      dias: f.dias.value,
-      anota: f.anota.value,
-      contacto: f.contacto.value.trim(),
-      adulto: f.adulto.checked
-    };
+    return { nombre: f.nombre.value.trim(), correo: f.correo.value.trim(), telefono: f.telefono.value, dias: f.dias.value, anota: f.anota.value, contacto: f.contacto.value.trim(), adulto: f.adulto.checked };
   }
-  function validate(v) {
-    var bad = {
-      nombre: !v.nombre,
-      correo: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.correo),
-      telefono: !v.telefono,
-      dias: !v.dias,
-      anota: !v.anota,
-      adulto: !v.adulto
-    };
-    var first = null;
-    Object.keys(bad).forEach(function (k) { setError(k, bad[k]); if (bad[k] && !first) first = k; });
-    return first;
+  function goStep(i, dir) {
+    step = i;
+    steps.forEach(function (s, n) { s.hidden = n !== i; });
+    $('wz-n').textContent = 'Paso ' + (i + 1) + ' de ' + steps.length;
+    $('wz-bar').style.transform = 'scaleX(' + ((i + 1) / steps.length) + ')';
+    $('wz-back').hidden = i === 0; $('wz-next').hidden = i === steps.length - 1; $('enviar').hidden = i !== steps.length - 1;
+    var el = steps[i];
+    if (!reduced && el.animate) el.animate([{ opacity: 0, transform: 'translateX(' + (28 * dir) + 'px)' }, { opacity: 1, transform: 'translateX(0)' }], { duration: 320, easing: OUT });
+    el.focus({ preventScroll: true });
   }
+  function stepOk() {
+    var name = steps[step].getAttribute('data-name');
+    if (name === 'datos') return true;
+    var ok = !!form.elements[name].value; setError(name, !ok); return ok;
+  }
+  $('wz-next').addEventListener('click', function () { if (stepOk()) goStep(step + 1, 1); });
+  $('wz-back').addEventListener('click', function () { goStep(step - 1, -1); });
+  form.addEventListener('pointerdown', function () { lastTap = Date.now(); });
+  form.addEventListener('change', function (e) {
+    var n = e.target.name; if (!n || !MSG[n]) return; setError(n, false);
+    // Con el dedo o el ratón, elegir una opción pasa solo al paso siguiente; con teclado se avanza con el botón.
+    if (e.target.type === 'radio' && steps[step].getAttribute('data-name') === n && Date.now() - lastTap < 900)
+      setTimeout(function () { if (steps[step].getAttribute('data-name') === n) goStep(step + 1, 1); }, 260);
+  });
   form.addEventListener('input', function (e) { if (e.target.name && MSG[e.target.name]) setError(e.target.name, false); });
-  form.addEventListener('change', function (e) { if (e.target.name && MSG[e.target.name]) setError(e.target.name, false); });
 
   function showDone(os) {
     form.hidden = true;
-    $('pasos-android').hidden = os === 'iphone';
-    $('pasos-iphone').hidden = os !== 'iphone';
-    var box = $('listo');
-    box.hidden = false;
-    box.focus({ preventScroll: true });
-    box.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    $('pasos-android').hidden = os === 'iphone'; $('pasos-iphone').hidden = os !== 'iphone';
+    var box = $('listo'); box.hidden = false; box.focus({ preventScroll: true });
+    box.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
   }
-
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    if (step !== steps.length - 1) { if (stepOk()) goStep(step + 1, 1); return; }
     $('e-envio').textContent = '';
-    var v = read();
-    var first = validate(v);
-    if (first) {
-      var el = form.elements[first];
-      (el && el.length && !el.tagName ? el[0] : el).focus();
-      return;
-    }
+    var v = read(), order = ['telefono', 'dias', 'anota'];
+    var early = order.filter(function (k) { return !v[k]; })[0];
+    if (early) { goStep(order.indexOf(early), -1); setError(early, true); return; }
+    var bad = { nombre: !v.nombre, correo: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.correo), adulto: !v.adulto }, first = null;
+    Object.keys(bad).forEach(function (k) { setError(k, bad[k]); if (bad[k] && !first) first = k; });
+    if (first) { form.elements[first].focus(); return; }
     var btn = $('enviar');
     if (form.elements.sitio.value) { showDone(v.telefono); return; } // trampa para envíos automáticos
     btn.disabled = true; btn.textContent = 'Enviando';
@@ -625,18 +1140,16 @@ select.input option { background: #101d22; color: var(--chalk); }
       .then(function () {
         try { localStorage.setItem('ii_tester', v.telefono); } catch (err) {}
         showDone(v.telefono);
-        rpc('tester_count').then(function (n) { if (typeof n === 'number') { var w = $('espera'); if (w) w.remove(); paint(n); } }).catch(function () {});
+        rpc('tester_count').then(function (n) { if (typeof n === 'number') { slotsSeen = true; paint(n); } }).catch(function () {});
       })
       .catch(function (err) {
         var m = String(err && err.message || '');
         $('e-envio').textContent = m.indexOf('full') >= 0 ? 'La lista está completa por ahora. Vuelve a intentarlo en unos días.'
           : m.indexOf('bad_email') >= 0 ? 'Revisa el correo: no parece válido.'
           : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.';
-        btn.disabled = false; btn.textContent = 'Inscribirme en la prueba';
+        btn.disabled = false; btn.textContent = 'Inscribirme';
       });
   });
-
-  // Quien ya se inscribió en este teléfono ve directo el acceso.
   try {
     var saved = localStorage.getItem('ii_tester');
     if (saved) { form.hidden = true; $('pasos-android').hidden = saved === 'iphone'; $('pasos-iphone').hidden = saved !== 'iphone'; $('listo').hidden = false; }
