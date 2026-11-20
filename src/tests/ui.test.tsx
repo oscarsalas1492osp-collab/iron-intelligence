@@ -62,6 +62,9 @@ describe('interfaz', () => {
     await user.click(screen.getByRole('button', { name: /Serie 1 completada/ }));
     await user.click(screen.getByRole('button', { name: 'Aumentar Repeticiones serie 1' }));
     await waitFor(async () => expect((await db.sets.get(saved.id))!.reps).toBe(9));
+    // La corrección se hace en una hoja aparte: se cierra antes de seguir.
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: 'Finalizar' }));
     const dialog = await screen.findByRole('dialog');

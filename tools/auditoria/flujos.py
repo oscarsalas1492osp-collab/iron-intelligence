@@ -429,7 +429,7 @@ with sync_playwright() as p:
         pg.locator('main button', has_text='2. Curl de bíceps con barra').click(); pg.wait_for_selector('h2:has-text("Curl de bíceps con barra")')
         el=pg.locator('[aria-label="Peso serie 1"]'); el.click(); el.fill('20'); pg.keyboard.press('Enter'); pg.wait_for_timeout(250)
         pg.click('[aria-label="Completar serie 1"]'); pg.wait_for_selector('[role=timer]'); pg.wait_for_selector('text=3/9 series')
-        pg.click('[aria-label="Serie 1 completada, tocar para editar"]'); pg.click('button:has-text("Técnica")')
+        pg.click("[aria-label=\"Serie 1 completada, tocar para editar\"]"); dlg().locator("button:has-text(\"Alargar con una técnica\")").click()
         dlg().locator('text=Dropset').first.wait_for(); dlg().locator('text=Descanso-pausa').first.wait_for(); dlg().locator('text=Myo-reps').first.wait_for(); dlg().locator('text=Cluster').first.wait_for(); shot('R_tecnicas')
         dlg().locator('[aria-label="Añadir Dropset"]').click(); pg.wait_for_selector('[aria-label="Peso bajada 1 de la serie 1"]'); pg.wait_for_timeout(300)
         v=pg.locator('[aria-label="Peso bajada 1 de la serie 1"]').input_value(); assert v=='15', 'carga de la bajada: '+v

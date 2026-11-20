@@ -155,82 +155,25 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
   const tag = s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag ?? 'Tramo'} ${s.sub}` : null;
   const patch = (p: Partial<SetLog>) => run(() => updateSet(s.id, p));
 
-  if (s.done && !open) {
-    return (
-      <div data-set={s.id}>
-      <button type="button" onClick={() => { if (!tapLocked()) onOpen(); }} className={cx('flex w-full items-center gap-3 px-1 py-3 text-left', tag && 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50 py-2 pl-3')} aria-label={`${name[0].toUpperCase()}${name.slice(1)} completada, tocar para editar`}>
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
-        <span className="min-w-0 flex-1">
-          {(title || tag) && <span className="wd-c block truncate text-sm text-mute">{[title, tag].filter(Boolean).join(', ')}</span>}
-          <span className="num block text-lg leading-tight">{fmtKg(s.weight)} kg × {s.reps}{measure !== 'reps' && ` ${unit}`}</span>
-        </span>
-        {!s.metTarget && <span className="wd-c text-sm font-semibold text-[#ff7a70]">bajo el rango</span>}
-        <span className="hidden text-sm text-mute sm:inline">{info.short}</span>
-        <span className="wd-c flex items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
-      </button>
-      {/* La serie ya quedó guardada: el RIR se puede marcar ahora, sin volver a abrirla. */}
-      {ask && s.rir == null && (
-        <div className={cx('mb-2 rounded-panel bg-card p-3 animate-rise', tag && 'ml-5')} role="group" aria-label={`RIR de la ${name}`}>
-          <div className="mb-1.5 flex items-baseline justify-between gap-3">
-            <span className="text-sm font-semibold">¿Cuántas repeticiones te quedaban?</span>
-            <button type="button" className="wd-c shrink-0 text-sm text-mute underline" onClick={() => { if (!tapLocked()) onAsked?.(); }}>Sin RIR</button>
-          </div>
-          <RirScale small of={` para la ${name}`} rir={s.rir} halfRir={halfRir} onPick={(r) => { void patch({ rir: r }); onAsked?.(); }} />
-        </div>
-      )}
-      </div>
-    );
-  }
-
-  return (
-    <div data-set={s.id} className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-white/[.03]', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && !tapLocked() && onOpen()}>
-      {(title || tag) && <div className="wd-c mb-1.5 truncate text-sm font-semibold text-mute">{title}{title && tag ? ', ' : ''}{tag && <span className="text-fire">{tag}</span>}</div>}
-      <div className="flex items-center gap-2" data-noswipe>
-        {!tag && <span className="num grid h-7 w-4 shrink-0 place-items-center text-base text-mute">{n}</span>}
-        {/* El peso recibe más ancho: debe mostrar completas cifras como 122,5 o 247,5. */}
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] gap-2">
-          <Stepper compact label={`Peso ${name}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
-          <Stepper compact label={`${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} ${name}`} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
-        </div>
-        <button type="button" aria-label={s.done ? `Desmarcar ${name}` : `Completar ${name}`}
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (tapLocked()) return;
-            primeAudio();
-            tapLock = Date.now() + 5000;
-            try {
-              if (s.done) await run(() => uncompleteSet(s.id));
-              // Se usa la serie tal como quedó guardada: si el peso se acababa de teclear, la fila aún muestra el anterior.
-              else { const saved = await run(() => completeSet(s.id)); if (saved) { onDone(saved); revealSet(s.id); } }
-            }
-            finally { tapLock = Date.now() + 500; }
-          }}
-          className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
-          <Icon name="check" size={20} />
-        </button>
-      </div>
-      {open && (
-        <div className="mt-3">
-          <div className="mb-1.5 flex items-baseline justify-between gap-3">
-            <span className="label">Repeticiones en reserva (RIR)</span>
-            <span className="wd-c text-sm font-semibold" style={{ color: info.text }}>{info.label}</span>
-          </div>
-          <RirScale rir={s.rir} halfRir={halfRir} onPick={(r) => patch({ rir: r })} />
-          {halfRir && s.rir != null && s.rir < 5 && (
-            <button type="button" className="wd-c mt-2 text-sm text-data" onClick={() => patch({ rir: Number.isInteger(s.rir) ? (s.rir as number) + 0.5 : Math.floor(s.rir as number) })}>
-              {Number.isInteger(s.rir) ? `Marcar ${s.rir}.5 (medio punto)` : `RIR ${s.rir} · quitar medio punto`}
-            </button>
-          )}
-          <div className={cx('mt-3 grid gap-1.5 [&>button]:whitespace-nowrap [&>button]:!px-2', prev && !s.sub && onExtend ? 'grid-cols-3' : 'grid-cols-2')}>
-            {prev && !s.sub && <Btn size="sm" aria-label={`Igual que la serie ${n - 1}`} onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>Igual a la {n - 1}</Btn>}
-            <Btn size="sm" onClick={() => setMore(true)}>Detalle</Btn>
-            {onExtend && <Btn size="sm" onClick={() => setTech(true)}>Técnica</Btn>}
-          </div>
-          {(s.rpe != null || (s.done && s.restSec != null)) && (
-            <div className="wd-c mt-2 text-sm text-mute tnum">{[s.rpe != null ? `RPE ${s.rpe}` : '', s.done && s.restSec != null ? `descanso ${s.restSec} s` : ''].filter(Boolean).join(', ')}</div>
-          )}
-        </div>
-      )}
+  const label = tag ?? `Serie ${n}`;
+  const Name = `${name[0].toUpperCase()}${name.slice(1)}`;
+  const sum = `${fmtKg(s.weight)} kg × ${s.reps}${measure !== 'reps' ? ` ${unit}` : ''}`;
+  const repsLabel = `${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} ${name}`;
+  // Cada serie es una tarjeta propia con su estado a la vista: hecha, ahora o pendiente.
+  // Una serie hecha nunca se despliega en la lista: se corrige en una hoja aparte, para que no parezca la serie en curso.
+  const state: 'done' | 'active' | 'pending' = s.done ? 'done' : open ? 'active' : 'pending';
+  const complete = async () => {
+    if (tapLocked()) return;
+    primeAudio();
+    tapLock = Date.now() + 5000;
+    try {
+      // Se usa la serie tal como quedó guardada: si el peso se acababa de cambiar, la fila aún muestra el anterior.
+      const saved = await run(() => completeSet(s.id));
+      if (saved) { onDone(saved); revealSet(s.id); }
+    } finally { tapLock = Date.now() + 500; }
+  };
+  const sheets = (
+    <>
       <Sheet open={tech} onClose={() => setTech(false)} title="Alargar la serie" wide>
         <div className="space-y-2.5">
           {TECHNIQUES.map((t) => (
@@ -250,6 +193,12 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
       </Sheet>
       <Sheet open={more} onClose={() => setMore(false)} title={`${name[0].toUpperCase()}${name.slice(1)}, detalle`}>
         <div className="space-y-3">
+          {s.done && (
+            <div className="grid grid-cols-2 gap-3">
+              <Stepper label={`Peso ${name}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
+              <Stepper label={repsLabel} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
+            </div>
+          )}
           <Field label="¿Cómo terminó la serie?">
             <select value={s.endReason} onChange={(e) => patch({ endReason: e.target.value as EndReason })}>{REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
           </Field>
@@ -259,9 +208,147 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
           </div>
           <p className="text-xs text-mute">El RPE se calcula como 10 − RIR; puedes ajustarlo si tu percepción difiere. Llegó al fallo: <b className="text-chalk">{s.failure ? 'sí' : 'no'}</b>.</p>
           <Field label="Observaciones"><textarea rows={2} defaultValue={s.note} onBlur={(e) => e.target.value !== s.note && patch({ note: e.target.value })} placeholder="Molestias, ajustes de la máquina, sensaciones…" /></Field>
+          {s.done && s.restSec != null && <p className="text-xs text-mute">Descanso antes de esta serie: {s.restSec} s.</p>}
+          {s.done && onExtend && !s.sub && <Btn className="w-full" icon="plus" onClick={() => { setMore(false); setTech(true); }}>Alargar con una técnica</Btn>}
+          {s.done && <Btn className="w-full" aria-label={`Desmarcar ${name}`} onClick={async () => { if (tapLocked()) return; await run(() => uncompleteSet(s.id)); setMore(false); }}>Marcar como no hecha</Btn>}
           <Btn variant="danger" icon="trash" className="w-full" onClick={async () => { await run(() => deleteSet(s.id)); setMore(false); }}>{s.sub ? 'Eliminar tramo' : 'Eliminar serie'}</Btn>
         </div>
       </Sheet>
+    </>
+  );
+
+  return (
+    <div data-set={s.id} data-state={state} data-sum={`${s.weight}x${s.reps}`}
+      // Mientras la lista se reacomoda tras completar una serie, ningún toque sobre las tarjetas tiene efecto:
+      // un toque repetido caería sobre otro control (otra serie, un botón de peso, una técnica).
+      onClickCapture={(e) => { if (tapLocked()) { e.stopPropagation(); e.preventDefault(); } }}
+      className={cx('rounded-panel border transition-colors', state === 'active' ? 'border-fire/70 bg-card shadow-[0_0_0_3px_rgba(255,106,26,.12)]' : state === 'done' ? 'border-go/25 bg-go/[.05]' : 'border-line bg-white/[.02]', tag && 'ml-5')}>
+      {state === 'done' && (
+        <>
+          <button type="button" onClick={() => { if (!tapLocked()) setMore(true); }} className="flex w-full items-center gap-3 px-3 py-2.5 text-left" aria-label={`${Name} completada, tocar para editar`}>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="wd-c block truncate text-sm font-semibold text-go">{[label, title].filter(Boolean).join(', ')}, hecha</span>
+              <span className="num block text-lg leading-tight">{sum}</span>
+            </span>
+            {!s.metTarget && <span className="wd-c text-sm font-semibold text-[#ff7a70]">bajo el rango</span>}
+            <span className="wd-c flex shrink-0 items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
+            <Icon name="edit" size={15} className="shrink-0 text-mute" />
+          </button>
+          {/* La serie ya quedó guardada: el RIR se puede marcar ahora, sin volver a abrirla. */}
+          {ask && s.rir == null && (
+            <div className="px-3 pb-3 animate-rise" role="group" aria-label={`RIR de la ${name}`}>
+              <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                <span className="text-sm font-semibold">¿Cuántas repeticiones te quedaban?</span>
+                <button type="button" className="wd-c shrink-0 text-sm text-mute underline" onClick={() => { if (!tapLocked()) onAsked?.(); }}>Sin RIR</button>
+              </div>
+              <RirScale small of={` para la ${name}`} rir={s.rir} halfRir={halfRir} onPick={(r) => { void patch({ rir: r }); onAsked?.(); }} />
+            </div>
+          )}
+        </>
+      )}
+      {state === 'pending' && (
+        <button type="button" onClick={() => { if (!tapLocked()) onOpen(); }} className="flex w-full items-center gap-3 px-3 py-2.5 text-left" aria-label={`${Name} pendiente, tocar para hacerla ahora`}>
+          <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line text-sm text-mute">{tag ? '+' : n}</span>
+          <span className="min-w-0 flex-1">
+            <span className="wd-c block truncate text-sm font-semibold text-mute">{[label, title].filter(Boolean).join(', ')}, pendiente</span>
+            <span className="num block text-lg leading-tight text-chalk/55">{sum}</span>
+          </span>
+          <span className="wd-c shrink-0 text-sm text-mute">Hacer ahora</span>
+        </button>
+      )}
+      {state === 'active' && (
+        <div className="p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="wd-c min-w-0 truncate text-[15px] font-bold text-fire">{[label, title].filter(Boolean).join(', ')}</span>
+            <span className="wd-c shrink-0 rounded-full bg-fire px-2.5 py-0.5 text-xs font-bold text-ink">Ahora</span>
+          </div>
+          <div className="flex items-center gap-2" data-noswipe>
+            {/* El peso recibe más ancho: debe mostrar completas cifras como 122,5 o 247,5. */}
+            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] gap-2">
+              <Stepper compact label={`Peso ${name}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
+              <Stepper compact label={repsLabel} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
+            </div>
+            <button type="button" aria-label={`Completar ${name}`} onClick={(e) => { e.stopPropagation(); void complete(); }}
+              className="grid h-12 w-14 shrink-0 place-items-center rounded-ctl bg-fire text-ink transition active:scale-95">
+              <Icon name="check" size={22} />
+            </button>
+          </div>
+          <WeightWheel label={`Rueda de peso ${name}`} value={s.weight} step={step} onChange={(v) => patch({ weight: v })} />
+          <div className="mt-3">
+            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+              <span className="label">Repeticiones en reserva (RIR)</span>
+              <span className="wd-c text-sm font-semibold" style={{ color: info.text }}>{info.label}</span>
+            </div>
+            <RirScale rir={s.rir} halfRir={halfRir} onPick={(r) => patch({ rir: r })} />
+            {halfRir && s.rir != null && s.rir < 5 && (
+              <button type="button" className="wd-c mt-2 text-sm text-data" onClick={() => patch({ rir: Number.isInteger(s.rir) ? (s.rir as number) + 0.5 : Math.floor(s.rir as number) })}>
+                {Number.isInteger(s.rir) ? `Marcar ${s.rir}.5 (medio punto)` : `RIR ${s.rir} · quitar medio punto`}
+              </button>
+            )}
+            <div className={cx('mt-3 grid gap-1.5 [&>button]:whitespace-nowrap [&>button]:!px-2', prev && !s.sub && onExtend ? 'grid-cols-3' : 'grid-cols-2')}>
+              {prev && !s.sub && <Btn size="sm" aria-label={`Igual que la serie ${n - 1}`} onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>Igual a la {n - 1}</Btn>}
+              <Btn size="sm" onClick={() => setMore(true)}>Detalle</Btn>
+              {onExtend && <Btn size="sm" onClick={() => setTech(true)}>Técnica</Btn>}
+            </div>
+            {s.rpe != null && <div className="wd-c mt-2 text-sm text-mute tnum">RPE {s.rpe}</div>}
+          </div>
+        </div>
+      )}
+      {sheets}
+    </div>
+  );
+}
+
+/**
+ * Rueda de peso: una cinta horizontal que se desliza con el pulgar y se detiene en cada carga posible.
+ * Complementa a los botones; el valor se guarda cuando la cinta se queda quieta.
+ */
+function WeightWheel({ value, step, onChange, label }: { value: number; step: number; onChange: (v: number) => void; label: string }) {
+  const W = 60;
+  const ref = useRef<HTMLDivElement>(null);
+  const inc = step > 0 ? step : 2.5;
+  const top = Math.max(300, Math.ceil((value + 100) / 100) * 100);
+  const onGrid = Math.abs(value / inc - Math.round(value / inc)) < 1e-6;
+  const extra = onGrid ? null : value;
+  const vals = useMemo(() => {
+    const xs: number[] = [];
+    for (let i = 0; i * inc <= top + 1e-9; i++) xs.push(Math.round(i * inc * 100) / 100);
+    if (extra != null) { xs.push(extra); xs.sort((a, b) => a - b); }
+    return xs;
+  }, [inc, top, extra]);
+  const idx = Math.max(0, vals.indexOf(value));
+  const [mid, setMid] = useState(idx);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const latest = useRef({ value, vals, onChange }); latest.current = { value, vals, onChange };
+  // Si el peso cambia por los botones o por otra serie, la cinta se coloca sola en ese valor.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && Math.abs(el.scrollLeft - idx * W) > 2) el.scrollLeft = idx * W;
+    setMid(idx);
+  }, [idx]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const onScroll = () => {
+    const el = ref.current; if (!el) return;
+    const i = Math.min(vals.length - 1, Math.max(0, Math.round(el.scrollLeft / W)));
+    setMid(i);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { const l = latest.current; const v = l.vals[Math.min(l.vals.length - 1, Math.max(0, Math.round((ref.current?.scrollLeft ?? 0) / W)))]; if (v != null && v !== l.value) l.onChange(v); }, 160);
+  };
+  return (
+    <div className="mt-2.5" data-noswipe>
+      <div className="relative">
+        <div ref={ref} onScroll={onScroll} role="group" aria-label={label} className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto rounded-ctl bg-ink/50" style={{ paddingInline: `calc(50% - ${W / 2}px)`, touchAction: 'pan-x pan-y' }}>
+          {vals.map((v, i) => (
+            <button type="button" key={v} tabIndex={-1} aria-hidden onClick={() => ref.current?.scrollTo({ left: i * W, behavior: 'smooth' })}
+              className={cx('num shrink-0 snap-center text-center transition-colors', i === mid ? 'text-xl text-chalk' : Math.abs(i - mid) === 1 ? 'text-base text-chalk/55' : 'text-sm text-chalk/25')} style={{ width: W, height: 46 }}>
+              {fmtKg(v)}
+            </button>
+          ))}
+        </div>
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-[60px] -translate-x-1/2 rounded-ctl border-2 border-fire/70" />
+      </div>
+      <div className="wd-c mt-1 text-center text-xs text-mute">Desliza para cambiar el peso</div>
     </div>
   );
 }
@@ -361,6 +448,8 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
   const firstOpen = sets.find((s) => !s.done)?.id ?? null;
   const [openId, setOpenId] = useState<string | null>(firstOpen);
   useEffect(() => { setOpenId(firstOpen); }, [ex.id, firstOpen]);
+  // La serie en curso es siempre una pendiente: si la elegida ya se completó, pasa a ser la primera sin hacer.
+  const activeId = sets.some((x) => x.id === openId && !x.done) ? openId : firstOpen;
   const [join, setJoin] = useState(false);
   // Serie recién completada sin RIR: se pregunta debajo de ella en vez de obligar a marcarlo antes.
   const [askId, setAskId] = useState<string | null>(null);
@@ -378,9 +467,9 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
     <div className="space-y-3">
       <ExerciseHead session={session} ex={ex} history={history} readiness={readiness} />
 
-      <div className="space-y-1.5">
+      <div className="space-y-2.5">
         {fams.map((f, i) => [f.main, ...f.ext].map((s) => (
-          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir} ask={askId === s.id} onAsked={() => setAskId(null)}
+          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={activeId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir} ask={askId === s.id} onAsked={() => setAskId(null)}
             onOpen={() => setOpenId(s.id)} onDone={done} onExtend={extend} />
         )))}
       </div>
@@ -413,6 +502,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
   const firstOpen = sequence.find((s) => !s.done)?.id ?? null;
   const [openId, setOpenId] = useState<string | null>(firstOpen);
   useEffect(() => { setOpenId(firstOpen); }, [firstOpen]);
+  const activeId = sequence.some((x) => x.id === openId && !x.done) ? openId : firstOpen;
   const [join, setJoin] = useState(false);
   const [askId, setAskId] = useState<string | null>(null);
   const rest = Math.max(0, ...exs.map((e) => (session.targets[e.id] ?? defaultTarget(e)).restSec));
@@ -445,9 +535,9 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
       {Array.from({ length: rounds }, (_, r) => (
         <section key={r} aria-label={`Ronda ${r + 1}`}>
           <div className="label mb-1.5">Ronda {r + 1} de {rounds}</div>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             {byEx.flatMap(({ ex, fams }) => (fams[r] ? [fams[r].main, ...fams[r].ext] : []).map((s) => (
-              <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name} ask={askId === s.id} onAsked={() => setAskId(null)}
+              <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={activeId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name} ask={askId === s.id} onAsked={() => setAskId(null)}
                 onOpen={() => setOpenId(s.id)} onDone={(x) => done(x, r)} onExtend={(x, pause) => { setOpenId(x.id); onRest(pause); }} />
             )))}
           </div>

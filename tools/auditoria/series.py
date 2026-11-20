@@ -3,10 +3,10 @@ B='http://localhost:4173/'
 R=[]
 def ok(name, cond, extra=''): R.append(('OK ' if cond else 'FALLA')+' '+name+(' :: '+str(extra) if extra and not cond else ''))
 def state(pg):
-    return pg.evaluate('''() => [...document.querySelectorAll('main [aria-label^="Completar"], main [aria-label^="Desmarcar"], main button[aria-label$="tocar para editar"]')].map(e => {
-      const row = e.closest('.rounded-panel') || e; const ins=[...row.querySelectorAll('input')].map(i=>i.value);
-      const done = e.getAttribute('aria-label').includes('completada');
-      return done ? 'HECHA '+e.innerText.replace(/\\n/g,' ') : (row.querySelector('[aria-label^="RIR"]')?'ABIERTA ':'pend ')+ins.join('x') })''')
+    return pg.evaluate('''() => [...document.querySelectorAll('main [data-set]')].map(e => { const st=e.dataset.state;
+      if (st==='done') return 'HECHA '+e.querySelector('button').innerText.replace(/\\n/g,' ');
+      if (st==='active') return 'ABIERTA '+[...e.querySelectorAll('input')].map(i=>i.value).join('x');
+      return 'pend '+e.dataset.sum; })''')
 with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'])
     ctx=b.new_context(viewport={'width':393,'height':800}, device_scale_factor=2, locale='es-CL', has_touch=True, is_mobile=True)
@@ -24,7 +24,7 @@ with sync_playwright() as p:
     # B) doble toque en el mismo punto
     pg.touchscreen.tap(x,y); pg.wait_for_timeout(130); pg.touchscreen.tap(x,y); pg.wait_for_timeout(250); pg.touchscreen.tap(x,y); pg.wait_for_timeout(1200)
     st=state(pg); print(st)
-    ok('triple toque completa solo la serie 1', st[0].startswith('HECHA 60 kg × 8') and st[1].startswith('ABIERTA') and st[2].startswith('pend'), st)
+    ok('triple toque completa solo la serie 1', st[0].startswith('HECHA') and '60 kg × 8' in st[0] and st[1].startswith('ABIERTA') and st[2].startswith('pend'), st)
     ok('las series 2 y 3 heredan 60 kg', st[1]=='ABIERTA 60x8' and st[2]=='pend 60x8', st)
     ask=pg.locator('main [role=group][aria-label^="RIR de la serie 1"]')
     ok('pregunta el RIR de la serie ya guardada', ask.count()==1)
@@ -53,5 +53,19 @@ with sync_playwright() as p:
     pg.locator('main [aria-label="Completar serie 1"]').tap(); pg.wait_for_timeout(800)
     h=pg.locator('main button:has-text("Igual a la 1")').first.bounding_box()['height']; ok('botón Igual a la 1 en una línea', h<=44, h)
     pg.screenshot(path='/tmp/rep/a3.png', full_page=True)
+    # F) tarjetas: una sola serie en curso, las hechas no se despliegan y la rueda cambia el peso
+    st=state(pg); ok('una sola serie en curso', sum(1 for x in st if x.startswith('ABIERTA'))==1, st)
+    pg.locator('main button[aria-label^="Serie 1 completada"]').tap(); pg.wait_for_selector('[role=dialog] >> text=Marcar como no hecha')
+    ok('una serie hecha se corrige en una hoja aparte', sum(1 for x in state(pg) if x.startswith('ABIERTA'))==1); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+    wheel=pg.locator('main [aria-label^="Rueda de peso"]').first; w0=float(pg.locator('main [data-state=active] input').first.input_value())
+    bx=wheel.bounding_box(); cdp=ctx.new_cdp_session(pg); y=bx['y']+bx['height']/2; x0=bx['x']+bx['width']/2
+    cdp.send('Input.dispatchTouchEvent', {'type':'touchStart','touchPoints':[{'x':x0,'y':y,'id':1}]})
+    for k in range(1,9): cdp.send('Input.dispatchTouchEvent', {'type':'touchMove','touchPoints':[{'x':x0-15*k,'y':y,'id':1}]}); pg.wait_for_timeout(25)
+    cdp.send('Input.dispatchTouchEvent', {'type':'touchEnd','touchPoints':[]}); pg.wait_for_timeout(1200)
+    w1=float(pg.locator('main [data-state=active] input').first.input_value()); ok('la rueda sube el peso al deslizar', w1>w0, f'{w0}->{w1}')
+    ok('deslizar la rueda no cambia de ejercicio', pg.locator('main h2:has-text("Remo con barra")').count()==1)
+    pg.locator('main [data-state=active] [aria-label^="Aumentar Peso"]').tap(); pg.wait_for_timeout(700)
+    w2=float(pg.locator('main [data-state=active] input').first.input_value()); ok('los botones siguen funcionando y la rueda los sigue', w2>w1 and abs(pg.evaluate('document.querySelector(\'main [aria-label^="Rueda de peso"]\').scrollLeft')/60 - w2/2.5) < 0.6, f'{w1}->{w2}')
+    pg.screenshot(path='/tmp/rep/a4.png')
     print('\n'.join(R)); print('errores', errs)
     b.close()
