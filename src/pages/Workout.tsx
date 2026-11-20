@@ -100,7 +100,47 @@ const REASONS: { value: EndReason; label: string }[] = [
 /** Nombre de una serie para los lectores de pantalla y los títulos: «serie 2» o «bajada 1 de la serie 2». */
 const setName = (s: SetLog, n: number) => (s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag.toLowerCase() ?? 'tramo'} ${s.sub} de la serie ${n}` : `serie ${n}`);
 
-function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; onOpen: () => void; onDone: () => void; onExtend?: (added: SetLog, pause: number) => void }) {
+/**
+ * Al completar una serie la lista se reacomoda (la serie se pliega y se abre la siguiente). Durante ese instante
+ * se ignoran los toques sobre las series: un segundo toque en el mismo lugar caería sobre otra fila.
+ */
+let tapLock = 0;
+const tapLocked = () => Date.now() < tapLock;
+
+/**
+ * Lleva la serie recién completada justo bajo la cabecera. Debajo quedan a la vista la pregunta del RIR y la
+ * serie siguiente, en vez de quedar tapadas por el descanso y la barra de navegación.
+ */
+function revealSet(id: string) {
+  setTimeout(() => {
+    const el = document.querySelector<HTMLElement>(`[data-set="${id}"]`);
+    if (!el) return;
+    const head = document.querySelector<HTMLElement>('[data-session-head]')?.getBoundingClientRect().bottom ?? 0;
+    const top = el.getBoundingClientRect().top - head - 10;
+    if (Math.abs(top) > 24) window.scrollBy({ top, behavior: 'smooth' });
+  }, 60);
+}
+
+/** Escala de incandescencia: de hierro frío (lejos del fallo) a blanco (fallo). */
+function RirScale({ rir, halfRir, onPick, small, of = '' }: { rir: number | null; halfRir: boolean; onPick: (r: number | null) => void; small?: boolean; of?: string }) {
+  return (
+    <div className="grid grid-cols-6 gap-px overflow-hidden rounded-ctl bg-ink" data-noswipe>
+      {RIR_OPTS.map((r) => {
+        const on = rir != null && (r === 5 ? rir >= 5 : Math.floor(rir) === r);
+        const heat = intensityOf(r);
+        return (
+          <button type="button" key={r} aria-label={`RIR ${r === 5 ? '5 o más' : r}${of}`} aria-pressed={on} onClick={() => onPick(on && !halfRir ? null : r)}
+            className={cx('num relative text-lg transition-colors', small ? 'h-11' : 'h-12', on ? 'text-ink' : 'bg-card2 text-mute hover:text-chalk')} style={on ? { background: heat.color, color: r >= 3 ? '#f3f1ec' : '#16181b' } : undefined}>
+            {r === 5 ? '5+' : r}
+            {!on && <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: heat.color }} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; ask?: boolean; onAsked?: () => void; onOpen: () => void; onDone: () => void; onExtend?: (added: SetLog, pause: number) => void }) {
   const unit = MEASURE_UNIT[measure];
   const run = useAction();
   const [more, setMore] = useState(false); const [tech, setTech] = useState(false);
@@ -112,7 +152,8 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDon
 
   if (s.done && !open) {
     return (
-      <button type="button" onClick={onOpen} className={cx('flex w-full items-center gap-3 px-1 py-3 text-left', tag && 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50 py-2 pl-3')} aria-label={`${name[0].toUpperCase()}${name.slice(1)} completada, tocar para editar`}>
+      <div data-set={s.id}>
+      <button type="button" onClick={() => { if (!tapLocked()) onOpen(); }} className={cx('flex w-full items-center gap-3 px-1 py-3 text-left', tag && 'ml-5 w-[calc(100%-1.25rem)] border-l-2 border-fire/50 py-2 pl-3')} aria-label={`${name[0].toUpperCase()}${name.slice(1)} completada, tocar para editar`}>
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-go text-ink"><Icon name="check" size={15} /></span>
         <span className="min-w-0 flex-1">
           {(title || tag) && <span className="wd-c block truncate text-sm text-mute">{[title, tag].filter(Boolean).join(', ')}</span>}
@@ -122,11 +163,22 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDon
         <span className="hidden text-sm text-mute sm:inline">{info.short}</span>
         <span className="wd-c flex items-center gap-1.5 text-[15px] font-semibold tnum" style={{ color: info.text }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: info.color }} />{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
       </button>
+      {/* La serie ya quedó guardada: el RIR se puede marcar ahora, sin volver a abrirla. */}
+      {ask && s.rir == null && (
+        <div className={cx('mb-2 rounded-panel bg-card p-3 animate-rise', tag && 'ml-5')} role="group" aria-label={`RIR de la ${name}`}>
+          <div className="mb-1.5 flex items-baseline justify-between gap-3">
+            <span className="text-sm font-semibold">¿Cuántas repeticiones te quedaban?</span>
+            <button type="button" className="wd-c shrink-0 text-sm text-mute underline" onClick={onAsked}>Sin RIR</button>
+          </div>
+          <RirScale small of={` para la ${name}`} rir={s.rir} halfRir={halfRir} onPick={(r) => { void patch({ rir: r }); onAsked?.(); }} />
+        </div>
+      )}
+      </div>
     );
   }
 
   return (
-    <div className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-white/[.03]', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && onOpen()}>
+    <div data-set={s.id} className={cx('rounded-panel p-3 transition-colors', open ? 'bg-card' : 'bg-white/[.03]', tag && 'ml-5 border-l-2 border-fire/50')} onClick={() => !open && !tapLocked() && onOpen()}>
       {(title || tag) && <div className="wd-c mb-1.5 truncate text-sm font-semibold text-mute">{title}{title && tag ? ', ' : ''}{tag && <span className="text-fire">{tag}</span>}</div>}
       <div className="flex items-center gap-2" data-noswipe>
         {!tag && <span className="num grid h-7 w-4 shrink-0 place-items-center text-base text-mute">{n}</span>}
@@ -136,7 +188,13 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDon
           <Stepper compact label={`${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} ${name}`} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
         </div>
         <button type="button" aria-label={s.done ? `Desmarcar ${name}` : `Completar ${name}`}
-          onClick={async (e) => { e.stopPropagation(); if (s.done) { await run(() => uncompleteSet(s.id)); } else if (await run(() => completeSet(s.id))) onDone(); }}
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (tapLocked()) return;
+            tapLock = Date.now() + 5000;
+            try { if (s.done) await run(() => uncompleteSet(s.id)); else if (await run(() => completeSet(s.id))) { onDone(); revealSet(s.id); } }
+            finally { tapLock = Date.now() + 500; }
+          }}
           className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
           <Icon name="check" size={20} />
         </button>
@@ -147,33 +205,20 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, onOpen, onDon
             <span className="label">Repeticiones en reserva (RIR)</span>
             <span className="wd-c text-sm font-semibold" style={{ color: info.text }}>{info.label}</span>
           </div>
-          {/* Escala de incandescencia: de hierro frío (lejos del fallo) a blanco (fallo). */}
-          <div className="grid grid-cols-6 gap-px overflow-hidden rounded-ctl bg-ink" data-noswipe>
-            {RIR_OPTS.map((r) => {
-              const on = s.rir != null && (r === 5 ? s.rir >= 5 : Math.floor(s.rir) === r);
-              const heat = intensityOf(r);
-              return (
-                <button type="button" key={r} aria-label={`RIR ${r === 5 ? '5 o más' : r}`} aria-pressed={on} onClick={() => patch({ rir: on && !halfRir ? null : r })}
-                  className={cx('num relative h-12 text-lg transition-colors', on ? 'text-ink' : 'bg-card2 text-mute hover:text-chalk')} style={on ? { background: heat.color, color: r >= 3 ? '#f3f1ec' : '#16181b' } : undefined}>
-                  {r === 5 ? '5+' : r}
-                  {!on && <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: heat.color }} />}
-                </button>
-              );
-            })}
-          </div>
+          <RirScale rir={s.rir} halfRir={halfRir} onPick={(r) => patch({ rir: r })} />
           {halfRir && s.rir != null && s.rir < 5 && (
             <button type="button" className="wd-c mt-2 text-sm text-data" onClick={() => patch({ rir: Number.isInteger(s.rir) ? (s.rir as number) + 0.5 : Math.floor(s.rir as number) })}>
               {Number.isInteger(s.rir) ? `Marcar ${s.rir}.5 (medio punto)` : `RIR ${s.rir} · quitar medio punto`}
             </button>
           )}
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="flex gap-1.5">
-              {prev && !s.sub && <Btn size="sm" icon="copy" onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>= serie {n - 1}</Btn>}
-              <Btn size="sm" icon="more" onClick={() => setMore(true)}>Detalle</Btn>
-              {onExtend && <Btn size="sm" icon="plus" onClick={() => setTech(true)}>Técnica</Btn>}
-            </div>
-            <span className="wd-c text-sm text-mute tnum">{s.rpe != null ? `RPE ${s.rpe}` : ''}{s.done && s.restSec != null ? `, descanso ${s.restSec} s` : ''}</span>
+          <div className={cx('mt-3 grid gap-1.5 [&>button]:whitespace-nowrap [&>button]:!px-2', prev && !s.sub && onExtend ? 'grid-cols-3' : 'grid-cols-2')}>
+            {prev && !s.sub && <Btn size="sm" aria-label={`Igual que la serie ${n - 1}`} onClick={() => patch({ weight: prev.weight, reps: prev.reps })}>Igual a la {n - 1}</Btn>}
+            <Btn size="sm" onClick={() => setMore(true)}>Detalle</Btn>
+            {onExtend && <Btn size="sm" onClick={() => setTech(true)}>Técnica</Btn>}
           </div>
+          {(s.rpe != null || (s.done && s.restSec != null)) && (
+            <div className="wd-c mt-2 text-sm text-mute tnum">{[s.rpe != null ? `RPE ${s.rpe}` : '', s.done && s.restSec != null ? `descanso ${s.restSec} s` : ''].filter(Boolean).join(', ')}</div>
+          )}
         </div>
       )}
       <Sheet open={tech} onClose={() => setTech(false)} title="Alargar la serie" wide>
@@ -296,9 +341,11 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
   const [openId, setOpenId] = useState<string | null>(firstOpen);
   useEffect(() => { setOpenId(firstOpen); }, [ex.id, firstOpen]);
   const [join, setJoin] = useState(false);
+  // Serie recién completada sin RIR: se pregunta debajo de ella en vez de obligar a marcarlo antes.
+  const [askId, setAskId] = useState<string | null>(null);
   const fams = familiesOf(sets);
   const allDone = sets.length > 0 && sets.every((s) => s.done);
-  const done = (s: SetLog) => { onRest(target.restSec); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); };
+  const done = (s: SetLog) => { onRest(target.restSec); setAskId(s.rir == null ? s.id : null); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); };
   const extend = (x: SetLog, pause: number) => { setOpenId(x.id); onRest(pause); };
 
   return (
@@ -307,16 +354,16 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
 
       <div className="space-y-1.5">
         {fams.map((f, i) => [f.main, ...f.ext].map((s) => (
-          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir}
+          <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir} ask={askId === s.id} onAsked={() => setAskId(null)}
             onOpen={() => setOpenId(s.id)} onDone={() => done(s)} onExtend={extend} />
         )))}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <Btn icon="plus" onClick={async () => { const s = await run(() => addSet(session.id, ex.id)); if (s) setOpenId(s.id); }}>Añadir serie</Btn>
-        <Btn icon="copy" disabled={!last} onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar sesión anterior</Btn>
+        <Btn icon="plus" className="whitespace-nowrap" onClick={async () => { const s = await run(() => addSet(session.id, ex.id)); if (s) setOpenId(s.id); }}>Añadir serie</Btn>
+        <Btn icon="copy" className="whitespace-nowrap" disabled={!last} aria-label="Copiar la sesión anterior" onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar anterior</Btn>
       </div>
-      <Btn className="w-full" icon="plus" onClick={() => setJoin(true)}>Unir en biserie con otro ejercicio</Btn>
+      <Btn className="w-full" icon="plus" aria-label="Unir en biserie con otro ejercicio" onClick={() => setJoin(true)}>Unir en biserie</Btn>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
       <button type="button" className="wd-c w-full py-2 text-sm text-mute underline" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
 
@@ -338,6 +385,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
   const [openId, setOpenId] = useState<string | null>(firstOpen);
   useEffect(() => { setOpenId(firstOpen); }, [firstOpen]);
   const [join, setJoin] = useState(false);
+  const [askId, setAskId] = useState<string | null>(null);
   const rest = Math.max(0, ...exs.map((e) => (session.targets[e.id] ?? defaultTarget(e)).restSec));
   const allDone = sets.length > 0 && sets.every((s) => s.done);
 
@@ -346,6 +394,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
     const pendingInRound = roundSets.some((x) => !x.done && x.id !== s.id);
     const nx = sequence.find((x) => !x.done && x.id !== s.id);
     setOpenId(nx?.id ?? null);
+    setAskId(s.rir == null ? s.id : null);
     // Dentro de la ronda no hay descanso: se pasa de inmediato al siguiente ejercicio.
     onRest(pendingInRound ? 0 : rest);
     if (!nx) toast(`${label} completada`);
@@ -368,7 +417,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
           <div className="label mb-1.5">Ronda {r + 1} de {rounds}</div>
           <div className="space-y-1.5">
             {byEx.flatMap(({ ex, fams }) => (fams[r] ? [fams[r].main, ...fams[r].ext] : []).map((s) => (
-              <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name}
+              <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name} ask={askId === s.id} onAsked={() => setAskId(null)}
                 onOpen={() => setOpenId(s.id)} onDone={() => done(s, r)} onExtend={(x, pause) => { setOpenId(x.id); onRest(pause); }} />
             )))}
           </div>
@@ -376,8 +425,8 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
       ))}
 
       <div className="grid grid-cols-2 gap-2">
-        <Btn icon="plus" onClick={() => run(async () => { for (const e of exs) await addSet(session.id, e.id); }, 'Ronda añadida')}>Añadir ronda</Btn>
-        <Btn icon="plus" disabled={exs.length >= MAX_GROUP} onClick={() => setJoin(true)}>Sumar un ejercicio</Btn>
+        <Btn icon="plus" className="whitespace-nowrap" onClick={() => run(async () => { for (const e of exs) await addSet(session.id, e.id); }, 'Ronda añadida')}>Añadir ronda</Btn>
+        <Btn icon="plus" className="whitespace-nowrap" disabled={exs.length >= MAX_GROUP} aria-label="Sumar un ejercicio" onClick={() => setJoin(true)}>Sumar ejercicio</Btn>
       </div>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
 
@@ -393,11 +442,11 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
   const pct = rest.total > 0 ? left / (rest.total * 1000) : 0;
   return (
     <div className="fixed inset-x-0 bottom-[108px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
-      <div className="mx-auto flex max-w-xl items-center gap-3 glass-bar rounded-panel p-3 animate-rise">
+      <div className="mx-auto flex max-w-xl items-center gap-2 glass-bar rounded-panel p-3 animate-rise [&>button]:shrink-0">
         <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="rgba(255,255,255,.12)" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#58c7ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="num text-2xl leading-none">{fmtDuration(left)}</div>
-          <div className="label mt-0.5 !text-data">de descanso</div>
+          <div className="label mt-0.5 whitespace-nowrap !text-data">descanso</div>
         </div>
         <Btn size="sm" aria-label="Restar 15 segundos" onClick={() => onChange({ ...rest, end: rest.end - 15000 })}>−15</Btn>
         <Btn size="sm" aria-label="Sumar 15 segundos" onClick={() => onChange({ end: rest.end + 15000, total: rest.total + 15 })}>+15</Btn>
@@ -413,10 +462,12 @@ function Active({ session }: { session: Session }) {
   const uid = useUserId();
   const ex = useExMap(); const profile = useProfile();
   const history = useDoneSets() ?? [];
-  const sets = useLiveQuery(() => getSessionSets(session.id), [session.id]) ?? [];
+  const loaded = useLiveQuery(() => getSessionSets(session.id), [session.id]);
+  const sets = useMemo(() => loaded ?? [], [loaded]);
   const logs = useLiveQuery(() => db.recovery.where('userId').equals(uid).toArray(), [uid]) ?? [];
   const readiness = useMemo(() => recentReadiness(logs.filter((l) => !l.deleted), Date.now()), [logs]);
-  const [cur, setCur] = useState<string | null>(() => { try { return localStorage.getItem(CUR_KEY); } catch { return null; } });
+  // El ejercicio elegido se recuerda por sesión: una sesión nueva no hereda el de la anterior.
+  const [cur, setCur] = useState<string | null>(() => { try { const [sid, id] = (localStorage.getItem(CUR_KEY) ?? '').split('|'); return sid === session.id && id ? id : null; } catch { return null; } });
   const [rest, setRestState] = useState<Rest | null>(loadRest);
   const [picker, setPicker] = useState(false);
   const paused = session.status === 'paused';
@@ -428,7 +479,11 @@ function Active({ session }: { session: Session }) {
   const unitIdx = current ? units.findIndex((u) => u.includes(current)) : -1;
   const unit = unitIdx >= 0 ? units[unitIdx] : null;
   const [slide, setSlide] = useState<'l' | 'r' | null>(null);
-  const select = (id: string) => { setCur(id); try { localStorage.setItem(CUR_KEY, id); } catch { /* sin almacenamiento */ } window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const pin = (id: string) => { setCur(id); try { localStorage.setItem(CUR_KEY, `${session.id}|${id}`); } catch { /* sin almacenamiento */ } };
+  const select = (id: string) => { pin(id); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  // El ejercicio en pantalla no cambia solo: al completar su última serie se queda ahí (para marcar el RIR
+  // o añadir otra serie) hasta que se elige el siguiente.
+  useEffect(() => { if (loaded && current && current !== cur) pin(current); }, [loaded, current, cur]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Pasa a la unidad anterior o siguiente (un ejercicio suelto o una biserie completa). */
   const step = (dir: -1 | 1) => { const nx = units[unitIdx + dir]; if (!nx) return false; setSlide(dir > 0 ? 'l' : 'r'); select(nx[0]); return true; };
   const [hint, setHint] = useState(() => { try { return !localStorage.getItem(HINT_KEY); } catch { return false; } });
@@ -495,11 +550,11 @@ function Active({ session }: { session: Session }) {
 
   return (
     <div className={rest ? 'pb-24' : ''}>
-      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/70 px-4 pb-3 pt-2 backdrop-blur-xl md:-mx-8 md:px-8">
+      <div data-session-head className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/70 px-4 pb-3 pt-2 backdrop-blur-xl md:-mx-8 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="wd-w truncate font-bold leading-tight">{session.name}</div>
-            <div className="wd-c text-sm font-semibold text-fire">{paused ? 'En pausa' : 'Entrenamiento en curso'}</div>
+            <div className="wd-c truncate text-sm font-semibold text-fire">{paused ? 'En pausa' : 'Entrenamiento en curso'}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="num text-xl" aria-label="Tiempo transcurrido">{fmtDuration(elapsedMs(session, now))}</span>

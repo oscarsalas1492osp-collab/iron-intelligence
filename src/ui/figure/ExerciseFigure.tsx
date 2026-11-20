@@ -1,6 +1,7 @@
 // Icono de ejercicio: un maniquí en la postura característica del movimiento, con el implemento que se usa
 // y los músculos que trabajan encendidos. En la ficha se anima entre la postura inicial y la final.
 import { memo, useEffect, useRef, useState } from 'react';
+import { db } from '../../data/db';
 import { patternOf } from '../../domain/exerciseLibrary';
 import type { Equipment, ExerciseDef, Muscle } from '../../domain/types';
 import { add, DIM, mix, sameLimb, solve, type Joints, type Limb, type V } from './rig';
@@ -265,26 +266,54 @@ const queue: { key: string; ex: FigureEx; sc: Scene; fig: Fig }[] = [];
 type Fig = 'male' | 'female';
 /** Figura de los ejercicios: la misma que muestra el mapa muscular en este dispositivo. */
 const figNow = (): Fig => { try { return localStorage.getItem('ii_fig') === 'female' ? 'female' : 'male'; } catch { return 'male'; } };
-const sceneIds = new WeakMap<Scene, number>();
-let nextId = 1, pumping = false;
+// Clave estable de cada escena (resumen de su contenido): sirve entre aperturas de la app y cambia sola si la postura cambia.
+const sceneIds = new WeakMap<Scene, string>();
+const hash = (t: string) => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+let pumping = false;
 const keyOf = (ex: FigureEx, sc: Scene) => {
-  let id = sceneIds.get(sc); if (!id) { id = nextId++; sceneIds.set(sc, id); }
+  let id = sceneIds.get(sc); if (!id) { id = hash(JSON.stringify(sc)); sceneIds.set(sc, id); }
   return `${figNow()}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
 };
+
+// Las figuras ya dibujadas se guardan en el dispositivo: al volver a abrir la app aparecen al instante, sin redibujarlas.
+// El número de versión se sube cuando cambia el dibujo, para descartar las guardadas.
+const STORE = 'thumb:5:';
+let hydrated: Promise<void> | null = null;
+const hydrate = () => (hydrated ??= (async () => {
+  try {
+    const rows = await db.meta.where('key').startsWith('thumb:').toArray();
+    const old: string[] = [];
+    for (const r of rows) { if (r.key.startsWith(STORE) && typeof r.value === 'string') thumbs.set(r.key.slice(STORE.length), r.value); else old.push(r.key); }
+    if (old.length) void db.meta.bulkDelete(old).catch(() => undefined);
+  } catch { /* sin almacenamiento: se dibujan en cada apertura */ }
+})());
+const remember = (key: string, url: string) => { thumbs.set(key, url); void db.meta.put({ key: STORE + key, value: url }).catch(() => undefined); };
+
+// Mientras el usuario toca o desplaza la pantalla no se dibuja ninguna figura: dibujar ocupa el hilo principal
+// y un toque dado en ese instante llegaría tarde.
+let lastInput = 0;
+if (typeof window !== 'undefined') {
+  for (const ev of ['pointerdown', 'touchstart', 'touchmove', 'wheel', 'scroll', 'keydown']) window.addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true, capture: true });
+}
+const QUIET_MS = 350;
+
 function pump(): void {
   if (pumping) return;
   pumping = true;
   void load3d().then((m) => {
     // Una figura por turno y con una pausa entre ellas: los toques y el desplazamiento siempre pasan primero.
     const step = async () => {
+      if (Date.now() - lastInput < QUIET_MS) { setTimeout(() => void step(), 120); return; }
       let job = queue.shift();
       // Nadie espera ya esta figura (la fila salió de pantalla): se descarta y se volverá a pedir si hace falta.
       while (job && !waiters.get(job.key)?.size) { waiters.delete(job.key); job = queue.shift(); }
+      const c0 = Date.now();
       if (job) {
-        try { await m.prepare(job.fig); thumbs.set(job.key, m.renderThumb(job.ex, job.sc, 192, job.fig)); } catch { broken = true; queue.length = 0; }
+        try { await m.prepare(job.fig); remember(job.key, m.renderThumb(job.ex, job.sc, 192, job.fig)); } catch { broken = true; queue.length = 0; }
         waiters.get(job.key)?.forEach((cb) => cb()); waiters.delete(job.key);
       }
-      if (queue.length) setTimeout(() => void step(), 24); else pumping = false;
+      // Tras cada figura se deja libre el doble de lo que tardó en dibujarse.
+      if (queue.length) setTimeout(() => void step(), Math.max(40, (Date.now() - c0) * 2)); else pumping = false;
     };
     setTimeout(() => void step(), 0);
   }).catch(() => { broken = true; pumping = false; });
@@ -297,11 +326,16 @@ function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
     const hit = thumbs.get(key);
     if (hit) { setUrl(hit); return; }
     setUrl(null);
-    const cb = () => setUrl(thumbs.get(key) ?? null);
-    if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc, fig: figNow() }); }
-    waiters.get(key)!.add(cb);
-    pump();
-    return () => { waiters.get(key)?.delete(cb); };
+    let alive = true;
+    const cb = () => { if (alive) setUrl(thumbs.get(key) ?? null); };
+    void hydrate().then(() => {
+      if (!alive) return;
+      if (thumbs.has(key)) { cb(); return; }
+      if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc, fig: figNow() }); }
+      waiters.get(key)!.add(cb);
+      pump();
+    });
+    return () => { alive = false; waiters.get(key)?.delete(cb); };
   // La clave resume el ejercicio y la escena.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, on]);
@@ -323,13 +357,16 @@ function Motion3D({ ex, sc, size, className, onFail }: { ex: FigureEx; sc: Scene
       const paintAt = (t: number) => { ctx.clearRect(0, 0, px, px); ctx.drawImage(fig!.draw(t, px), 0, 0); };
       paintAt(1); setReady(true);
       if (sc.still || noMotion()) return;
-      const t0 = performance.now(); let last = 0;
+      const t0 = performance.now(); let last = 0, gap = 33;
       const tick = (now: number) => {
         raf = requestAnimationFrame(tick);
-        if (now - last < 33) return;
+        if (now - last < gap) return;
         last = now;
         const ph = ((now - t0) % 3000) / 3000, u = ph < 0.5 ? ph * 2 : 2 - ph * 2, e = Math.min(1, Math.max(0, (u - 0.12) / 0.76));
+        const c0 = performance.now();
         paintAt(1 - (1 - Math.cos(Math.PI * e)) / 2);
+        // En un equipo lento se dibujan menos cuadros: la pantalla queda libre al menos dos tercios del tiempo.
+        gap = Math.max(33, (performance.now() - c0) * 3);
       };
       raf = requestAnimationFrame(tick);
     }).catch(() => { broken = true; onFail(); });

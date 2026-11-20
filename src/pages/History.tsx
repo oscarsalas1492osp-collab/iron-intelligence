@@ -115,7 +115,7 @@ const METRICS = [
   { value: 'totalReps', label: 'Reps', unit: ' reps', color: '#58c7ff' },
   { value: 'volume', label: 'Volumen', unit: ' kg', color: '#58c7ff' },
   { value: 'avgRir', label: 'RIR', unit: ' RIR', color: '#f5c542' },
-  { value: 'e1rm', label: '1RM est.', unit: ' kg', color: '#34e0a1' },
+  { value: 'e1rm', label: '1RM', unit: ' kg', color: '#34e0a1' },
 ] as const;
 
 export default function History() {

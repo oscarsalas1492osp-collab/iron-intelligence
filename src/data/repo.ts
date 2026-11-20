@@ -178,7 +178,13 @@ async function presetSets(sessionId: string, ex: ExerciseDef, target: Target, hi
   }));
 }
 
-export async function startSession(routineId: string | null): Promise<Session> {
+let starting: Promise<Session> | null = null;
+/** Inicia una sesión. Dos toques seguidos comparten la misma: nunca quedan dos sesiones abiertas. */
+export function startSession(routineId: string | null): Promise<Session> {
+  starting ??= createSession(routineId).finally(() => { starting = null; });
+  return starting;
+}
+async function createSession(routineId: string | null): Promise<Session> {
   const active = await getActiveSession();
   if (active) return active;
   const exercises = await getExercises();
@@ -333,7 +339,21 @@ export function updateSet(id: string, patch: Partial<SetLog>): Promise<SetLog> {
       // Los tramos de una técnica no se comparan con el rango objetivo.
       next.metTarget = t && !next.sub ? next.reps >= t.repMin : true;
     }
-    return save('sets', next);
+    const saved = await save('sets', next);
+    // Las series siguientes que aún no se hacen y traían el mismo valor siguen el cambio:
+    // al anotar 60 kg en la primera, las demás quedan preparadas con 60 kg en vez de volver a pedirlo.
+    const dw = next.weight !== s.weight, dr = next.reps !== s.reps;
+    if (!s.sub && (dw || dr)) {
+      const later = (await db.sets.where('sessionId').equals(s.sessionId).toArray())
+        .filter((x) => x.exerciseId === s.exerciseId && !x.deleted && !x.done && !x.sub && x.order > s.order);
+      for (const x of later) {
+        const follow: Partial<SetLog> = {};
+        if (dw && x.weight === s.weight) follow.weight = next.weight;
+        if (dr && x.reps === s.reps) follow.reps = next.reps;
+        if (Object.keys(follow).length) await save('sets', { ...x, ...follow });
+      }
+    }
+    return saved;
   });
 }
 

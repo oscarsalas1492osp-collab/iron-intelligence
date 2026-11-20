@@ -150,7 +150,7 @@ export function Seg<T extends string | number>({ options, value, onChange }: { o
     <div className="flex rounded-[16px] bg-card2 p-1">
       {options.map((o) => (
         <button type="button" key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={o.value === value}
-          className={cx('wd-c h-9 flex-1 rounded-xl px-2 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink shadow-[0_4px_14px_-6px_rgba(0,0,0,.8)]' : 'text-mute hover:text-chalk')}>
+          className={cx('wd-c h-9 min-w-0 flex-1 truncate rounded-xl px-1.5 text-[15px] font-semibold transition-colors', o.value === value ? 'bg-chalk text-ink shadow-[0_4px_14px_-6px_rgba(0,0,0,.8)]' : 'text-mute hover:text-chalk')}>
           {o.label}
         </button>
       ))}

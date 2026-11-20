@@ -6,7 +6,7 @@
 // El cursor de descarga usa `synced_at`, que asigna el servidor, así no depende del reloj de cada dispositivo.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Base } from '../domain/types';
-import { TABLES, type TableName } from '../domain/validation';
+import { schemas, TABLES, type TableName } from '../domain/validation';
 import { db, getUserId, setUserId } from './db';
 
 export const REMOTE_TABLE: Record<TableName, string> = {
@@ -37,39 +37,76 @@ export interface RemoteClient {
 
 export interface SyncResult { pulled: number; pushed: number }
 
+/**
+ * Deja la fila con la forma actual antes de subirla. Las filas guardadas por versiones anteriores no traen los
+ * campos añadidos después (biseries, técnicas…): sin completarlos, el servidor rechaza la subida entera.
+ */
+const LEGACY: Partial<Record<TableName, Record<string, unknown>>> = {
+  sessions: { supersets: [] },
+  sets: { technique: '', sub: 0 },
+  routineItems: { superset: null },
+  exercises: { focus: '', aka: '', measure: 'reps', category: 'strength' },
+};
+export function normalize(table: TableName, row: Base & Record<string, unknown>): Base & Record<string, unknown> {
+  const filled = { ...row };
+  for (const [k, v] of Object.entries(LEGACY[table] ?? {})) if (filled[k] == null && v != null) filled[k] = v; else if (!(k in filled)) filled[k] = v;
+  const r = schemas[table].safeParse(filled);
+  return r.success ? (r.data as Base & Record<string, unknown>) : filled;
+}
+
 export async function syncAll(client: RemoteClient, userId: string): Promise<SyncResult> {
   let pulled = 0, pushed = 0;
+  const failures: string[] = [];
   for (const t of TABLES) {
     const table = db.table<Base & Record<string, unknown>, string>(t);
     const cursorKey = `cursor:${userId}:${t}`;
-    const since = ((await db.meta.get(cursorKey))?.value as string | undefined) ?? null;
+    try {
+      const since = ((await db.meta.get(cursorKey))?.value as string | undefined) ?? null;
 
-    // 1) Bajar: aplica la fila remota solo si es más nueva que la local.
-    const remote = await client.pull(REMOTE_TABLE[t], since);
-    let cursor = since;
-    for (const r of remote) {
-      const row = fromRemote(r) as Base & Record<string, unknown>;
-      const local = await table.get(row.id);
-      if (!local || row.updatedAt > local.updatedAt) { await table.put(row); pulled++; }
-      const s = r.synced_at as string | undefined;
-      if (s && (!cursor || s > cursor)) cursor = s;
-    }
-    if (cursor && cursor !== since) await db.meta.put({ key: cursorKey, value: cursor });
+      // 1) Bajar: aplica la fila remota solo si es más nueva que la local.
+      const remote = await client.pull(REMOTE_TABLE[t], since);
+      let cursor = since;
+      for (const r of remote) {
+        const row = fromRemote(r) as Base & Record<string, unknown>;
+        // Leer y escribir en una sola transacción: un cambio local hecho en ese instante no queda pisado.
+        await db.transaction('rw', table, async () => {
+          const local = await table.get(row.id);
+          if (!local || row.updatedAt > local.updatedAt) { await table.put(row); pulled++; }
+        });
+        const s = r.synced_at as string | undefined;
+        if (s && (!cursor || s > cursor)) cursor = s;
+      }
+      if (cursor && cursor !== since) await db.meta.put({ key: cursorKey, value: cursor });
 
-    // 2) Subir lo pendiente.
-    const dirty = (await table.where('dirty').equals(1).toArray()).filter((r) => r.userId === userId);
-    if (dirty.length) {
-      await client.upsert(REMOTE_TABLE[t], dirty.map(toRemote));
+      // 2) Subir lo pendiente.
+      const dirty = (await table.where('dirty').equals(1).toArray()).filter((r) => r.userId === userId);
+      if (!dirty.length) continue;
+      let sent = dirty;
+      try {
+        await client.upsert(REMOTE_TABLE[t], dirty.map((d) => toRemote(normalize(t, d))));
+      } catch (e) {
+        // Si el lote falla, se sube fila por fila: una sola fila con problemas no bloquea a las demás.
+        sent = [];
+        let last: unknown = e;
+        for (const d of dirty) {
+          try { await client.upsert(REMOTE_TABLE[t], [toRemote(normalize(t, d))]); sent.push(d); } catch (e1) { last = e1; }
+        }
+        if (sent.length < dirty.length) failures.push(last instanceof Error ? last.message : String(last));
+      }
       // Solo se limpia la marca si la fila no cambió mientras se subía.
       await db.transaction('rw', table, async () => {
-        for (const d of dirty) {
+        for (const d of sent) {
           const cur = await table.get(d.id);
           if (cur && cur.updatedAt === d.updatedAt) await table.update(d.id, { dirty: 0 } as never);
         }
       });
-      pushed += dirty.length;
+      pushed += sent.length;
+    } catch (e) {
+      // Un fallo en una tabla no impide sincronizar las siguientes.
+      failures.push(e instanceof Error ? e.message : String(e));
     }
   }
+  if (failures.length) throw new Error(failures[0]);
   return { pulled, pushed };
 }
 

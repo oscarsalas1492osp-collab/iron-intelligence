@@ -164,7 +164,7 @@ export default function Dashboard() {
           <div className="rounded-panel bg-card p-4">
             <div className="mb-3 flex items-baseline justify-between gap-3">
               <h2 className="wd-w text-[15px] font-bold">Récords de los últimos 30 días</h2>
-              <Link to="/historial" className="wd-c text-sm text-data">Ver historial</Link>
+              <Link to="/historial" className="wd-c shrink-0 whitespace-nowrap text-sm text-data">Ver historial</Link>
             </div>
             {prs.length ? (
               <ul className="ruled">

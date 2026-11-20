@@ -121,7 +121,8 @@ describe('técnicas avanzadas', () => {
     const d2 = await repo.addExtension(sets[0].id, 'drop', 5);
     expect(d2).toMatchObject({ sub: 2, weight: 75 });
     const rp = await repo.addExtension(sets[1].id, 'restpause', 5);
-    expect(rp).toMatchObject({ technique: 'restpause', sub: 1, weight: sets[1].weight });
+    // La segunda serie heredó los 122,5 kg anotados en la primera.
+    expect(rp).toMatchObject({ technique: 'restpause', sub: 1, weight: 122.5 });
     const all = await repo.getSessionSets(sets[0].sessionId);
     expect(all.map((x) => `${x.order}.${x.sub}`)).toEqual(['0.0', '0.1', '0.2', '1.0', '1.1', '2.0']);
     expect(schemas.sets.safeParse(d1).success).toBe(true);

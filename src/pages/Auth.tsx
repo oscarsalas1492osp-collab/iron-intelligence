@@ -13,7 +13,7 @@ function useGoogle(): boolean {
 export function LegalLinks({ className = '' }: { className?: string }) {
   return (
     <p className={`text-xs text-mute ${className}`}>
-      Al continuar aceptas los <a className="underline" href="./terminos.html">Términos de uso</a> y la <a className="underline" href="./privacidad.html">Política de privacidad</a>.
+      Al continuar aceptas los <a className="whitespace-nowrap underline" href="./terminos.html">Términos de uso</a> y la <a className="whitespace-nowrap underline" href="./privacidad.html">Política de privacidad</a>.
     </p>
   );
 }

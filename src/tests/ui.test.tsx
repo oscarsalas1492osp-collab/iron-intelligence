@@ -57,7 +57,8 @@ describe('interfaz', () => {
     expect(await screen.findByText('1/3 series')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Serie 1 completada/ })).toHaveTextContent('5 kg × 8');
 
-    // Editar una serie ya completada.
+    // Editar una serie ya completada (pasado el instante en que la lista se reacomoda y los toques se ignoran).
+    await new Promise((r) => setTimeout(r, 650));
     await user.click(screen.getByRole('button', { name: /Serie 1 completada/ }));
     await user.click(screen.getByRole('button', { name: 'Aumentar Repeticiones serie 1' }));
     await waitFor(async () => expect((await db.sets.get(saved.id))!.reps).toBe(9));

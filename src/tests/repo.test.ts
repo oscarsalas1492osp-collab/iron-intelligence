@@ -310,3 +310,83 @@ describe('sincronización', () => {
     expect(repo.mine(await db.routines.toArray())).toHaveLength(0);
   });
 });
+
+describe('registro durante el entrenamiento: valores que siguen y subida a la nube', () => {
+  function fakeServer() {
+    const tables = new Map<string, Map<string, Record<string, unknown>>>();
+    let clock = 0;
+    const client: RemoteClient = {
+      async upsert(table, rows) {
+        const t = tables.get(table) ?? tables.set(table, new Map()).get(table)!;
+        for (const r of rows) t.set(r.id as string, { ...r, synced_at: String(++clock).padStart(8, '0') });
+      },
+      async pull(table, since) {
+        return [...(tables.get(table)?.values() ?? [])].filter((r) => !since || (r.synced_at as string) > since).sort((x, y) => (x.synced_at as string).localeCompare(y.synced_at as string));
+      },
+    };
+    return { tables, client };
+  }
+
+  it('el peso y las repeticiones anotados en una serie pasan a las siguientes que aún no se hacen', async () => {
+    const r = await routineWith('chest_press_machine');
+    const s = await repo.startSession(r.id);
+    const [a, b, c] = await repo.getSessionSets(s.id);
+    expect([a.weight, b.weight, c.weight]).toEqual([0, 0, 0]);
+    await repo.updateSet(a.id, { weight: 60 });
+    await repo.updateSet(a.id, { reps: 12 });
+    let now = await repo.getSessionSets(s.id);
+    expect(now.map((x) => [x.weight, x.reps])).toEqual([[60, 12], [60, 12], [60, 12]]);
+    // Una serie que el usuario ya ajustó a otro valor no se toca, ni una ya completada.
+    await repo.updateSet(c.id, { weight: 50 });
+    await repo.completeSet(a.id);
+    await repo.updateSet(a.id, { weight: 62.5 });
+    now = await repo.getSessionSets(s.id);
+    expect(now.map((x) => x.weight)).toEqual([62.5, 62.5, 50]);
+    await repo.completeSet(b.id);
+    await repo.updateSet(a.id, { weight: 65 });
+    expect((await repo.getSessionSets(s.id)).map((x) => x.weight)).toEqual([65, 62.5, 50]);
+    // Un cambio en una serie posterior no altera las anteriores.
+    await repo.updateSet(c.id, { weight: 40 });
+    expect((await repo.getSessionSets(s.id)).map((x) => x.weight)).toEqual([65, 62.5, 40]);
+  });
+
+  it('dos toques seguidos en Iniciar crean una sola sesión', async () => {
+    const r = await routineWith('chest_press_machine');
+    const [x, y] = await Promise.all([repo.startSession(r.id), repo.startSession(r.id)]);
+    expect(x.id).toBe(y.id);
+    expect(await db.sessions.count()).toBe(1);
+    expect(await db.sets.count()).toBe(3);
+  });
+
+  it('sube sesiones y series guardadas por una versión anterior, completando los campos que no traían', async () => {
+    const { tables, client } = fakeServer();
+    setUserId('user-1');
+    const r = await routineWith('chest_press_machine');
+    const done = await logSession(r.id, () => ({ weight: 50, reps: 10, rir: 2 }));
+    // Forma antigua: sin biseries ni técnicas.
+    await db.sessions.where('id').equals(done.id).modify((x) => { delete (x as Partial<typeof x>).supersets; });
+    await db.sets.toCollection().modify((x) => { delete (x as Partial<typeof x>).technique; delete (x as Partial<typeof x>).sub; });
+    await syncAll(client, 'user-1');
+    expect(tables.get('sessions')!.get(done.id)).toMatchObject({ supersets: [] });
+    for (const row of tables.get('set_logs')!.values()) expect(row).toMatchObject({ technique: '', sub: 0 });
+    expect(await db.sessions.where('dirty').equals(1).count()).toBe(0);
+  });
+
+  it('una fila que el servidor rechaza no impide subir las demás ni las otras tablas', async () => {
+    const { tables, client } = fakeServer();
+    setUserId('user-1');
+    const a = await repo.createRoutine('Buena');
+    const b = await repo.createRoutine('Mala');
+    await repo.saveBodyWeight(80);
+    const picky: RemoteClient = {
+      pull: client.pull,
+      upsert: async (table, rows) => { if (rows.some((x) => x.name === 'Mala')) throw new Error('fila rechazada'); await client.upsert(table, rows); },
+    };
+    await expect(syncAll(picky, 'user-1')).rejects.toThrow('fila rechazada');
+    expect(tables.get('routines')!.has(a.id)).toBe(true);
+    expect(tables.get('routines')!.has(b.id)).toBe(false);
+    expect(tables.get('body_weights')!.size).toBe(1);
+    expect((await db.routines.get(a.id))!.dirty).toBe(0);
+    expect((await db.routines.get(b.id))!.dirty).toBe(1);
+  });
+});
