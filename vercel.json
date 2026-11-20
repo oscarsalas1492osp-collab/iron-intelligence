@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    { "src": "/", "has": [{ "type": "host", "value": "iron-intelligence-f5m5-.*" }], "dest": "/web/index.html" },
+    { "handle": "filesystem" }
+  ]
+}

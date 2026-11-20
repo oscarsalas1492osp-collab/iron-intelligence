@@ -6,7 +6,6 @@
 <title>IRON INTELLIGENCE: la app de fuerza que te dice cuándo subir el peso</title>
 <meta name="description" content="Registra tus series en segundos, analiza tu progreso y entra a la próxima sesión sabiendo qué cargar. Está en prueba: se buscan 25 personas que entrenen con pesas.">
 <meta name="theme-color" content="#070d10">
-<link rel="canonical" href="https://iron-intelligence-f5m5.vercel.app/web/">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
@@ -14,7 +13,6 @@
 <meta property="og:site_name" content="IRON INTELLIGENCE">
 <meta property="og:title" content="La app de fuerza que te dice cuándo subir el peso">
 <meta property="og:description" content="Está en prueba. Se buscan 25 personas que entrenen con pesas para usarla antes del lanzamiento.">
-<meta property="og:url" content="https://iron-intelligence-f5m5.vercel.app/web/">
 <meta property="og:image" content="https://iron-intelligence-f5m5.vercel.app/web/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -657,7 +655,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
           <li>Toca Compartir y elige Añadir a pantalla de inicio.</li>
           <li>Crea tu cuenta con el mismo correo que dejaste aquí.</li>
         </ol>
-        <a class="btn btn-fire" href="/">Abrir la app</a>
+        <a class="btn btn-fire" id="abrir-app" href="/">Abrir la app</a>
         <p class="note">Te escribiré al correo que dejaste para saber cómo te fue.</p>
       </div>
     </div>
@@ -738,6 +736,12 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
     b.setAttribute('aria-label', on ? 'Pausar el movimiento de la página' : 'Reanudar el movimiento de la página');
     b.innerHTML = on ? PAUSE : PLAY;
   }
+
+  // En el dominio propio, la página vive en la raíz y la app en su subdominio; en la dirección de Vercel, la app está en la raíz.
+  safe(function () {
+    var h = location.hostname.replace(/^www\./, '');
+    if (h === 'ironintelligence.app') $('abrir-app').href = 'https://app.ironintelligence.app/';
+  });
 
   /* ---- Barra de avance y apariciones ---- */
   safe(function () {
