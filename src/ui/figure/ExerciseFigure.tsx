@@ -272,19 +272,18 @@ function pump(): void {
   if (pumping) return;
   pumping = true;
   void load3d().then((m) => {
+    // Una figura por turno y con una pausa entre ellas: los toques y el desplazamiento siempre pasan primero.
     const step = () => {
-      const t0 = performance.now();
-      // Unas pocas por cuadro, para no trabar el desplazamiento de la lista.
-      while (queue.length && performance.now() - t0 < 10) {
-        const job = queue.shift()!;
-        // Nadie espera ya esta figura (la fila salió de pantalla): se descarta y se volverá a pedir si hace falta.
-        if (!waiters.get(job.key)?.size) { waiters.delete(job.key); continue; }
+      let job = queue.shift();
+      // Nadie espera ya esta figura (la fila salió de pantalla): se descarta y se volverá a pedir si hace falta.
+      while (job && !waiters.get(job.key)?.size) { waiters.delete(job.key); job = queue.shift(); }
+      if (job) {
         try { thumbs.set(job.key, m.renderThumb(job.ex, job.sc)); } catch { broken = true; queue.length = 0; }
         waiters.get(job.key)?.forEach((cb) => cb()); waiters.delete(job.key);
       }
-      if (queue.length) requestAnimationFrame(step); else pumping = false;
+      if (queue.length) setTimeout(step, 24); else pumping = false;
     };
-    requestAnimationFrame(step);
+    setTimeout(step, 0);
   }).catch(() => { broken = true; pumping = false; });
 }
 function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {

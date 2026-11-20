@@ -15,6 +15,8 @@ export interface Scene {
   anchor?: V; pivot?: V; stack?: V;
   /** Barra recta entre las manos (jalones); figura invertida (parada de manos); sin movimiento (isométricos). */
   bar?: boolean; flip?: boolean; still?: boolean;
+  /** Profundidad para el render 3D (vista lateral): medio ancho del agarre, apertura de codos, medio ancho de pies y apertura de rodillas. */
+  d3?: { grip?: number; flare?: number; stance?: number; knee?: number };
 }
 
 const P = (x: number, y: number, lean: number, o: Partial<Pose> = {}): Pose => ({ hip: [x, y], lean, ...o });
@@ -98,6 +100,13 @@ export const SCENES: Record<string, Scene | string> = {
   calf: { view: 'side', props: [['r', 33, 66.4, 10, 3]], a: P(33, 41.6, 0, { foot: [32.5, 65.6], ft: 78, arm: [2, 4] }), b: P(33, 38.4, 0, { foot: [33.5, 62.4], ft: 38, arm: [2, 4] }) },
   tibia: { view: 'side', bench: true, seat: true, load: 'none', a: P(24, 50, -8, { leg: [86, 4], ft: 125, hh: [4, 1.5] }), b: P(24, 50, -8, { leg: [86, 4], ft: 62, hh: [4, 1.5] }) },
   // ---- Zona media ----
+  // Crunch en polea: de rodillas frente a la polea alta, la cuerda junto a la cabeza y el tronco se enrolla hacia el suelo.
+  'crunch@c': { view: 'side', anchor: [56, 6], a: P(30, 51.6, 10, { leg: [10, -88], hr: [2.6, -3.4] }), b: P(30, 51.6, 74, { leg: [10, -88], hr: [2.6, -3.4], hd: 18 }) },
+  // Crunch en máquina: sentado, el tronco se flexiona hacia delante contra la resistencia.
+  'crunch@m': { view: 'side', seat: true, load: 'none', a: P(26, 51, -10, { foot: [40, 65], hr: [3.4, -1.6] }), b: P(26, 51, 30, { foot: [40, 65], hr: [3.4, -1.6], hd: 10 }) },
+  // Gemelo sentado: rodillas a 90° bajo la almohadilla; solo se mueve el tobillo.
+  calf_seated: { view: 'side', seat: true, load: 'none', props: [['c', 37.6, 47.4, 2.3], ['r', 36, 66.2, 9, 2.4]], d3: { stance: 3.6 },
+    a: P(26, 51, 2, { foot: [39, 65.4], ft: 80, hh: [10.5, -1.2] }), b: P(26, 50.4, 2, { foot: [39.6, 62.8], ft: 42, hh: [10.5, -1.6] }) },
   crunch: { view: 'side', a: P(38, 62, -90, { foot: [52, 65], hr: [-1, -2.5] }), b: P(38, 62, -58, { foot: [52, 65], hr: [-1, -2.5] }) },
   situp: { view: 'side', a: P(38, 62, -90, { foot: [52, 65], hr: [-1, -2.5] }), b: P(38, 62, -18, { foot: [52, 65], hr: [-1, -2.5] }) },
   legraise: { view: 'side', floor: false, props: [['l', 26, 9.6, 42, 9.6, 2.6]], a: P(34, 43.2, 0, { hand: [34, 10], leg: [2, 2] }), b: P(34, 43.2, -6, { hand: [34, 10], leg: [84, 80] }) },
@@ -130,8 +139,28 @@ export const SCENES: Record<string, Scene | string> = {
   frontlever: still('side', P(43, 25.5, -90, { hand: [26, 9.6], leg: [90, 90] }), { floor: false, props: [['l', 18, 9.6, 34, 9.6, 2.6]] }),
 };
 
+// Profundidad de cada patrón, según su ejecución: agarre algo más ancho que los hombros y codos abiertos en los
+// empujes horizontales, pies al ancho de hombros con las rodillas siguiendo la punta del pie en la sentadilla,
+// agarre cerrado en las extensiones de tríceps, pies en línea en la zancada.
+const D3: Record<string, NonNullable<Scene['d3']>> = {
+  press_h: { grip: 10, flare: 5.5 }, 'press_h@m': { grip: 8.5, flare: 5 }, 'press_h@c': { grip: 7, flare: 3 }, press_incline: { grip: 10, flare: 5.5 }, 'press_incline@m': { grip: 8.5, flare: 5 },
+  press_decline: { grip: 10, flare: 5.5 }, 'press_decline@m': { grip: 8.5, flare: 5 }, pushup: { grip: 8.5, flare: 4, stance: 2.6 }, dip: { grip: 6.9, flare: 1.6, stance: 2.4 }, 'dip@m': { grip: 7, flare: 2 },
+  press_oh: { grip: 8.2, flare: 4.5, stance: 4.6 }, 'press_oh@m': { grip: 8.5, flare: 5 }, raise_front: { grip: 6 }, facepull: { grip: 4.6, flare: 7 },
+  row: { grip: 7.6, flare: 2.6, stance: 4.6 }, 'row@m': { grip: 6.2, flare: 2 }, 'row@c': { grip: 3.2, flare: 1.4 }, 'row@b': { grip: 7.6, flare: 3 }, pullover: { grip: 3.4, flare: 1.5 },
+  curl: { grip: 6, flare: 0.3 }, 'curl@m': { grip: 5, flare: 0.6 }, curl_rev: { grip: 6, flare: 0.5 }, tri_down: { grip: 3, flare: 0.5 }, tri_oh: { grip: 3, flare: 1.6 }, tri_lying: { grip: 4, flare: 1 },
+  tri_kick: { flare: 0.4 }, wrist_flex: { grip: 4.6, stance: 5 }, wrist_ext: { grip: 4.6, stance: 5 },
+  squat: { stance: 6.4, knee: 1.8, grip: 9.5, flare: 3 }, 'squat@m': { stance: 5.6, knee: 1.2 }, legpress: { stance: 5.2, knee: 1.2 }, lunge: { stance: 3 }, stepup: { stance: 3.2 },
+  hinge: { stance: 4.4, grip: 7.4 }, deadlift: { stance: 4.6, grip: 7.6, knee: 0.8 }, hipthrust: { stance: 5.6, knee: 1 }, calf: { stance: 3.6 }, legext: { stance: 4 }, legcurl: { stance: 3.6 },
+  swing: { stance: 6.6, knee: 1.5, grip: 2.2 }, oly: { stance: 5.6, grip: 9.5, flare: 3 }, thruster: { stance: 6, knee: 1.6, grip: 8.5, flare: 3 }, jump: { stance: 5 }, carry: { grip: 7.4 },
+  situp: { stance: 3.6 }, crunch: { stance: 3.6 }, rollout: { grip: 6 }, plank: { grip: 6, stance: 3 }, sled: { grip: 6 },
+};
+// El press cerrado comparte postura con el de banca, pero con las manos al ancho de los hombros y los codos pegados.
+SCENES.press_close = { ...(SCENES.press_h as Scene), d3: { grip: 4.8, flare: 1.2 } };
+for (const k in D3) { const sc = SCENES[k]; if (sc && typeof sc !== 'string' && !sc.d3) sc.d3 = D3[k]; }
+
 /** Ejercicios cuya postura no es la general de su patrón. */
 const BY_ID: Record<string, string> = {
+  seated_calf_raise: 'calf_seated', seated_calf_raise_machine: 'calf_seated', suspension_pike: 'plank', fitball_pike: 'plank',
   wall_sit: 'wallsit', handstand_hold: 'handstand', handstand_push_up: 'hspu', l_sit: 'lsit', hollow_hold: 'hollow', front_lever: 'frontlever',
   ring_support_hold: 'support', dead_hang: 'hang', lying_leg_curl: 'legcurl', leg_curl_lever: 'legcurl', kneeling_leg_curl: 'legcurl@s',
   standing_leg_curl: 'legcurl@s', assisted_dip_machine: 'dip', assisted_pull_up_machine: 'pullup', glute_ham_raise: 'nordic',

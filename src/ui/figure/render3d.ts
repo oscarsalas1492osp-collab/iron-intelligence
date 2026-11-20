@@ -5,9 +5,9 @@
 // (la barra cruza de lado a lado, el banco tiene ancho, las mancuernas van una en cada mano).
 // Las miniaturas se renderizan una vez y se guardan como imagen; la ficha anima el movimiento en vivo.
 import {
-  ACESFilmicToneMapping, Box3, BoxGeometry, BufferAttribute, BufferGeometry, Color, CylinderGeometry, DirectionalLight, Float32BufferAttribute, Group,
-  HemisphereLight, LatheGeometry, Matrix4, Mesh, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Quaternion,
-  Scene as Stage3, ShadowMaterial, Sphere, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer, type Material,
+  ACESFilmicToneMapping, Box3, BoxGeometry, BufferAttribute, BufferGeometry, Color, CylinderGeometry, DirectionalLight, DoubleSide, Float32BufferAttribute, Group,
+  HemisphereLight, Mesh, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Quaternion,
+  Scene as Stage3, ShadowMaterial, Sphere, SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer, type Material,
 } from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { Equipment, ExerciseDef, Muscle } from '../../domain/types';
@@ -30,7 +30,7 @@ const band = (u: number, a: number, b: number, s = 0.07) => ss(a - s, a + s, u) 
 
 // ---------- materiales y geometrías compartidas ----------
 const CLAY = new Color('#aeb3bd'), HOT = new Color('#ff4a00'), WARM = new Color('#e58a4c');
-const skin = new MeshStandardMaterial({ vertexColors: true, roughness: 0.58, metalness: 0.04 });
+const skin = new MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.03, side: DoubleSide, shadowSide: DoubleSide });
 // Los músculos encendidos emiten algo de luz propia: se leen aunque queden en sombra.
 skin.onBeforeCompile = (sh) => {
   sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>',
@@ -51,8 +51,8 @@ const UP = new Vector3(0, 1, 0);
 
 type Zone = (u: number, nx: number, nz: number) => Partial<Record<Muscle, number>>;
 const ZONES: Record<'upperArm' | 'forearm' | 'thigh' | 'shin' | 'torso', Zone> = {
-  upperArm: (u, nx) => ({ shoulders: 1 - ss(0.1, 0.3, u), biceps: band(u, 0.2, 0.95) * ss(0.05, 0.5, nx), triceps: band(u, 0.2, 0.95) * ss(0.05, 0.5, -nx) }),
-  forearm: (u) => ({ forearms: band(u, -0.1, 0.84) }),
+  upperArm: (u, nx, nz) => ({ shoulders: (1 - ss(0.14, 0.36, u)) * (0.55 + 0.45 * ss(-0.6, 0.3, nz)), biceps: band(u, 0.2, 0.95) * ss(0.05, 0.5, nx), triceps: band(u, 0.2, 0.95) * ss(0.05, 0.5, -nx) }),
+  forearm: (u) => ({ forearms: band(u, 0.06, 0.86) }),
   thigh: (u, nx, nz) => ({
     quads: band(u, 0.1, 0.98) * ss(0, 0.45, nx), hamstrings: band(u, 0.16, 0.96) * ss(0.05, 0.5, -nx),
     adductors: band(u, 0, 0.62) * ss(0.45, 0.85, -nz), abductors: (1 - ss(0.2, 0.36, u)) * ss(0.45, 0.85, nz), glutes: (1 - ss(0.08, 0.22, u)) * ss(0.1, 0.6, -nx),
@@ -66,54 +66,138 @@ const ZONES: Record<'upperArm' | 'forearm' | 'thigh' | 'shin' | 'torso', Zone> =
   }),
 };
 
-/** Sólido de revolución a lo largo de un hueso (y de 0 a 1), con el radio de cada tramo. */
-const lathe = (profile: [number, number][]) => new LatheGeometry(profile.map(([u, r]) => new Vector2(r, u)), 20);
-const GEO = {
-  upperArm: lathe([[0, 2.05], [0.3, 2.3], [0.62, 2.2], [1, 1.72]]),
-  forearm: lathe([[0, 1.75], [0.28, 1.98], [0.7, 1.5], [1, 1.22]]),
-  thigh: lathe([[0, 3.35], [0.3, 3.5], [0.7, 2.9], [1, 2.3]]),
-  shin: lathe([[0, 2.25], [0.3, 2.62], [0.68, 1.9], [1, 1.42]]),
+// ---------- cuerpo: superficies continuas ----------
+// Cada extremidad es una sola malla barrida a lo largo de sus dos huesos, con la articulación redondeada y el
+// grosor de cada músculo (deltoides, bíceps, cuádriceps, gemelo). No hay esferas ni uniones a la vista.
+type Prof = [number, number][];
+const along = (p: Prof, s: number) => {
+  if (s <= p[0][0]) return p[0][1];
+  for (let i = 1; i < p.length; i++) if (s <= p[i][0]) { const t = (s - p[i - 1][0]) / (p[i][0] - p[i - 1][0]); return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (t * t * (3 - 2 * t)); }
+  return p[p.length - 1][1];
 };
+/** Abultamiento: entre s0 y s1, hacia el ángulo `th` (0 frente, π atrás, π/2 fuera, −π/2 dentro). */
+interface Bulge { s0: number; s1: number; th: number; amt: number; pow?: number }
+const ARM: { prof: Prof; bulges: Bulge[] } = {
+  prof: [[0, 2.5], [0.22, 2.42], [0.5, 2.18], [0.86, 1.82], [1, 1.76], [1.2, 1.95], [1.5, 1.72], [1.8, 1.3], [2, 1.12]],
+  bulges: [{ s0: -0.1, s1: 0.34, th: Math.PI / 2, amt: 0.2 }, { s0: 0.28, s1: 0.86, th: 0, amt: 0.17, pow: 1.4 }, { s0: 0.22, s1: 0.8, th: Math.PI, amt: 0.14, pow: 1.4 }, { s0: 1.05, s1: 1.5, th: 0.9, amt: 0.1 }],
+};
+const LEG: { prof: Prof; bulges: Bulge[] } = {
+  prof: [[0, 3.2], [0.28, 3.3], [0.62, 2.85], [0.9, 2.3], [1, 2.25], [1.12, 2.15], [1.32, 2.35], [1.62, 1.85], [1.86, 1.36], [2, 1.3]],
+  bulges: [{ s0: 0.12, s1: 0.82, th: 0.2, amt: 0.13, pow: 1.3 }, { s0: 0.2, s1: 0.8, th: Math.PI, amt: 0.1, pow: 1.3 }, { s0: -0.1, s1: 0.26, th: Math.PI, amt: 0.16 }, { s0: -0.1, s1: 0.3, th: Math.PI / 2, amt: 0.06 },
+    { s0: 1.06, s1: 1.6, th: Math.PI, amt: 0.3, pow: 1.5 }, { s0: 0.88, s1: 1.1, th: 0, amt: 0.1, pow: 2 }],
+};
+const CAP = [0.5, 0.86, 0.99];   // seno de los anillos que cierran un extremo en media esfera
 
-/** Tronco: anillos elípticos de la pelvis al cuello. Guarda en cada vértice su altura y orientación para pintarlo. */
+class Sweep {
+  geo = new BufferGeometry(); mesh: Mesh;
+  private pos: Float32Array; private ring: { s: number; k: number; off: number }[] = []; private rad: Float32Array;
+  constructor(def: { prof: Prof; bulges: Bulge[] }, private n: number, private seg: number, zones: (s: number) => Zone, w: Weights, material: Material) {
+    for (const c of [...CAP].reverse()) this.ring.push({ s: 0, k: Math.sqrt(1 - c * c), off: -c });
+    for (let i = 0; i < n; i++) this.ring.push({ s: (i / (n - 1)) * 2, k: 1, off: 0 });
+    for (const c of CAP) this.ring.push({ s: 2, k: Math.sqrt(1 - c * c), off: c });
+    const R = this.ring.length;
+    this.pos = new Float32Array(R * seg * 3); this.rad = new Float32Array(R * seg);
+    const col = new Float32Array(R * seg * 3), c = new Color(), idx: number[] = [];
+    this.ring.forEach((r, i) => { for (let k = 0; k < seg; k++) {
+      const th = (k / seg) * Math.PI * 2;
+      let m = 1; for (const b of def.bulges) m += b.amt * band(r.s, b.s0, b.s1, 0.09) * Math.pow(Math.max(0, Math.cos(th - b.th)), b.pow ?? 1);
+      this.rad[i * seg + k] = along(def.prof, r.s) * m * r.k;
+      // Color: la zona muscular según la altura en el hueso y la orientación (frente, atrás, fuera, dentro).
+      c.copy(CLAY);
+      if (r.k === 1 || r.s === 0) { const z = zones(r.s)(r.s <= 1 ? r.s : r.s - 1, Math.cos(th), Math.sin(th));
+        for (const pass of [0, 1]) for (const mk in z) { const hit = w.get(mk as Muscle); if (hit && (hit[1] === 1) === (pass === 1)) c.lerp(hit[0], Math.min(1, z[mk as Muscle]!) * (pass ? 1 : 0.85)); } }
+      col.set([c.r, c.g, c.b], (i * seg + k) * 3);
+    } });
+    for (let i = 0; i < R - 1; i++) for (let k = 0; k < seg; k++) { const p0 = i * seg + k, p1 = i * seg + ((k + 1) % seg), q0 = p0 + seg, q1 = p1 + seg; idx.push(p0, q0, p1, p1, q0, q1); }
+    this.geo.setAttribute('position', new BufferAttribute(this.pos, 3)); this.geo.setAttribute('color', new BufferAttribute(col, 3)); this.geo.setIndex(idx);
+    this.mesh = new Mesh(this.geo, material); this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.frustumCulled = false;
+  }
+  /** Coloca la malla sobre los huesos a→b→c. `x1`/`x2`: frente de cada hueso; `out`: hacia fuera del cuerpo. */
+  update(a: Vector3, b: Vector3, c: Vector3, x1: Vector3, x2: Vector3, out: Vector3): void {
+    const F = 0.2, P0 = a.clone().lerp(b, 1 - F), P2 = b.clone().lerp(c, F);
+    const d1 = b.clone().sub(a).normalize(), d2 = c.clone().sub(b).normalize();
+    const cen = new Vector3(), T = new Vector3(), X = new Vector3(), Z = new Vector3(), v = new Vector3();
+    this.ring.forEach((r, i) => {
+      const s = r.s;
+      if (s <= 1 - F) { cen.copy(a).lerp(b, s); T.copy(d1); }
+      else if (s >= 1 + F) { cen.copy(b).lerp(c, s - 1); T.copy(d2); }
+      else { const t = (s - (1 - F)) / (2 * F); cen.copy(P0).multiplyScalar((1 - t) * (1 - t)).addScaledVector(b, 2 * t * (1 - t)).addScaledVector(P2, t * t); T.copy(d1).lerp(d2, t).normalize(); }
+      const mixX = ss(1 - F, 1 + F, s);
+      X.copy(x1).lerp(x2, mixX); X.addScaledVector(T, -X.dot(T)); if (X.lengthSq() < 1e-4) X.copy(x1); X.normalize();
+      Z.copy(out).addScaledVector(T, -out.dot(T)).addScaledVector(X, -out.dot(X));
+      if (Z.lengthSq() < 0.02) Z.crossVectors(X, T); Z.normalize();
+      const base = along(this.def.prof, s);
+      cen.addScaledVector(T, r.off * base);
+      for (let k = 0; k < this.seg; k++) {
+        const th = (k / this.seg) * Math.PI * 2, rr = this.rad[i * this.seg + k];
+        v.copy(cen).addScaledVector(X, Math.cos(th) * rr).addScaledVector(Z, Math.sin(th) * rr);
+        this.pos.set([v.x, v.y, v.z], (i * this.seg + k) * 3);
+      }
+    });
+    this.geo.getAttribute('position').needsUpdate = true; this.geo.computeVertexNormals();
+  }
+  private def!: { prof: Prof; bulges: Bulge[] };
+  setDef(d: { prof: Prof; bulges: Bulge[] }) { this.def = d; return this; }
+}
+
+/** Tronco: de la pelvis a la base del cráneo, con pectorales, dorsales, glúteos, trapecio y cuello en una sola pieza. */
 function torsoGeo(hipHalf: number, shHalf: number): BufferGeometry {
+  // [altura, medio ancho, medio fondo, adelanto]
   const rings: [number, number, number, number][] = [
-    [-0.15, 0.42 * hipHalf, 1.9, 0], [-0.06, 0.92 * hipHalf, 2.85, 0], [0.05, hipHalf, 3.1, 0], [0.2, 0.93 * hipHalf, 2.85, 0],
-    [0.36, 0.5 * (hipHalf + shHalf) * 0.76, 2.6, 0.05], [0.56, 0.84 * shHalf, 2.95, 0.2], [0.76, 0.97 * shHalf, 3.4, 0.4], [0.9, shHalf, 3.1, 0.2],
-    [1.0, 0.86 * shHalf, 2.5, 0], [1.07, 0.42 * shHalf, 1.9, 0], [1.13, 1.5, 1.5, 0],
+    [-0.2, 0.3 * hipHalf, 1.4, 0], [-0.14, 0.72 * hipHalf, 2.4, -0.1], [-0.04, 0.97 * hipHalf, 2.9, -0.15], [0.07, hipHalf, 2.95, -0.1], [0.2, 0.9 * hipHalf, 2.7, 0],
+    [0.34, 0.5 * (0.8 * hipHalf + 0.66 * shHalf), 2.4, 0.1], [0.48, 0.76 * shHalf, 2.65, 0.2], [0.62, 0.9 * shHalf, 3.1, 0.3], [0.76, 0.99 * shHalf, 3.45, 0.42], [0.88, 1.02 * shHalf, 3.3, 0.3],
+    [0.96, 0.95 * shHalf, 2.8, 0.1], [1.02, 0.7 * shHalf, 2.3, -0.1], [1.07, 0.4 * shHalf, 1.95, -0.2], [1.12, 2.1, 2.0, -0.1], [1.2, 1.95, 1.9, 0], [1.3, 1.95, 1.9, 0.1],
   ];
-  const N = 24, pos: number[] = [], meta: number[] = [], idx: number[] = [];
+  const N = 28, pos: number[] = [], meta: number[] = [], idx: number[] = [], pw = 2 / 2.5;
   for (const [u, zh, xh, xo] of rings) for (let k = 0; k < N; k++) {
-    const a = (k / N) * Math.PI * 2;
-    pos.push(xo + xh * Math.cos(a), u * DIM.T, zh * Math.sin(a)); meta.push(u, Math.cos(a), Math.sin(a));
+    const a = (k / N) * Math.PI * 2, cs = Math.cos(a), sn = Math.sin(a);
+    // Pectorales (dos lóbulos al frente), dorsal ancho a los lados de la espalda y glúteos.
+    const pec = 0.55 * band(u, 0.66, 0.9, 0.05) * Math.pow(Math.max(0, Math.cos(Math.abs(a > Math.PI ? a - 2 * Math.PI : a) - 0.55)), 3);
+    const lat = 0.5 * band(u, 0.46, 0.84, 0.08) * Math.pow(Math.max(0, Math.cos(Math.abs(a - Math.PI) - 0.95)), 3);
+    const glu = 0.62 * band(u, -0.16, 0.1, 0.06) * Math.pow(Math.max(0, Math.cos(Math.abs(a - Math.PI) - 0.5)), 3);
+    const m = 1 + (pec + lat + glu) / Math.max(xh, 1);
+    pos.push(xo + xh * Math.sign(cs) * Math.pow(Math.abs(cs), pw) * m, u * DIM.T, zh * Math.sign(sn) * Math.pow(Math.abs(sn), pw) * (1 + lat / Math.max(zh, 1)));
+    meta.push(u, cs, sn);
   }
-  for (let r = 0; r < rings.length - 1; r++) for (let k = 0; k < N; k++) {
-    const a = r * N + k, b = r * N + ((k + 1) % N), c = a + N, d = b + N;
-    idx.push(a, c, b, b, c, d);
-  }
-  const bottom = pos.length / 3; pos.push(0, rings[0][0] * DIM.T - 0.6, 0); meta.push(rings[0][0], 0, 0);
-  const top = bottom + 1; pos.push(0, rings[rings.length - 1][0] * DIM.T + 0.4, 0); meta.push(1.13, 0, 0);
-  for (let k = 0; k < N; k++) { idx.push(bottom, k, (k + 1) % N); const o = (rings.length - 1) * N; idx.push(top, o + ((k + 1) % N), o + k); }
+  for (let r = 0; r < rings.length - 1; r++) for (let k = 0; k < N; k++) { const a = r * N + k, b = r * N + ((k + 1) % N), c = a + N, d = b + N; idx.push(a, c, b, b, c, d); }
+  const bottom = pos.length / 3; pos.push(0, rings[0][0] * DIM.T - 0.5, 0); meta.push(rings[0][0], 0, 0);
+  for (let k = 0; k < N; k++) idx.push(bottom, k, (k + 1) % N);
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   g.userData.meta = meta;
   return g;
 }
 
+/** Cabeza: cráneo ancho arriba, mandíbula más estrecha y adelantada, para que se lea hacia dónde mira. */
+const HEAD = (() => {
+  const g = new SphereGeometry(1, 28, 20), p = g.getAttribute('position');
+  for (let i = 0; i < p.count; i++) {
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    if (y < 0) { const k = 1 - 0.3 * Math.pow(-y, 1.4); x = x * k + 0.14 * -y; z *= k - 0.06 * -y; }
+    if (x > 0) x *= 0.93;
+    p.setXYZ(i, x * 1.02, y * 1.12, z * 0.88);
+  }
+  g.computeVertexNormals();
+  return g;
+})();
+/** Pie: talón en el tobillo y punta hacia delante, con la planta plana. */
+const FOOT = (() => {
+  const g = new SphereGeometry(1, 20, 14), p = g.getAttribute('position');
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); p.setXYZ(i, x, Math.max(-0.62, y * (x > 0 ? 1 - 0.45 * x : 1)), z * (1 + 0.12 * x)); }
+  g.computeVertexNormals();
+  return g;
+})();
+
 type Weights = Map<Muscle, [Color, number]>;
-/** Pinta una geometría según sus zonas musculares. `out` = sentido en que la Z local apunta hacia fuera del cuerpo. */
-function paint(g: BufferGeometry, zone: Zone, w: Weights, out = 1): void {
-  const p = g.getAttribute('position'), meta = g.userData.meta as number[] | undefined;
+/** Pinta el tronco según sus zonas musculares. */
+function paint(g: BufferGeometry, zone: Zone, w: Weights): void {
+  const p = g.getAttribute('position'), meta = g.userData.meta as number[];
   const col = new Float32Array(p.count * 3), c = new Color();
   for (let i = 0; i < p.count; i++) {
-    let u: number, nx: number, nz: number;
-    if (meta) { u = meta[i * 3]; nx = meta[i * 3 + 1]; nz = meta[i * 3 + 2]; }
-    else { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z) || 1; u = p.getY(i); nx = x / r; nz = (z / r) * out; }
     c.copy(CLAY);
-    const z = zone(u, nx, nz);
-    // Primero los secundarios y encima el principal.
-    for (const pass of [0.5, 1]) for (const m in z) { const hit = w.get(m as Muscle); if (hit && (hit[1] === 1) === (pass === 1)) c.lerp(hit[0], Math.min(1, z[m as Muscle]!) * (pass === 1 ? 1 : 0.85)); }
-    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    const z = zone(meta[i * 3], meta[i * 3 + 1], meta[i * 3 + 2]);
+    for (const pass of [0, 1]) for (const m in z) { const hit = w.get(m as Muscle); if (hit && (hit[1] === 1) === (pass === 1)) c.lerp(hit[0], Math.min(1, z[m as Muscle]!) * (pass ? 1 : 0.85)); }
+    col.set([c.r, c.g, c.b], i * 3);
   }
   g.setAttribute('color', new BufferAttribute(col, 3));
 }
@@ -123,22 +207,40 @@ interface Limb3 { a: Vector3; b: Vector3; c: Vector3; d?: Vector3 }
 interface Pose3 { hip: Vector3; sh: Vector3; head: Vector3; arms: Limb3[]; legs: Limb3[]; right: Vector3; fwd: Vector3; side: boolean; j: Joints; w: (p: V, z?: number) => Vector3 }
 const ZS = 6.5, ZH = 3.5;
 
+/** Articulación intermedia en 3D: conserva el largo de los huesos y se abre hacia donde apunta `pole`. */
+function ik3(S: Vector3, H: Vector3, l1: number, l2: number, pole: Vector3): [Vector3, Vector3] {
+  const dir = H.clone().sub(S); let d = dir.length() || 0.01; dir.divideScalar(d);
+  d = Math.min(l1 + l2 - 0.02, Math.max(Math.abs(l1 - l2) + 0.02, d));
+  const end = S.clone().addScaledVector(dir, d);
+  const al = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - al * al));
+  const side = pole.clone().sub(S); side.addScaledVector(dir, -side.dot(dir));
+  if (side.lengthSq() < 1e-4) side.set(0, 0, 1).addScaledVector(dir, -dir.z);
+  return [S.clone().addScaledVector(dir, al).addScaledVector(side.normalize(), h), end];
+}
+
 function lift(sc: Scene, j: Joints): Pose3 {
-  const side = j.view === 'side';
+  const side = j.view === 'side', d3 = sc.d3 ?? {};
   const w = (p: V, z = 0) => new Vector3(p[0], sc.flip ? p[1] - 5.4 : FLOOR - p[1], z);
   const arms: Limb3[] = [], legs: Limb3[] = [];
   if (side) {
+    // De lado, la postura 2D da el plano del movimiento; el agarre, la apertura de codos y la separación de pies
+    // le dan la profundidad que tiene el ejercicio real.
     const sameA = sameLimb(j.arms[0], j.arms[1]), sameL = sameLimb(j.legs[0], j.legs[1]);
+    const grip = d3.grip ?? ZS + 0.2, flare = d3.flare ?? 0.9, stance = d3.stance ?? ZH + 0.9, knee = d3.knee ?? 0.6;
     for (const i of [0, 1]) {
       const s = i ? -1 : 1, a = sameA ? j.arms[0] : j.arms[i], l = sameL ? j.legs[0] : j.legs[i];
-      arms.push({ a: w(a.a, s * ZS), b: w(a.b, s * (ZS + 0.8)), c: w(a.c, s * (ZS + 0.3)) });
-      legs.push({ a: w(l.a, s * ZH), b: w(l.b, s * (ZH + 0.5)), c: w(l.c, s * (ZH + 0.9)), d: w(l.d ?? l.c, s * (ZH + 1.3)) });
+      const S = w(a.a, s * ZS), [E, H] = ik3(S, w(a.c, s * grip), DIM.UA, DIM.FA, w(a.b, s * (ZS + flare + Math.max(0, grip - ZS) * 0.35)));
+      arms.push({ a: S, b: E, c: H });
+      const Hp = w(l.a, s * ZH), [K, A] = ik3(Hp, w(l.c, s * stance), DIM.TH, DIM.SH, w(l.b, s * (stance + knee)));
+      const toe = l.d ?? l.c;
+      legs.push({ a: Hp, b: K, c: A, d: w(toe, s * (stance + 0.9)).add(A).sub(w(l.c, s * stance)) });
     }
   } else {
     for (const i of [0, 1]) {
       const a = j.arms[i], l = j.legs[i], s = i ? -1 : 1;
-      arms.push({ a: w(a.a), b: w(a.b, 0.5), c: w(a.c, 1.1) });
-      // Sentado de frente el muslo se ve acortado: la longitud que falta es profundidad hacia el observador.
+      // De frente, lo que le falta de largo a un hueso es profundidad: los codos y las manos quedan algo por delante.
+      const dzA = Math.sqrt(Math.max(0, DIM.UA * DIM.UA - ((a.b[0] - a.a[0]) ** 2 + (a.b[1] - a.a[1]) ** 2)));
+      arms.push({ a: w(a.a), b: w(a.b, 0.6 + dzA), c: w(a.c, 1.4 + dzA * 0.5) });
       const dz = Math.sqrt(Math.max(0, DIM.TH * DIM.TH - ((l.b[0] - l.a[0]) ** 2 + (l.b[1] - l.a[1]) ** 2)));
       const c = w(l.c, dz + 0.2);
       legs.push({ a: w(l.a), b: w(l.b, dz), c, d: new Vector3(c.x + s * 0.9, c.y - 0.2, c.z + DIM.FT) });
@@ -159,73 +261,53 @@ function frontOf(axis: Vector3, fold: Vector3 | null, sign: number, fallback: Ve
 
 class Body {
   group = new Group();
-  private parts: { mesh: Mesh; geo: BufferGeometry }[] = [];
-  private torso: Mesh; private head: Mesh; private neck: Mesh;
-  private limbs: Mesh[][] = [];   // por extremidad: [hueso1, hueso2, articulación raíz, media, extremo, (pie)]
-  private painted = false;
-  private w: Weights = new Map();
+  private torso: Mesh; private head: Mesh; private limbs: Sweep[] = []; private hands: Mesh[] = []; private feet: Mesh[] = []; private tg: BufferGeometry;
 
-  constructor(ex: FigureEx, private side: boolean) {
-    for (const m of ex.secondary) this.w.set(m, [WARM, 0.5]);
-    this.w.set(ex.primary, [HOT, 1]);
+  constructor(ex: FigureEx, side: boolean) {
+    const w: Weights = new Map();
+    for (const m of ex.secondary) w.set(m, [WARM, 0.5]);
+    w.set(ex.primary, [HOT, 1]);
     const mk = (geo: BufferGeometry, material: Material = skin) => { const m = new Mesh(geo, material); m.matrixAutoUpdate = false; m.castShadow = true; m.receiveShadow = true; this.group.add(m); return m; };
-    const hipHalf = (side ? ZH : DIM.HW) + 1.55, shHalf = (side ? ZS : DIM.SW) - 0.35;
-    const tg = torsoGeo(hipHalf, shHalf); paint(tg, ZONES.torso, this.w); this.torso = mk(tg);
-    this.parts.push({ mesh: this.torso, geo: tg });
-    this.neck = mk(CYL, this.w.has('neck') ? (this.w.get('neck')![1] === 1 ? M.hot : M.warm) : M.clay);
-    this.head = mk(BALL, M.clay);
-    const joint = (m: Muscle | null) => mk(BALL, m && this.w.has(m) ? (this.w.get(m)![1] === 1 ? M.hot : M.warm) : M.clay);
+    this.tg = torsoGeo((side ? ZH : DIM.HW) + 1.15, (side ? ZS : DIM.SW) + 0.1); paint(this.tg, (u, nx, nz) => (u > 1.1 ? { neck: 1, traps: (1 - ss(1.1, 1.2, u)) * ss(-0.1, 0.4, -nx) } : ZONES.torso(u, nx, nz)), w);
+    this.torso = mk(this.tg);
+    this.head = mk(HEAD, M.clay);
     for (const arm of [true, true, false, false]) {
-      const g1 = (arm ? GEO.upperArm : GEO.thigh).clone(), g2 = (arm ? GEO.forearm : GEO.shin).clone();
-      const set = [mk(g1), mk(g2), joint(arm ? 'shoulders' : null), joint(null), joint(null)];
-      if (!arm) set.push(mk(CYL, M.clay), joint(null));
-      this.limbs.push(set);
-      this.parts.push({ mesh: set[0], geo: g1 }, { mesh: set[1], geo: g2 });
+      const def = arm ? ARM : LEG;
+      const sw = new Sweep(def, 30, 18, (s) => (arm ? (s <= 1 ? ZONES.upperArm : ZONES.forearm) : s <= 1 ? ZONES.thigh : ZONES.shin), w, skin).setDef(def);
+      this.limbs.push(sw); this.group.add(sw.mesh);
+      if (arm) this.hands.push(mk(BALL, M.clay)); else this.feet.push(mk(FOOT, M.clay));
     }
-  }
-
-  private bone(mesh: Mesh, a: Vector3, b: Vector3, front: Vector3): Vector3 {
-    const y = b.clone().sub(a), len = y.length() || 0.01; y.divideScalar(len);
-    const z = new Vector3().crossVectors(front, y).normalize(), x = new Vector3().crossVectors(y, z);
-    mesh.matrix.makeBasis(x, y.clone().multiplyScalar(len), z).setPosition(a);
-    return z;
-  }
-  private ball(mesh: Mesh, c: Vector3, r: number, sy = 1) { mesh.matrix.makeScale(r, r * sy, r).setPosition(c); }
-  private tube(mesh: Mesh, a: Vector3, b: Vector3, r: number) {
-    const d = b.clone().sub(a), len = d.length() || 0.01;
-    mesh.matrix.compose(a.clone().add(b).multiplyScalar(0.5), new Quaternion().setFromUnitVectors(UP, d.divideScalar(len)), new Vector3(r, len, r));
   }
 
   pose(p: Pose3): void {
     const y = p.sh.clone().sub(p.hip).normalize();
     const x = new Vector3().crossVectors(y, p.right).normalize(), z = new Vector3().crossVectors(x, y);
     this.torso.matrix.makeBasis(x, y, z).setPosition(p.hip);
-    this.tube(this.neck, p.sh.clone().addScaledVector(y, 1.2), p.head, 1.6);
-    this.head.matrix.makeBasis(x, y, z).scale(new Vector3(DIM.HEAD * 0.98, DIM.HEAD * 1.1, DIM.HEAD * 0.92)).setPosition(p.head.clone().addScaledVector(y, 0.6));
-    const zs: Vector3[] = [];
+    // La cabeza sigue la inclinación que da la postura respecto del tronco.
+    const hy = p.head.clone().sub(p.sh).normalize(), hx = new Vector3().crossVectors(hy, z).normalize(), hz = new Vector3().crossVectors(hx, hy);
+    this.head.matrix.makeBasis(hx, hy, hz).scale(new Vector3(DIM.HEAD * 0.98, DIM.HEAD * 0.98, DIM.HEAD * 0.98)).setPosition(p.head.clone().addScaledVector(hy, 0.5));
     p.arms.forEach((l, i) => {
-      const [u, f, sh, el, hand] = this.limbs[i];
+      const s = (i === 0) === p.side ? 1 : -1;                   // +1: lado derecho del cuerpo
+      const out = p.right.clone().multiplyScalar(s).addScaledVector(y, 0.7);
       const ax = l.b.clone().sub(l.a).normalize();
       const fr = frontOf(ax, l.c.clone().sub(l.b), 1, x, p.fwd);
-      zs.push(this.bone(u, l.a, l.b, fr)); zs.push(this.bone(f, l.b, l.c, perp(fr, l.c.clone().sub(l.b).normalize()).lengthSq() > 0.01 ? fr : x));
-      this.ball(sh, l.a, 2.45); this.ball(el, l.b, 1.78); this.ball(hand, l.c.clone().addScaledVector(l.c.clone().sub(l.b).normalize(), 0.9), 1.5, 1.15);
+      this.limbs[i].update(l.a, l.b, l.c, fr, fr, out);
+      const f = l.c.clone().sub(l.b).normalize(), hxv = perp(fr, f).lengthSq() > 0.01 ? perp(fr, f).normalize() : perp(x, f).normalize(), hzv = new Vector3().crossVectors(hxv, f);
+      this.hands[i].matrix.makeBasis(hxv, f, hzv).scale(new Vector3(1.05, 1.75, 1.45)).setPosition(l.c.clone().addScaledVector(f, 1.15));
     });
     p.legs.forEach((l, i) => {
-      const [t, s, hipJ, knee, ankle, foot, toe] = this.limbs[2 + i];
+      const s = (i === 0) === p.side ? 1 : -1;
+      const out = p.right.clone().multiplyScalar(s);
       const ax = l.b.clone().sub(l.a).normalize(), bx = l.c.clone().sub(l.b).normalize();
-      zs.push(this.bone(t, l.a, l.b, frontOf(ax, l.c.clone().sub(l.b), -1, p.side ? x.clone().lerp(p.fwd, 0.5) : p.fwd, x)));
-      zs.push(this.bone(s, l.b, l.c, frontOf(bx, l.a.clone().sub(l.b), -1, p.fwd, x)));
-      this.ball(hipJ, l.a, 3.3); this.ball(knee, l.b, 2.32); this.ball(ankle, l.c, 1.5);
-      this.tube(foot, l.c, l.d!, 1.38); this.ball(toe, l.d!, 1.38);
+      const f1 = frontOf(ax, l.c.clone().sub(l.b), -1, p.side ? x.clone().lerp(p.fwd, 0.5) : p.fwd, x), f2 = frontOf(bx, l.a.clone().sub(l.b), -1, p.fwd, x);
+      this.limbs[2 + i].update(l.a, l.b, l.c, f1, f2, out);
+      // El pie apunta del talón a la punta; su "arriba" es la tibia.
+      const fx = l.d!.clone().sub(l.c); const len = Math.max(2.6, fx.length()); fx.normalize();
+      const up = perp(bx.clone().negate(), fx); if (up.lengthSq() < 0.01) up.copy(perp(UP, fx)); up.normalize();
+      this.feet[i].matrix.makeBasis(fx, up, new Vector3().crossVectors(fx, up)).scale(new Vector3(len * 0.72 + 0.9, 1.7, 1.55)).setPosition(l.c.clone().addScaledVector(fx, len * 0.42).addScaledVector(up, -0.25));
     });
-    if (!this.painted) {
-      // El lado exterior de cada extremidad depende de hacia dónde quedó su eje Z en esta postura.
-      this.painted = true;
-      const zone = [ZONES.upperArm, ZONES.forearm, ZONES.upperArm, ZONES.forearm, ZONES.thigh, ZONES.shin, ZONES.thigh, ZONES.shin];
-      zs.forEach((zv, k) => { const rightSide = (k >> 1) % 2 === (p.side ? 0 : 1); paint(this.parts[1 + k].geo, zone[k], this.w, Math.sign(zv.dot(p.right) * (rightSide ? 1 : -1)) || 1); });
-    }
   }
-  dispose() { for (const { geo } of this.parts) geo.dispose(); }
+  dispose() { this.tg.dispose(); for (const l of this.limbs) l.geo.dispose(); }
 }
 
 // ---------- implementos ----------
