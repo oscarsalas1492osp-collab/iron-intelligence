@@ -1,5 +1,6 @@
 // REGISTRO DE ENTRENAMIENTO — funcionalidad principal.
 // Cada cambio se escribe de inmediato en la base local: si la app se cierra, la sesión se recupera tal cual.
+import { ADJ_KEY } from '../domain/feedback';
 import { ToolsButton } from '../ui/extras';
 import { beep, clearRestNotice, notifyRestEnd, primeAudio } from '../ui/alerts';
 import { isRecord } from '../domain/insights';
@@ -278,6 +279,8 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
   const { target, rec, last } = useExerciseCtx(session, ex, history, readiness);
   const [editTarget, setEditTarget] = useState(false); const [detail, setDetail] = useState(false); const [more, setMore] = useState(false);
   const unit = ex.measure === 'reps' ? 'Repeticiones' : ex.measure === 'time' ? 'Segundos' : 'Metros';
+  // Ajuste de series que se aplicó al iniciar esta sesión por la valoración de las anteriores.
+  const adjust = useMemo(() => { try { const a = JSON.parse(localStorage.getItem(ADJ_KEY) ?? 'null'); return a?.id === session.id ? Number(a.adj?.[ex.id] ?? 0) : 0; } catch { return 0; } }, [session.id, ex.id]);
   return (
     <div className="space-y-3">
       <div>
@@ -295,6 +298,7 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
             <span key={k} className="px-1"><span className="num block text-base leading-tight">{v}</span><span className="label block !text-xs">{k}</span></span>
           ))}
         </button>
+        {adjust !== 0 && <p className="wd-c mt-2 text-sm text-data">{adjust > 0 ? 'Hoy una serie más: valoraste «Poco» este músculo dos veces seguidas.' : 'Hoy una serie menos: la última vez valoraste «Demasiado» este músculo.'}</p>}
         {(!compact || more) && (
           <p className={cx('text-[15px]', compact ? 'mt-2' : 'mt-3')}>
             <span className="text-mute">Última sesión: </span>

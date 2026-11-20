@@ -4,9 +4,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../data/db';
-import { createFromPlan, elapsedMs, importSessions, importSharedRoutine, mine, saveMeasures, shareableRoutine, softDelete, updateSettings } from '../data/repo';
+import { createFromPlan, elapsedMs, importSessions, importSharedRoutine, mine, rateSession, saveMeasures, shareableRoutine, softDelete, updateSettings } from '../data/repo';
 import { DAY, fmtDate, fmtDuration, fmtKg, weekStart, ymd } from '../domain/calc';
 import { cycleInfo } from '../domain/cycle';
+import { RATINGS } from '../domain/feedback';
 import { generatePlan } from '../domain/generator';
 import { parseWorkouts } from '../domain/importers';
 import { adherence, balance, LEVELS, strengthLevels, weekStreak } from '../domain/insights';
@@ -143,6 +144,34 @@ export function ShareSessionButton({ session, sets }: { session: Session; sets: 
     setBusy(false);
   };
   return <Btn variant="primary" icon="up" className="mt-4 w-full" disabled={busy} onClick={share}>Compartir este entrenamiento</Btn>;
+}
+
+// ---------- Valoración tras la sesión ----------
+export function SessionFeedback({ session, sets }: { session: Session; sets: SetLog[] }) {
+  const ex = useExMap(); const p = useProfile(); const run = useAction();
+  // Solo los músculos que de verdad se trabajaron en la sesión.
+  const muscles = [...new Set(session.exerciseIds.filter((id) => sets.some((s) => s.exerciseId === id && s.done)).map((id) => ex.get(id)?.primary).filter((m): m is NonNullable<typeof m> => !!m))].slice(0, 8);
+  const mine_ = p.settings?.ratings?.[session.id]?.m ?? {};
+  if (session.status !== 'done' || !muscles.length) return null;
+  return (
+    <div className="mt-4 rounded-panel bg-card2 p-3">
+      <div className="font-semibold">¿Cuánto trabajo sintió cada músculo?</div>
+      <p className="mb-2 mt-0.5 text-xs text-mute">Con dos «Poco» seguidos, la próxima sesión suma una serie a ese músculo; con un «Demasiado», quita una. Es una regla práctica y siempre puedes cambiar el objetivo a mano.</p>
+      <div className="space-y-2">
+        {muscles.map((m) => (
+          <div key={m} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2">
+            <span className="truncate text-sm font-semibold">{MUSCLE_LABEL[m]}</span>
+            <div className="flex rounded-[14px] bg-ink/40 p-1" role="group" aria-label={`Trabajo de ${MUSCLE_LABEL[m]}`}>
+              {RATINGS.map((r) => {
+                const on = mine_[m] === r.value;
+                return <button type="button" key={r.value} aria-pressed={on} onClick={() => run(() => rateSession(session.id, session.startedAt, m, on ? null : r.value))} className={`wd-c h-9 min-w-0 flex-1 truncate rounded-xl px-1 text-sm font-semibold ${on ? 'bg-chalk text-ink' : 'text-mute'}`}>{r.label}</button>;
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ---------- Compartir y recibir rutinas ----------

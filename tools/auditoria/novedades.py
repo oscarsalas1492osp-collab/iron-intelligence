@@ -50,4 +50,12 @@ with sync_playwright() as p:
     ok('ayudas: series de calentamiento', dlg().locator('button[aria-pressed] .num').count()>=2)
     dlg().locator('button:has-text("Discos")').tap(); pg.wait_for_selector('text=Por cada lado'); pg.screenshot(path='/tmp/auditoria-out/n_discos.png'); ok('ayudas: discos por lado', True); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     w=pg.locator('main input[aria-label^="Peso serie 1"]'); w.tap(); pg.keyboard.type('400'); pg.locator('main [aria-label="Completar serie 1"]').tap(); toast('Nuevo récord de carga'); ok('récord: aviso al superar la carga', True)
+    # valoración tras la sesión
+    pg.wait_for_timeout(700); pg.locator('button:has-text("Finalizar")').first.tap(); dlg().locator('button:has-text("Finalizar")').tap(); pg.wait_for_selector('text=¿Cuánto trabajo sintió cada músculo?')
+    g=pg.locator('[role=dialog] [role=group][aria-label^="Trabajo de"]').first; g.locator('button:has-text("Poco")').tap(); pg.wait_for_timeout(500)
+    ok('valoración: se guarda la respuesta por músculo', g.locator('button:has-text("Poco")').get_attribute('aria-pressed')=='true')
+    pg.screenshot(path='/tmp/auditoria-out/n_valoracion.png'); pg.keyboard.press('Escape')
+    # modo entrenador: sin cuenta no aparece en el menú y la pantalla lo explica
+    go('/mas'); ok('entrenador: oculto sin cuenta', pg.locator('main >> text=Entrenador').count()==0)
+    go('/entrenador'); ok('entrenador: pide una cuenta', pg.locator('text=Necesitas una cuenta').count()==1)
     print('\n'.join(R)); print('errores JS', errs); b.close()

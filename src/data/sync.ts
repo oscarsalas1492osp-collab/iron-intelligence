@@ -162,7 +162,7 @@ export function takeReturnError(): string | null { const e = returnError; return
 
 export const supabase: SupabaseClient | null = cloudEnabled ? createClient(SB_URL!, ANON!) : null;
 
-export function supabaseRemote(sb: SupabaseClient): RemoteClient {
+export function supabaseRemote(sb: SupabaseClient, userId: string): RemoteClient {
   return {
     async upsert(table, rows) {
       for (let i = 0; i < rows.length; i += 500) {
@@ -174,7 +174,8 @@ export function supabaseRemote(sb: SupabaseClient): RemoteClient {
       const out: Record<string, unknown>[] = [];
       let cursor = since;
       for (;;) {
-        let q = sb.from(table).select('*').order('synced_at', { ascending: true }).limit(1000);
+        // Solo las filas propias: un entrenador también puede leer las de sus deportistas, pero no deben mezclarse aquí.
+        let q = sb.from(table).select('*').eq('user_id', userId).order('synced_at', { ascending: true }).limit(1000);
         if (cursor) q = q.gt('synced_at', cursor);
         const { data, error } = await q;
         if (error) throw new Error(`No se pudo descargar ${table}: ${error.message}`);
@@ -206,7 +207,7 @@ export async function syncNow(): Promise<void> {
   try {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw new Error(SESSION_EXPIRED);
-    await syncAll(supabaseRemote(supabase), uid);
+    await syncAll(supabaseRemote(supabase, uid), uid);
     setState({ status: 'idle', lastSync: Date.now() });
   } catch (e) {
     setState({ status: 'error', error: e instanceof Error && e.message === SESSION_EXPIRED ? SESSION_EXPIRED : authMessage(e) });

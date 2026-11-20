@@ -47,6 +47,8 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Ciclos de entrenamiento con RIR progresivo y semana de descarga | Completo |
 | Generador de plan según días, equipo, experiencia y prioridades; 9 programas prearmados | Completo |
 | Medidas corporales, racha semanal, constancia, equilibrio empuje-tirón y niveles de fuerza | Completo |
+| Valoración tras la sesión por músculo, que suma o quita una serie en la sesión siguiente | Completo |
+| Modo entrenador (invitación por código, vista del deportista, envío de rutinas): código listo, falta activar los permisos en el servidor (supabase/schema.sql) | Pendiente de activar |
 | iPhone: instalable desde Safari con aviso de instalación; publicación en App Store y apps de reloj documentadas en docs/iphone-y-reloj.md | Parcial |
 | Inicio de sesión con Google (botón visible cuando el proveedor está activo en Supabase) | Código listo; falta activar el proveedor |
 | Eliminación de cuenta y datos, en la app y en `eliminar-cuenta.html` | Código listo; requiere la función `delete_account` de `supabase/schema.sql` |

@@ -145,3 +145,83 @@ $$;
 
 revoke all on function public.delete_account() from public, anon;
 grant execute on function public.delete_account() to authenticated;
+
+-- Ajustes del usuario (ciclo, barra y discos, avisos, valoraciones) y medidas corporales.
+alter table public.profiles add column if not exists settings jsonb not null default '{}';
+create table if not exists public.body_measures (
+  id text primary key,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  updated_at bigint not null, deleted smallint not null default 0, synced_at timestamptz not null default clock_timestamp(),
+  date text not null, "values" jsonb not null default '{}'
+);
+alter table public.body_measures enable row level security;
+drop policy if exists own_rows on public.body_measures;
+create policy own_rows on public.body_measures for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop trigger if exists touch_synced on public.body_measures;
+create trigger touch_synced before insert or update on public.body_measures for each row execute function public.touch_synced_at();
+create index if not exists body_measures_sync_idx on public.body_measures (user_id, synced_at);
+
+-- Modo entrenador. El deportista crea la invitación; nadie ve sus datos hasta que él la crea y el entrenador la acepta.
+create table if not exists public.coach_links (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  coach_id uuid references auth.users (id) on delete cascade,
+  code text not null unique check (char_length(code) between 6 and 16),
+  client_name text not null default '' check (char_length(client_name) <= 60),
+  coach_name text not null default '' check (char_length(coach_name) <= 60),
+  created_at timestamptz not null default now(),
+  accepted_at timestamptz
+);
+create index if not exists coach_links_coach_idx on public.coach_links (coach_id);
+create index if not exists coach_links_client_idx on public.coach_links (client_id);
+alter table public.coach_links enable row level security;
+drop policy if exists client_read on public.coach_links;
+drop policy if exists client_invite on public.coach_links;
+drop policy if exists client_revoke on public.coach_links;
+drop policy if exists coach_read on public.coach_links;
+drop policy if exists coach_leave on public.coach_links;
+create policy client_read on public.coach_links for select to authenticated using (client_id = (select auth.uid()));
+create policy client_invite on public.coach_links for insert to authenticated with check (client_id = (select auth.uid()) and coach_id is null and accepted_at is null);
+create policy client_revoke on public.coach_links for delete to authenticated using (client_id = (select auth.uid()));
+create policy coach_read on public.coach_links for select to authenticated using (coach_id = (select auth.uid()));
+create policy coach_leave on public.coach_links for delete to authenticated using (coach_id = (select auth.uid()));
+
+create or replace function public.is_coach_of(p_client uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.coach_links l where l.coach_id = (select auth.uid()) and l.client_id = p_client and l.accepted_at is not null);
+$$;
+revoke all on function public.is_coach_of(uuid) from public, anon;
+grant execute on function public.is_coach_of(uuid) to authenticated;
+
+-- El entrenador acepta con el código que le pasó el deportista (vigente 7 días, un solo uso).
+create or replace function public.accept_coach_invite(p_code text, p_name text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare
+  uid uuid := auth.uid();
+  l public.coach_links;
+begin
+  if uid is null then raise exception 'not authenticated' using errcode = '28000'; end if;
+  select * into l from public.coach_links where code = upper(trim(p_code)) and coach_id is null and created_at > now() - interval '7 days' for update;
+  if not found then raise exception 'invalid_code' using errcode = 'P0001'; end if;
+  if l.client_id = uid then raise exception 'own_code' using errcode = 'P0001'; end if;
+  update public.coach_links set coach_id = uid, coach_name = left(coalesce(p_name, ''), 60), accepted_at = now() where id = l.id;
+  return l.client_id;
+end;
+$$;
+revoke all on function public.accept_coach_invite(text, text) from public, anon;
+grant execute on function public.accept_coach_invite(text, text) to authenticated;
+
+-- Lo que ve el entrenador: entrenamientos, series, rutinas y ejercicios propios. No ve recuperación, peso, medidas ni perfil.
+-- Puede enviar rutinas (solo añadir): nunca modificar ni borrar lo del deportista.
+do $$
+declare t text;
+begin
+  foreach t in array array['sessions','set_logs','routines','routine_items','exercises'] loop
+    execute format('drop policy if exists coach_read on public.%I', t);
+    execute format('create policy coach_read on public.%I for select to authenticated using (public.is_coach_of(user_id))', t);
+  end loop;
+  foreach t in array array['routines','routine_items','exercises'] loop
+    execute format('drop policy if exists coach_send on public.%I', t);
+    execute format('create policy coach_send on public.%I for insert to authenticated with check (public.is_coach_of(user_id))', t);
+  end loop;
+end $$;

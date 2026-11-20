@@ -1,4 +1,4 @@
-import { ShareSessionButton } from '../ui/extras';
+import { SessionFeedback, ShareSessionButton } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -38,7 +38,7 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
   const ids = [...new Set([...session.exerciseIds, ...sets.map((s) => s.exerciseId)])].filter((id) => sets.some((s) => s.exerciseId === id));
   return (
     <Sheet open onClose={onClose} title={session.name} wide>
-      <div className="mb-4 grid grid-cols-4 gap-2">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Fecha" value={<span className="text-base">{fmtDate(session.startedAt)}</span>} />
         <Stat label="Duración" value={<span className="text-base">{fmtDuration(elapsedMs(session))}</span>} />
         <Stat label="Series" value={<span className="text-base">{sets.filter((x) => !x.sub).length}</span>} />
@@ -72,7 +72,8 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
           );
         })}
       </div>
-      {session.notes && <p className="mt-3 text-sm text-mute">{session.notes}</p>}
+      {session.notes && <p className="mt-3 text-sm text-mute">{session.notes.replace('#descarga', 'Semana de descarga')}</p>}
+      <SessionFeedback session={session} sets={sets} />
       <ShareSessionButton session={session} sets={sets} />
       <Btn variant="danger" icon="trash" className="mt-2 w-full" onClick={async () => { if (await confirm('Se eliminará la sesión completa con todas sus series. Esta acción no se puede deshacer.', { confirmLabel: 'Eliminar sesión', danger: true })) { await run(() => deleteSession(session.id), 'Sesión eliminada'); onClose(); } }}>Eliminar sesión</Btn>
       {edit && <SetEditor s={edit} onClose={() => setEdit(null)} />}

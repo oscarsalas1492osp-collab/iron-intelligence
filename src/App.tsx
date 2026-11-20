@@ -1,3 +1,4 @@
+import Coach from './pages/Coach';
 import { ImportRoutinePage } from './ui/extras';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -77,6 +78,7 @@ export default function App() {
                 <Route path="/fundamento" element={<Science />} />
                 <Route path="/mas" element={<More />} />
                 <Route path="/importar" element={<ImportRoutinePage />} />
+                <Route path="/entrenador" element={<Coach />} />
                 <Route path="*" element={<Dashboard />} />
               </Route>
             </Routes>

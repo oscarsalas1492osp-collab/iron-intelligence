@@ -174,6 +174,8 @@ export interface Settings {
   /** Aviso al terminar el descanso cuando la app no está en pantalla, y sonido. */
   restAlert?: boolean;
   restSound?: boolean;
+  /** Valoración tras cada sesión, por músculo: 1 poco trabajo, 2 justo, 3 demasiado. Se conservan las más recientes. */
+  ratings?: Record<string, { at: number; m: Record<string, number> }>;
 }
 
 /** Medidas corporales de un día, en centímetros (o % en grasa corporal). */

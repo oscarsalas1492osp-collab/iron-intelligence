@@ -28,6 +28,7 @@ export const schemas = {
       cycle: z.object({ start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weeks: z.number().int().min(3).max(12), deload: z.boolean() }).nullable().optional(),
       bar: z.number().min(0).max(60).optional(), plates: z.array(z.number().min(0.25).max(50)).max(20).optional(),
       restAlert: z.boolean().optional(), restSound: z.boolean().optional(),
+      ratings: z.record(z.object({ at: z.number(), m: z.record(z.number().int().min(1).max(3)) })).optional(),
     }).default({}),
   }),
   exercises: z.object({

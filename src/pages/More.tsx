@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { coachAvailable, coachKnown } from '../data/coach';
 import { Card, Icon, Title } from '../ui/components';
 import { MORE } from '../ui/Layout';
 
@@ -12,6 +14,9 @@ const DESC: Record<string, string> = {
 };
 
 export default function More() {
+  // El modo entrenador aparece cuando el servidor lo tiene activado y hay una cuenta iniciada.
+  const [coach, setCoach] = useState(coachKnown);
+  useEffect(() => { void coachAvailable().then(setCoach); }, []);
   return (
     <div>
       <Title>Más</Title>
@@ -25,6 +30,15 @@ export default function More() {
             </Card>
           </Link>
         ))}
+        {coach && (
+          <Link to="/entrenador">
+            <Card className="flex items-center gap-3">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-card2 text-amber"><Icon name="user" /></span>
+              <span className="min-w-0 flex-1"><span className="block font-bold">Entrenador</span><span className="block text-xs text-mute truncate">Invita a tu entrenador o sigue a tus deportistas</span></span>
+              <Icon name="right" className="text-mute" size={18} />
+            </Card>
+          </Link>
+        )}
       </div>
     </div>
   );

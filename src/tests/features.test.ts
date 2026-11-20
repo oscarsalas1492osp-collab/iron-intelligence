@@ -6,6 +6,7 @@ import { TEMPLATES } from '../data/templates';
 import { DAY, weekStart, ymd } from '../domain/calc';
 import { cycleInfo, cycleTarget, DELOAD_TAG } from '../domain/cycle';
 import { LIBRARY } from '../domain/exerciseLibrary';
+import { volumeDelta } from '../domain/feedback';
 import { generatePlan } from '../domain/generator';
 import { matchExercise, parseWorkouts } from '../domain/importers';
 import { adherence, balance, isRecord, strengthLevels, weekStreak } from '../domain/insights';
@@ -147,5 +148,37 @@ describe('indicadores', () => {
     expect(isRecord([], 'bench_press', 90, 5, 1)).toBeNull();
     const m = await repo.saveMeasures({ waist: 84, arm: 38 }); await repo.saveMeasures({ waist: 83, arm: 0 });
     expect((await db.measures.get(m.id))!.values).toEqual({ waist: 83 });
+  });
+});
+
+describe('valoración tras la sesión', () => {
+  it('dos «poco» seguidos suman una serie, un «demasiado» quita una y lo antiguo no cuenta', () => {
+    const now = Date.now();
+    const r = (at: number, v: number) => ({ at, m: { chest: v } });
+    expect(volumeDelta('chest', { a: r(now - DAY, 1), b: r(now - 3 * DAY, 1) }, now)).toBe(1);
+    expect(volumeDelta('chest', { a: r(now - DAY, 1), b: r(now - 3 * DAY, 2) }, now)).toBe(0);
+    expect(volumeDelta('chest', { a: r(now - DAY, 3), b: r(now - 3 * DAY, 1) }, now)).toBe(-1);
+    expect(volumeDelta('chest', { a: r(now - 40 * DAY, 3) }, now)).toBe(0);
+    expect(volumeDelta('back', { a: r(now, 3) }, now)).toBe(0);
+  });
+  it('la sesión siguiente parte con la serie de más o de menos en el primer ejercicio del músculo', async () => {
+    const r = await repo.createRoutine('A'); await repo.addItem(r.id, 'chest_press_machine'); await repo.addItem(r.id, 'pec_deck');
+    const run = async (value: number) => {
+      const s = await repo.startSession(r.id);
+      const n = (await repo.getSessionSets(s.id)).filter((x) => x.exerciseId === 'chest_press_machine').length;
+      for (const x of await repo.getSessionSets(s.id)) { await repo.updateSet(x.id, { weight: 40, reps: 10, rir: 2 }); await repo.completeSet(x.id); }
+      const done = (await repo.finishSession(s.id))!;
+      await repo.rateSession(done.id, Date.now() + n, 'chest', value);
+      return n;
+    };
+    expect(await run(1)).toBe(3);
+    expect(await run(1)).toBe(3);
+    expect(await run(3)).toBe(4);
+    expect(await run(2)).toBe(2);
+    const s = await repo.startSession(r.id);
+    expect((await repo.getSessionSets(s.id)).filter((x) => x.exerciseId === 'chest_press_machine')).toHaveLength(3);
+    expect((await repo.getSessionSets(s.id)).filter((x) => x.exerciseId === 'pec_deck')).toHaveLength(3);
+    expect(JSON.parse(localStorage.getItem('ii_adj')!).adj).toEqual({});
+    expect(schemas.profiles.safeParse(await repo.getProfile()).success).toBe(true);
   });
 });

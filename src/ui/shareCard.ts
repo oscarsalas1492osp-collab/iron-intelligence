@@ -95,3 +95,9 @@ export async function shareLink(url: string, title: string): Promise<'shared' | 
   try { await navigator.clipboard.writeText(url); } catch { window.prompt('Copia este enlace', url); }
   return 'copied';
 }
+/** Comparte un texto corto (por ejemplo, un código); si no hay menú de compartir, lo copia. */
+export async function shareText(text: string): Promise<'shared' | 'copied' | 'cancelled'> {
+  if (navigator.share) { try { await navigator.share({ text }); return 'shared'; } catch (e) { if ((e as Error)?.name === 'AbortError') return 'cancelled'; } }
+  try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copia este texto', text); }
+  return 'copied';
+}

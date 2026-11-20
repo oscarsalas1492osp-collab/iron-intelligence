@@ -3,6 +3,7 @@
 import { clamp, roundTo, rpeFromRir, uid, ymd } from '../domain/calc';
 import { isLibraryId, mergeExercises } from '../domain/exerciseLibrary';
 import { cycleInfo, cycleTarget, DELOAD_TAG, deloadWeight } from '../domain/cycle';
+import { ADJ_KEY, pruneRatings, volumeDelta } from '../domain/feedback';
 import { guessExercise, matchExercise, type ImportedSession } from '../domain/importers';
 import type { PlanDay } from '../domain/generator';
 import { recommend, workWeight } from '../domain/progression';
@@ -56,6 +57,15 @@ export const saveProfile = (p: Profile) => save('profiles', { ...p, id: getUserI
 export async function updateSettings(patch: Partial<Settings>): Promise<Profile> {
   const p = await getProfile();
   return saveProfile({ ...p, settings: { ...(p.settings ?? {}), ...patch } });
+}
+/** Guarda cuánto trabajo sintió un músculo en una sesión (1 poco, 2 justo, 3 demasiado; null lo borra). */
+export async function rateSession(sessionId: string, at: number, muscle: string, value: number | null): Promise<Profile> {
+  const p = await getProfile();
+  const ratings = { ...(p.settings?.ratings ?? {}) };
+  const m = { ...(ratings[sessionId]?.m ?? {}) };
+  if (value == null) delete m[muscle]; else m[muscle] = value;
+  if (Object.keys(m).length) ratings[sessionId] = { at, m }; else delete ratings[sessionId];
+  return saveProfile({ ...p, settings: { ...(p.settings ?? {}), ratings: pruneRatings(ratings) } });
 }
 export function updateProfile(patch: Partial<Profile>): Promise<Profile> {
   return db.transaction('rw', db.profiles, async () => saveProfile({ ...(await getProfile()), ...patch }));
@@ -290,7 +300,8 @@ async function createSession(routineId: string | null): Promise<Session> {
   // Se omiten ejercicios que ya no existen (p. ej. uno propio eliminado después de armar la rutina).
   const items = (routineId ? await getItems(routineId) : []).filter((i) => exercises.some((e) => e.id === i.exerciseId));
   // Con un ciclo activo, el objetivo del día depende de la semana: RIR que baja semana a semana y descarga al final.
-  const cycle = (await getProfile()).settings?.cycle;
+  const settings = (await getProfile()).settings;
+  const cycle = settings?.cycle;
   const info = cycleInfo(cycle);
   const session: Session = {
     ...newBase(), routineId, name: routine?.name ?? 'Entrenamiento libre', startedAt: Date.now(), endedAt: null, status: 'active', pausedAt: null, pausedMs: 0, notes: info?.deload ? DELOAD_TAG : '',
@@ -298,6 +309,20 @@ async function createSession(routineId: string | null): Promise<Session> {
     targets: Object.fromEntries(items.map((i) => [i.exerciseId, cycleTarget({ sets: i.sets, repMin: i.repMin, repMax: i.repMax, rirMin: i.rirMin, rirMax: i.rirMax, restSec: i.restSec }, info, !!cycle?.deload)])),
     supersets: cleanGroups(items.map((i) => i.exerciseId), groupsOfItems(items).map((g) => g.map((id) => items.find((i) => i.id === id)?.exerciseId ?? ''))),
   };
+  // Valoración de las últimas sesiones: una serie más o una menos en el primer ejercicio del músculo (no en descarga).
+  const adj: Record<string, number> = {};
+  if (!info?.deload) {
+    const seen = new Set<string>();
+    for (const it of items) {
+      const ex = exercises.find((e) => e.id === it.exerciseId);
+      if (!ex || seen.has(ex.primary)) continue;
+      seen.add(ex.primary);
+      const d = volumeDelta(ex.primary, settings?.ratings);
+      const t = session.targets[ex.id];
+      if (d && t && t.sets + d >= 1 && t.sets + d <= 12) { session.targets[ex.id] = { ...t, sets: t.sets + d }; adj[ex.id] = d; }
+    }
+  }
+  try { localStorage.setItem(ADJ_KEY, JSON.stringify({ id: session.id, adj })); } catch { /* sin almacenamiento */ }
   await save('sessions', session);
   for (const it of items) {
     const ex = exercises.find((e) => e.id === it.exerciseId);
