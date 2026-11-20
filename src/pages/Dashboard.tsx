@@ -39,7 +39,7 @@ function RingStat({ value, max, color, figure, label, note, good }: { value: num
     <div className="flex min-w-0 flex-col items-center text-center">
       <Ring value={value} max={max} color={color}><span className="num text-[1.35rem] leading-none">{figure}</span></Ring>
       <div className="label mt-2">{label}</div>
-      {note && <div className="wd-c truncate text-xs" style={{ color: good ? '#3ddc84' : '#9a9fa9' }}>{note}</div>}
+      {note && <div className="wd-c truncate text-xs" style={{ color: good ? '#34e0a1' : '#93a4ab' }}>{note}</div>}
     </div>
   );
 }
@@ -124,7 +124,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-3 gap-2">
             <RingStat value={nSessions} max={profile.daysAvailable} color="#ff6a1a" figure={nSessions} label="sesiones" note={`de ${profile.daysAvailable} días`} />
             <RingStat value={nWeek} max={prevSets || nWeek || 1} color="#ffb054" figure={nWeek} label="series" note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
-            <RingStat value={ton} max={prevTon || ton || 1} color="#6fb4ff" figure={(ton / 1000).toFixed(1).replace('.', ',')} label="toneladas" note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
+            <RingStat value={ton} max={prevTon || ton || 1} color="#58c7ff" figure={(ton / 1000).toFixed(1).replace('.', ',')} label="toneladas" note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
           </div>
         </section>
 
@@ -155,7 +155,7 @@ export default function Dashboard() {
               right={<span className="num shrink-0 text-2xl leading-none" style={{ color: LEVEL_COLOR[fatigue.level] }}>{fatigue.readiness ?? '–'}</span>}>
               <span style={{ color: LEVEL_COLOR[fatigue.level] }}>{fatigue.label}</span>
             </Tile>
-            <Tile icon="chart" tone="#6fb4ff" label="Peso corporal" onClick={() => nav('/recuperacion')} right={<Spark values={weights.slice(-20).map((w) => w.kg)} width={64} height={26} color="#6fb4ff" />}>
+            <Tile icon="chart" tone="#58c7ff" label="Peso corporal" onClick={() => nav('/recuperacion')} right={<Spark values={weights.slice(-20).map((w) => w.kg)} width={64} height={26} color="#58c7ff" />}>
               {bw ? <>{fmtKg(bw.kg)} kg <span className="wd-c block text-sm font-normal text-mute">{weights.length > 1 ? `${bw.kg - weights[0].kg >= 0 ? '+' : ''}${(bw.kg - weights[0].kg).toFixed(1)} kg desde ${weights[0].date}` : bw.date}</span></> : <span className="text-sm font-normal text-mute">Sin registros. Toca para añadir tu peso.</span>}
             </Tile>
             <Tile icon="chat" tone="#ffb054" label="Asistente" onClick={() => nav('/asistente')}>¿Qué peso uso hoy? ¿Qué está estancado?</Tile>

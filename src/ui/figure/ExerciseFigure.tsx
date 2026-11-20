@@ -261,29 +261,32 @@ let broken = typeof WebGLRenderingContext === 'undefined';
 const load3d = () => (mod ??= import('./render3d'));
 const thumbs = new Map<string, string>();
 const waiters = new Map<string, Set<() => void>>();
-const queue: { key: string; ex: FigureEx; sc: Scene }[] = [];
+const queue: { key: string; ex: FigureEx; sc: Scene; fig: Fig }[] = [];
+type Fig = 'male' | 'female';
+/** Figura de los ejercicios: la misma que muestra el mapa muscular en este dispositivo. */
+const figNow = (): Fig => { try { return localStorage.getItem('ii_fig') === 'female' ? 'female' : 'male'; } catch { return 'male'; } };
 const sceneIds = new WeakMap<Scene, number>();
 let nextId = 1, pumping = false;
 const keyOf = (ex: FigureEx, sc: Scene) => {
   let id = sceneIds.get(sc); if (!id) { id = nextId++; sceneIds.set(sc, id); }
-  return `${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
+  return `${figNow()}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
 };
 function pump(): void {
   if (pumping) return;
   pumping = true;
   void load3d().then((m) => {
     // Una figura por turno y con una pausa entre ellas: los toques y el desplazamiento siempre pasan primero.
-    const step = () => {
+    const step = async () => {
       let job = queue.shift();
       // Nadie espera ya esta figura (la fila salió de pantalla): se descarta y se volverá a pedir si hace falta.
       while (job && !waiters.get(job.key)?.size) { waiters.delete(job.key); job = queue.shift(); }
       if (job) {
-        try { thumbs.set(job.key, m.renderThumb(job.ex, job.sc)); } catch { broken = true; queue.length = 0; }
+        try { await m.prepare(job.fig); thumbs.set(job.key, m.renderThumb(job.ex, job.sc, 192, job.fig)); } catch { broken = true; queue.length = 0; }
         waiters.get(job.key)?.forEach((cb) => cb()); waiters.delete(job.key);
       }
-      if (queue.length) setTimeout(step, 24); else pumping = false;
+      if (queue.length) setTimeout(() => void step(), 24); else pumping = false;
     };
-    setTimeout(step, 0);
+    setTimeout(() => void step(), 0);
   }).catch(() => { broken = true; pumping = false; });
 }
 function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
@@ -295,7 +298,7 @@ function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
     if (hit) { setUrl(hit); return; }
     setUrl(null);
     const cb = () => setUrl(thumbs.get(key) ?? null);
-    if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc }); }
+    if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc, fig: figNow() }); }
     waiters.get(key)!.add(cb);
     pump();
     return () => { waiters.get(key)?.delete(cb); };
@@ -312,9 +315,10 @@ function Motion3D({ ex, sc, size, className, onFail }: { ex: FigureEx; sc: Scene
   useEffect(() => {
     let raf = 0, dead = false, fig: InstanceType<Mod['Figure3D']> | null = null;
     const px = Math.min(520, Math.round(size * Math.min(2.5, window.devicePixelRatio || 1)));
-    void load3d().then((m) => {
+    void load3d().then(async (m) => {
+      const who = figNow(); await m.prepare(who);
       if (dead || !ref.current) return;
-      fig = new m.Figure3D(ex, sc, !sc.still);
+      fig = new m.Figure3D(ex, sc, !sc.still, who);
       const ctx = ref.current.getContext('2d')!;
       const paintAt = (t: number) => { ctx.clearRect(0, 0, px, px); ctx.drawImage(fig!.draw(t, px), 0, 0); };
       paintAt(1); setReady(true);

@@ -5,6 +5,10 @@ export type V = [number, number];
 export type View = 'side' | 'front';
 
 export const DIM = { T: 17, NECK: 6.3, HEAD: 3.9, UA: 8.6, FA: 8.1, TH: 12.2, SH: 11.8, FT: 4.4, SW: 7, HW: 3.6 };
+export type Dims = typeof DIM;
+/** Proporciones del modelo anatómico (el render 3D), a la escala en que la pierna mide lo mismo que la del pictograma. */
+export const ANAT: Dims = { T: 13.27, NECK: 6.2, HEAD: 3.9, UA: 8.9, FA: 7.1, TH: 13.17, SH: 10.83, FT: 4.6, SW: 4.97, HW: 2.56 };
+let D: Dims = DIM;
 
 /** Ángulos en grados: 0 = hacia abajo, 90 = hacia delante (lado: a la derecha; frente: hacia fuera), 180 = arriba. */
 export interface Pose {
@@ -83,16 +87,17 @@ function blend(a: Spec, b: Spec, t: number): Spec | null {
 interface Solved { hip: V; sh: V; shs: V[]; hips: V[]; head: V; lean: number }
 function trunk(view: View, hip: V, lean: number, lift: number, hd: number): Solved {
   const up: V = [Math.sin(rad(lean)), -Math.cos(rad(lean))];
-  const sh = add(hip, up, DIM.T);
+  const sh = add(hip, up, D.T);
   const hu = view === 'side' ? [Math.sin(rad(lean + hd)), -Math.cos(rad(lean + hd))] as V : [Math.sin(rad(lean * 1.4 + hd)), -Math.cos(rad(lean * 1.4 + hd))] as V;
-  const head = add(sh, hu, DIM.NECK);
+  const head = add(sh, hu, D.NECK);
   if (view === 'side') return { hip, sh, shs: [sh, sh], hips: [hip, hip], head, lean };
   const across: V = [Math.cos(rad(lean)), Math.sin(rad(lean))];
-  return { hip, sh, head, lean, shs: [add(add(sh, across, DIM.SW), [0, -lift]), add(add(sh, across, -DIM.SW), [0, -lift])], hips: [add(hip, across, DIM.HW), add(hip, across, -DIM.HW)] };
+  return { hip, sh, head, lean, shs: [add(add(sh, across, D.SW), [0, -lift]), add(add(sh, across, -D.SW), [0, -lift])], hips: [add(hip, across, D.HW), add(hip, across, -D.HW)] };
 }
 
 /** Postura intermedia entre `a` y `b` (t de 0 a 1), ya resuelta a posiciones de articulaciones. */
-export function solve(view: View, a: Pose, b: Pose, t: number): Joints {
+export function solve(view: View, a: Pose, b: Pose, t: number, dims: Dims = DIM): Joints {
+  D = dims;
   const hip = mix(a.hip, b.hip, t);
   const lean = lerp(a.lean, b.lean, t);
   const tr = trunk(view, hip, lean, lerp(a.lift ?? 0, b.lift ?? 0, t), lerp(a.hd ?? 0, b.hd ?? 0, t));
@@ -105,7 +110,7 @@ export function solve(view: View, a: Pose, b: Pose, t: number): Joints {
     const far = i === 1;
     const s = view === 'front' ? (far ? -1 : 1) : 1;
     const kT = lerp(a.kT ?? (sit ? 0.34 : 1), b.kT ?? (sit ? 0.34 : 1), t);
-    const [l1, l2] = arm ? [DIM.UA, DIM.FA] : [DIM.TH * kT, DIM.SH];
+    const [l1, l2] = arm ? [D.UA, D.FA] : [D.TH * kT, D.SH];
     const bendOf = (p: Pose) => (arm ? pick(far ? p.e2 ?? p.e : p.e, 1) : pick(far ? p.k2 ?? p.k : p.k, view === 'front' ? 1 : -1));
     const sa = arm ? armSpec(a, far) : legSpec(a, far), sb = arm ? armSpec(b, far) : legSpec(b, far);
     const root = arm ? tr.shs[i] : tr.hips[i];
@@ -131,7 +136,7 @@ export function solve(view: View, a: Pose, b: Pose, t: number): Joints {
       const defOf = (sp: Spec) => (view === 'front' ? 12 : sp.kind === 'ang' ? shin + 90 : 90);
       const f = lerpAng(pick(fa, defOf(sa)), pick(fb, defOf(sb)), t);
       const d = dir(f);
-      out.d = [end[0] + s * d[0] * DIM.FT, end[1] + d[1] * DIM.FT];
+      out.d = [end[0] + s * d[0] * D.FT, end[1] + d[1] * D.FT];
     }
     return out;
   };

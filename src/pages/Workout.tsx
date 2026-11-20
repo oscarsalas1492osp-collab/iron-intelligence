@@ -27,7 +27,7 @@ interface Rest { end: number; total: number }
 const loadRest = (): Rest | null => { try { const r = JSON.parse(localStorage.getItem(REST_KEY) || 'null'); return r && r.end > Date.now() ? r : null; } catch { return null; } };
 const storeRest = (r: Rest | null) => { try { r ? localStorage.setItem(REST_KEY, JSON.stringify(r)) : localStorage.removeItem(REST_KEY); } catch { /* sin almacenamiento */ } };
 
-const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#3ddc84', hold: '#6fb4ff', hold_add_reps: '#6fb4ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
+const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#34e0a1', hold: '#58c7ff', hold_add_reps: '#58c7ff', decrease: '#ff9f45', deload: '#ff9f45', review_technique: '#f5c542' };
 
 export function RecommendationCard({ rec, compact, measure = 'reps' }: { rec: Recommendation; compact?: boolean; measure?: Measure }) {
   const [open, setOpen] = useState(false);
@@ -394,7 +394,7 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
   return (
     <div className="fixed inset-x-0 bottom-[108px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
       <div className="mx-auto flex max-w-xl items-center gap-3 glass-bar rounded-panel p-3 animate-rise">
-        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="rgba(255,255,255,.12)" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#6fb4ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
+        <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="rgba(255,255,255,.12)" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#58c7ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
         <div className="flex-1">
           <div className="num text-2xl leading-none">{fmtDuration(left)}</div>
           <div className="label mt-0.5 !text-data">de descanso</div>
@@ -508,7 +508,7 @@ function Active({ session }: { session: Session }) {
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Bar value={done} max={mains.length || 1} color="#3ddc84" height={5} />
+          <Bar value={done} max={mains.length || 1} color="#34e0a1" height={5} />
           <span className="wd-c shrink-0 text-sm font-semibold tnum text-mute">{done}/{mains.length} series</span>
         </div>
       </div>
@@ -521,7 +521,7 @@ function Active({ session }: { session: Session }) {
           return (
             <span key={u[0]} data-drop-id={u[0]} {...(single ? drag.bind(u[0], name) : {})}
               className={cx('shrink-0 rounded-full transition', drag.over === u[0] && 'ring-2 ring-fire ring-offset-2 ring-offset-ink', drag.dragging === u[0] && 'opacity-40')}>
-              <Chip active={isCur} color={d === xs.length && xs.length ? '#3ddc84' : '#ff6a1a'} onClick={drag.guard(() => select(u[0]))}>
+              <Chip active={isCur} color={d === xs.length && xs.length ? '#34e0a1' : '#ff6a1a'} onClick={drag.guard(() => select(u[0]))}>
                 {/* Nombres largos se recortan para que quepan varios ejercicios en la fila. */}
                 <span className="inline-block max-w-[12.5rem] truncate align-bottom">{i + 1}. {single ? name : `${groupLabel(u.length)}: ${name}`}</span> <span className="tnum opacity-60">{d}/{xs.length}</span>
               </Chip>

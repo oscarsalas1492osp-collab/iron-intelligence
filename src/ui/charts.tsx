@@ -1,10 +1,10 @@
 // Envoltorios de Recharts con el estilo de la app.
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const axis = { stroke: '#9a9fa9', fontSize: 11, tickLine: false, axisLine: false } as const;
-const tip = { contentStyle: { background: '#202328', border: '1px solid #363b43', borderRadius: 12, fontSize: 12 }, labelStyle: { color: '#9a9fa9' }, cursor: { stroke: '#363b43', fill: '#ffffff08' } } as const;
+const axis = { stroke: '#93a4ab', fontSize: 11, tickLine: false, axisLine: false } as const;
+const tip = { contentStyle: { background: '#202328', border: '1px solid #363b43', borderRadius: 12, fontSize: 12 }, labelStyle: { color: '#93a4ab' }, cursor: { stroke: '#363b43', fill: '#ffffff08' } } as const;
 
-export function LineC({ data, x, y, color = '#6fb4ff', unit = '', height = 220 }: { data: Record<string, unknown>[]; x: string; y: string; color?: string; unit?: string; height?: number }) {
+export function LineC({ data, x, y, color = '#58c7ff', unit = '', height = 220 }: { data: Record<string, unknown>[]; x: string; y: string; color?: string; unit?: string; height?: number }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>

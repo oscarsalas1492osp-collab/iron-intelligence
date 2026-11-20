@@ -16,3 +16,5 @@ Modelo anatómico 3D usado por Iron Intelligence.
 - **Este archivo derivado se distribuye bajo la misma licencia CC BY-SA 4.0.**
 
 El guion de conversión está en `tools/modelo/build.mjs`.
+
+El mismo modelo, articulado por sus articulaciones, se usa también en las figuras de ejercicio (`src/ui/figure/render3d.ts`).

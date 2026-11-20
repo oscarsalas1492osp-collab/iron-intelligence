@@ -139,7 +139,7 @@ export function Chip({ active, children, onClick, color }: { active?: boolean; c
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
       className={cx('wd-c h-9 shrink-0 rounded-full px-3.5 text-[15px] font-semibold transition-colors', active ? 'bg-chalk text-ink' : 'bg-card2 text-mute hover:text-chalk')}
-      style={active && color ? { background: color, color: '#0a0a0c' } : undefined}>
+      style={active && color ? { background: color, color: '#070d10' } : undefined}>
       {children}
     </button>
   );
@@ -223,7 +223,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   );
 }
 
-export function Bar({ value, max, color = '#6fb4ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
+export function Bar({ value, max, color = '#58c7ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
   return (
     <div className="w-full overflow-hidden rounded-full bg-card2" style={{ height }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} />
@@ -231,7 +231,7 @@ export function Bar({ value, max, color = '#6fb4ff', height = 8 }: { value: numb
   );
 }
 
-export function Spark({ values, color = '#6fb4ff', width = 120, height = 36 }: { values: number[]; color?: string; width?: number; height?: number }) {
+export function Spark({ values, color = '#58c7ff', width = 120, height = 36 }: { values: number[]; color?: string; width?: number; height?: number }) {
   if (values.length < 2) return null;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
   const pts = values.map((v, i) => `${(i / (values.length - 1)) * (width - 4) + 2},${height - 3 - ((v - min) / span) * (height - 6)}`).join(' ');

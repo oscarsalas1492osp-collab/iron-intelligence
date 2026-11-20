@@ -18,6 +18,8 @@ export function BodyFigure({ tones, selected, onSelect, className, controls = tr
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>(canWebGL ? 'loading' : 'failed');
   const [view, setView] = useState<'front' | 'back'>('front');
   const figure = figureFor(useFigureChoice(), useProfile().sex);
+  // Las figuras de ejercicio usan la misma figura que este mapa.
+  try { localStorage.setItem('ii_fig', figure); } catch { /* sin almacenamiento */ }
   const flat = <BodyMap tones={tones} selected={selected} onSelect={onSelect as ((m: Muscle) => void) | undefined} className="mx-auto h-full max-h-full" />;
   return (
     <div className={className ?? 'relative'}>

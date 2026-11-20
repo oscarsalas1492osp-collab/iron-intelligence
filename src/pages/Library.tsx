@@ -39,11 +39,11 @@ function Filters({ f, set }: { f: Filter; set: (f: Filter) => void }) {
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1" role="group" aria-label="Filtrar por implemento">
         <Chip active={!f.eq} onClick={() => set({ ...f, eq: null })}>Todo el equipo</Chip>
-        {EQUIPMENT.map((m) => <Chip key={m} active={f.eq === m} onClick={() => set({ ...f, eq: f.eq === m ? null : m })} color="#6fb4ff">{EQUIPMENT_LABEL[m]}</Chip>)}
+        {EQUIPMENT.map((m) => <Chip key={m} active={f.eq === m} onClick={() => set({ ...f, eq: f.eq === m ? null : m })} color="#58c7ff">{EQUIPMENT_LABEL[m]}</Chip>)}
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1" role="group" aria-label="Filtrar por tipo de entrenamiento">
         <Chip active={!f.cat} onClick={() => set({ ...f, cat: null })}>Todo tipo</Chip>
-        {CATEGORIES.map((c) => <Chip key={c} active={f.cat === c} onClick={() => set({ ...f, cat: f.cat === c ? null : c })} color="#3ddc84">{CATEGORY_LABEL[c]}</Chip>)}
+        {CATEGORIES.map((c) => <Chip key={c} active={f.cat === c} onClick={() => set({ ...f, cat: f.cat === c ? null : c })} color="#34e0a1">{CATEGORY_LABEL[c]}</Chip>)}
       </div>
     </div>
   );

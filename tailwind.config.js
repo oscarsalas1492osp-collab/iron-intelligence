@@ -1,23 +1,23 @@
 /** @type {import('tailwindcss').Config} */
-// Sistema visual "brasa y vidrio": una sala oscura con una fuente de luz. La luz es cálida cuando se entrena y
+// Sistema visual "brasa y petróleo": una sala oscura azul verdosa con una fuente de luz. La luz es cálida cuando se entrena y
 // fría cuando se analiza; las superficies son vidrio que la deja pasar. El naranja queda para la acción y el esfuerzo.
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: '#0a0a0c',                      // fondo de la sala
-        graphite: '#131316',                 // barras y hojas (base opaca bajo el desenfoque)
-        card: 'rgba(255,255,255,0.055)',     // vidrio: superficies
-        card2: 'rgba(255,255,255,0.09)',     // vidrio más denso: controles
-        line: 'rgba(255,255,255,0.11)',      // filetes
-        mute: '#9a9fa9',                     // texto secundario
-        chalk: '#f5f3ee',                    // texto
+        ink: '#070d10',                      // fondo de la sala
+        graphite: '#0c161a',                 // barras y hojas (base opaca bajo el desenfoque)
+        card: 'rgba(165,225,235,0.06)',     // vidrio: superficies
+        card2: 'rgba(170,228,238,0.10)',     // vidrio más denso: controles
+        line: 'rgba(185,232,242,0.13)',      // filetes
+        mute: '#93a4ab',                     // texto secundario
+        chalk: '#f2f6f6',                    // texto
         fire: '#ff6a1a',                     // intensidad y acción principal
         amber: '#ffb054',                    // reflejo cálido
-        ember: '#ff453a',                    // fallo y acciones destructivas
-        go: '#3ddc84',                       // progresión positiva
-        data: '#6fb4ff',                     // estadísticas (luz fría)
+        ember: '#ff4d4d',                    // fallo y acciones destructivas
+        go: '#34e0a1',                       // progresión positiva
+        data: '#58c7ff',                     // estadísticas (luz fría)
       },
       fontFamily: {
         sans: ['"Archivo Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
