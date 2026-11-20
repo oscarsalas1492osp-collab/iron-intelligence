@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { onLocalChange } from './data/repo';
-import { cloudEnabled, initAuth, scheduleSync, syncNow } from './data/sync';
+import { cloudEnabled, initAuth, scheduleSync, syncNow, takeReturnError } from './data/sync';
 import { useUserId } from './hooks';
 import Assistant from './pages/Assistant';
 import Auth from './pages/Auth';
@@ -13,7 +13,7 @@ import RoutineEditor from './pages/RoutineEditor';
 import Routines from './pages/Routines';
 import Science from './pages/Science';
 import Workout from './pages/Workout';
-import { ErrorBoundary, UiProvider } from './ui/components';
+import { ErrorBoundary, UiProvider, useUi } from './ui/components';
 import Layout from './ui/Layout';
 
 // Las pantallas con gráficos se cargan bajo demanda para que la app abra más rápido.
@@ -25,6 +25,13 @@ const Recovery = lazy(() => import('./pages/Recovery'));
 const Router = import.meta.env.VITE_PREVIEW ? MemoryRouter : HashRouter;
 
 const SKIP_KEY = 'ii_skip_auth';
+
+/** Avisa si Google devolvió un error al volver a la app. */
+function ReturnNotice() {
+  const { toast } = useUi();
+  useEffect(() => { const e = takeReturnError(); if (e) toast(e, 'error'); }, [toast]);
+  return null;
+}
 
 export default function App() {
   const uid = useUserId();
@@ -48,6 +55,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <UiProvider>
+        <ReturnNotice />
         {cloudEnabled && uid === 'local' && !skipped ? (
           <Auth onSkip={() => { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* sin almacenamiento */ } setSkipped(true); }} />
         ) : (

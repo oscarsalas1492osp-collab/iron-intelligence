@@ -1,12 +1,34 @@
-import { useState } from 'react';
-import { signIn, signUp } from '../data/sync';
+import { useEffect, useState } from 'react';
+import { googleEnabled, googleKnown, signIn, signInWithGoogle, signUp } from '../data/sync';
 import { Btn, Field, Seg, useAction, useUi } from '../ui/components';
 import { Logo } from '../ui/Layout';
+
+/** El botón de Google aparece solo cuando el servidor tiene activo ese proveedor. */
+function useGoogle(): boolean {
+  const [on, setOn] = useState(googleKnown);
+  useEffect(() => { let live = true; void googleEnabled().then((v) => { if (live) setOn(v); }); return () => { live = false; }; }, []);
+  return on;
+}
+
+export function LegalLinks({ className = '' }: { className?: string }) {
+  return (
+    <p className={`text-xs text-mute ${className}`}>
+      Al continuar aceptas los <a className="underline" href="./terminos.html">Términos de uso</a> y la <a className="underline" href="./privacidad.html">Política de privacidad</a>.
+    </p>
+  );
+}
 
 export function AuthForm({ onDone }: { onDone?: () => void }) {
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [busy, setBusy] = useState(false);
   const run = useAction(); const { toast } = useUi();
+  const google = useGoogle(); const [leaving, setLeaving] = useState(false);
+  const withGoogle = async () => {
+    setLeaving(true);
+    await run(signInWithGoogle);
+    // Si todo va bien el navegador sale hacia Google; si no, se libera el botón.
+    setTimeout(() => setLeaving(false), 4000);
+  };
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
@@ -18,10 +40,19 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
   };
   return (
     <form onSubmit={submit} className="space-y-3">
+      {google && (
+        <>
+          <button type="button" onClick={withGoogle} disabled={leaving} className="flex h-12 w-full items-center justify-center rounded-ctl bg-chalk px-4 text-[15px] font-bold text-ink transition active:scale-[.98] disabled:opacity-60">
+            {leaving ? 'Abriendo Google…' : 'Continuar con Google'}
+          </button>
+          <div className="flex items-center gap-3 text-xs text-mute" aria-hidden><span className="h-px flex-1 bg-line" />o con tu correo<span className="h-px flex-1 bg-line" /></div>
+        </>
+      )}
       <Seg value={mode} onChange={setMode} options={[{ value: 'in', label: 'Iniciar sesión' }, { value: 'up', label: 'Crear cuenta' }]} />
       <Field label="Correo"><input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       <Field label="Contraseña" hint="Mínimo 8 caracteres"><input type="password" required autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
       <Btn variant="primary" size="lg" className="w-full" type="submit" disabled={busy}>{busy ? 'Conectando…' : mode === 'in' ? 'Entrar' : 'Crear cuenta'}</Btn>
+      <LegalLinks />
     </form>
   );
 }

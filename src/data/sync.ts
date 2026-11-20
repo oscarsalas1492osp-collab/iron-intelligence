@@ -93,6 +93,35 @@ export async function claimLocalData(userId: string): Promise<void> {
 const SB_URL = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
 const ANON = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const cloudEnabled = Boolean(SB_URL && ANON);
+
+/**
+ * Si Google (u otro proveedor) devuelve un error, llega en la dirección de retorno. Se lee antes de crear el
+ * cliente y se limpia la dirección, para que la app abra en su pantalla normal y pueda avisar qué pasó.
+ */
+function readReturnError(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const { hash, search, origin, pathname } = window.location;
+    const inHash = new URLSearchParams(hash.startsWith('#') && !hash.startsWith('#/') ? hash.slice(1) : '');
+    const params = inHash.get('error') || inHash.get('error_code') ? inHash : new URLSearchParams(search);
+    const code = params.get('error_code') ?? params.get('error');
+    if (!code) return null;
+    const detail = (params.get('error_description') ?? '').replace(/\+/g, ' ');
+    window.history.replaceState(null, '', origin + pathname);
+    return oauthMessage(code, detail);
+  } catch { return null; }
+}
+export function oauthMessage(code: string, detail: string): string {
+  const m = `${code} ${detail}`.toLowerCase();
+  if (m.includes('access_denied')) return 'No se completó el inicio de sesión con Google. Puedes intentarlo de nuevo.';
+  if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return 'El inicio de sesión con Google aún no está activado en el servidor.';
+  if (m.includes('signup') && m.includes('disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor.';
+  return `No se pudo iniciar sesión con Google${detail ? `: ${detail}` : ''}`;
+}
+let returnError = readReturnError();
+/** Devuelve una sola vez el error con que volvió el proveedor, si lo hubo. */
+export function takeReturnError(): string | null { const e = returnError; returnError = null; return e; }
+
 export const supabase: SupabaseClient | null = cloudEnabled ? createClient(SB_URL!, ANON!) : null;
 
 export function supabaseRemote(sb: SupabaseClient): RemoteClient {
@@ -202,6 +231,71 @@ export async function signUp(email: string, password: string): Promise<'ok' | 'c
   void syncNow();
   return 'ok';
 }
+// ---------- Inicio de sesión con Google ----------
+const GOOGLE_KEY = 'ii_google';
+/** Último valor conocido de si Google está activo en el servidor (para pintar el botón sin esperar a la red). */
+export function googleKnown(): boolean {
+  try { return localStorage.getItem(GOOGLE_KEY) === '1'; } catch { return false; }
+}
+/** Pregunta al servidor qué proveedores tiene activos. El botón aparece solo cuando Google lo está. */
+export async function googleEnabled(): Promise<boolean> {
+  if (!cloudEnabled) return false;
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/settings`, { headers: { apikey: ANON! } });
+    if (!res.ok) return googleKnown();
+    const on = Boolean(((await res.json()) as { external?: Record<string, boolean> }).external?.google);
+    try { localStorage.setItem(GOOGLE_KEY, on ? '1' : '0'); } catch { /* sin almacenamiento */ }
+    return on;
+  } catch { return googleKnown(); }
+}
+/** Lleva a la pantalla de Google; al volver, la sesión queda iniciada y los datos locales pasan a la cuenta. */
+export async function signInWithGoogle(): Promise<void> {
+  if (!supabase) throw new Error('La sincronización en la nube no está configurada');
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Necesitas conexión para entrar con Google');
+  let res;
+  try {
+    res = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } },
+    });
+  } catch (e) { throw new Error(authMessage(e)); }
+  if (res.error) throw new Error(oauthMessage('', res.error.message));
+}
+
+// ---------- Eliminar cuenta y datos ----------
+/** Borra de este dispositivo todo lo que pertenece a un usuario (o los datos sin cuenta, con 'local'). */
+export async function wipeLocal(userId: string): Promise<void> {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of TABLES) await db.table(t).where('userId').equals(userId).delete();
+    const keys = (await db.meta.toCollection().primaryKeys()).filter((k) => k.startsWith(`cursor:${userId}:`) || k === `lastBackup:${userId}`);
+    await db.meta.bulkDelete(keys);
+  });
+}
+/**
+ * Elimina la cuenta en el servidor (y con ella todos sus datos, en cascada) y luego los datos de este dispositivo.
+ * Sin cuenta, borra solo los datos locales. Si el servidor no confirma, no se borra nada.
+ */
+export async function deleteAccount(): Promise<void> {
+  const uid = getUserId();
+  if (uid !== 'local') {
+    if (!supabase) throw new Error('La sincronización en la nube no está configurada');
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Necesitas conexión para eliminar la cuenta');
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw new Error('La sesión caducó: vuelve a iniciar sesión y repite la eliminación');
+    const { error } = await supabase.rpc('delete_account');
+    if (error) {
+      const m = error.message.toLowerCase();
+      throw new Error(m.includes('could not find the function') || error.code === 'PGRST202'
+        ? 'La eliminación de cuentas aún no está activada en el servidor'
+        : `No se pudo eliminar la cuenta: ${authMessage(new Error(error.message))}`);
+    }
+    clearTimeout(timer);
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* la cuenta ya no existe */ }
+  }
+  await wipeLocal(uid);
+  if (uid !== 'local') setUserId('local');
+}
+
 export async function signOut(): Promise<void> {
   await syncNow();
   try { await supabase?.auth.signOut(); } catch { /* sin red: se cierra igual en este dispositivo */ }

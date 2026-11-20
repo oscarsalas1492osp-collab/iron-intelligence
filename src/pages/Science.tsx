@@ -20,6 +20,11 @@ export default function Science() {
         ))}
       </div>
 
+      <h2 className="wd-w mb-2 mt-8 border-t border-line pt-4 text-[15px] font-bold">Esto no es consejo médico</h2>
+      <p className="max-w-prose text-sm text-mute">
+        Las sugerencias de la app se calculan a partir de tus registros y de la evidencia citada arriba. No diagnostican ni tratan ninguna condición y no reemplazan la indicación de un profesional. Consulta a un médico antes de comenzar o cambiar un programa de ejercicio, y detente si sientes dolor, mareo o malestar.
+      </p>
+
       <h2 className="wd-w mb-2 mt-8 border-t border-line pt-4 text-[15px] font-bold">Créditos del modelo anatómico</h2>
       <p className="max-w-prose text-sm text-mute">
         El modelo 3D proviene de <a className="text-data underline" href="https://www.z-anatomy.com/" target="_blank" rel="noreferrer">Z-Anatomy</a>, en la versión para navegador de{' '}

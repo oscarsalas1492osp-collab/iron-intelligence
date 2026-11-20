@@ -125,3 +125,23 @@ end $$;
 create index if not exists set_logs_session_idx on public.set_logs (session_id);
 create index if not exists set_logs_exercise_idx on public.set_logs (user_id, exercise_id);
 create index if not exists routine_items_routine_idx on public.routine_items (routine_id);
+
+-- Eliminación de cuenta: cada persona puede borrar la suya. Los datos de todas las tablas se van en cascada.
+create or replace function public.delete_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'not authenticated' using errcode = '28000';
+  end if;
+  delete from auth.users where id = uid;
+end;
+$$;
+
+revoke all on function public.delete_account() from public, anon;
+grant execute on function public.delete_account() to authenticated;

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { download, exportBackup, exportCsv, importBackup } from '../data/backup';
 import { db } from '../data/db';
 import { updateProfile } from '../data/repo';
-import { cloudEnabled, SESSION_EXPIRED, signOut, supabase, syncNow } from '../data/sync';
+import { cloudEnabled, deleteAccount, SESSION_EXPIRED, signOut, supabase, syncNow } from '../data/sync';
 import { ymd } from '../domain/calc';
 import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import type { Experience, Goal, Profile as P } from '../domain/types';
@@ -32,6 +32,15 @@ export default function Profile() {
   const email = useLiveQuery(async () => (await supabase?.auth.getUser())?.data.user?.email ?? null, [uid]);
   const set = (patch: Partial<P>) => run(() => updateProfile(patch));
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+  const onDelete = async () => {
+    const account = uid !== 'local';
+    const text = account
+      ? 'Se eliminará tu cuenta y todos tus entrenamientos, rutinas y registros, en el servidor y en este dispositivo. No se puede deshacer. Si quieres conservarlos, descarga antes una copia.'
+      : 'Se borrarán todos los entrenamientos, rutinas y registros guardados en este dispositivo. No se puede deshacer. Si quieres conservarlos, descarga antes una copia.';
+    if (!(await confirm(text, { confirmLabel: account ? 'Eliminar todo' : 'Borrar datos', danger: true }))) return;
+    await run(deleteAccount, account ? 'Cuenta y datos eliminados' : 'Datos borrados de este dispositivo');
+  };
 
   const onImport = async (f: File) => {
     if (!(await confirm('Se añadirán los datos de la copia a los actuales. Los registros con el mismo identificador se reemplazan.', { confirmLabel: 'Restaurar' }))) return;
@@ -105,6 +114,16 @@ export default function Profile() {
             <Btn className="w-full" onClick={() => run(async () => download(`iron-intelligence-series-${ymd(Date.now())}.csv`, '﻿' + (await exportCsv()), 'text/csv'), 'CSV descargado')}>Exportar series a CSV (Excel)</Btn>
             <Btn className="w-full" onClick={() => file.current?.click()}>Restaurar desde una copia</Btn>
             <input ref={file} type="file" accept="application/json,.json" className="hidden" aria-label="Archivo de copia de seguridad" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onImport(f); e.target.value = ''; }} />
+          </Card>
+          <H2>Privacidad</H2>
+          <Card className="space-y-3">
+            <p className="text-xs text-mute">Tus registros solo se usan para mostrarte tus análisis. No hay publicidad ni se comparten con terceros.</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <a className="text-data underline" href="./privacidad.html">Política de privacidad</a>
+              <a className="text-data underline" href="./terminos.html">Términos de uso</a>
+              <a className="text-data underline" href="./eliminar-cuenta.html">Cómo eliminar tu cuenta</a>
+            </div>
+            <Btn variant="danger" className="w-full" onClick={onDelete}>{uid !== 'local' ? 'Eliminar cuenta y datos' : 'Borrar los datos de este dispositivo'}</Btn>
           </Card>
           <Link to="/fundamento" className="mt-4 block text-center text-sm text-data underline">Ver el fundamento científico de las recomendaciones</Link>
         </div>

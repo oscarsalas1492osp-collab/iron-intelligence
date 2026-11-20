@@ -36,6 +36,9 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Módulo | Estado |
 |---|---|
 | Registro por serie (peso, reps, RIR, RPE, fallo, motivo de fin, descanso real, nota) | Completo |
+| Inicio de sesión con Google (botón visible cuando el proveedor está activo en Supabase) | Código listo; falta activar el proveedor |
+| Eliminación de cuenta y datos, en la app y en `eliminar-cuenta.html` | Código listo; requiere la función `delete_account` de `supabase/schema.sql` |
+| Política de privacidad y términos de uso (`privacidad.html`, `terminos.html`) | Completo |
 | Técnicas avanzadas por serie: dropset, descanso-pausa, myo-reps y cluster (tramos bajo la serie) | Completo |
 | Biseries y triseries en rutinas y sesiones: arrastrar un ejercicio sobre otro o usar el botón; registro por rondas sin descanso intermedio | Completo |
 | Gestos en la sesión: deslizar a los lados para cambiar de ejercicio | Completo (probado con eventos táctiles en Chromium, no en un teléfono real) |
