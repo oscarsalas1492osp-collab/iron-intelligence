@@ -225,3 +225,47 @@ begin
     execute format('create policy coach_send on public.%I for insert to authenticated with check (public.is_coach_of(user_id))', t);
   end loop;
 end $$;
+
+
+-- ───────────────────────── Inscripción de testers (página pública /web) ─────────────────────────
+-- La tabla no tiene políticas ni permisos directos: con la clave pública solo se entra por las dos funciones.
+create table if not exists public.tester_signups (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null check (char_length(name) between 1 and 60),
+  email text not null check (char_length(email) between 6 and 120),
+  phone_os text not null check (phone_os in ('android', 'iphone')),
+  days_per_week text not null check (days_per_week in ('1-2', '3-4', '5+')),
+  logs_in text not null check (logs_in in ('notas', 'papel', 'otra_app', 'ninguna')),
+  contact text check (contact is null or char_length(contact) <= 120),
+  adult boolean not null check (adult),
+  source text check (source is null or char_length(source) <= 40)
+);
+create unique index if not exists tester_signups_email_key on public.tester_signups (lower(email));
+alter table public.tester_signups enable row level security;
+revoke all on table public.tester_signups from anon, authenticated;
+
+create or replace function public.join_testers(
+  p_name text, p_email text, p_phone_os text, p_days text, p_logs text,
+  p_contact text default null, p_adult boolean default false, p_source text default null
+) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not coalesce(p_adult, false) then raise exception 'adult_required'; end if;
+  if p_email is null or p_email !~* '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$' then raise exception 'bad_email'; end if;
+  if (select count(*) from public.tester_signups) >= 2000 then raise exception 'full'; end if;
+  insert into public.tester_signups (name, email, phone_os, days_per_week, logs_in, contact, adult, source)
+  values (btrim(p_name), lower(btrim(p_email)), p_phone_os, p_days, p_logs,
+          nullif(btrim(coalesce(p_contact, '')), ''), true, nullif(left(coalesce(p_source, ''), 40), ''))
+  on conflict (lower(email)) do nothing;
+end $$;
+
+create or replace function public.tester_count() returns integer
+language sql security definer stable set search_path = '' as $$
+  select count(*)::int from public.tester_signups
+$$;
+
+revoke all on function public.join_testers(text, text, text, text, text, text, boolean, text) from public;
+revoke all on function public.tester_count() from public;
+grant execute on function public.join_testers(text, text, text, text, text, text, boolean, text) to anon, authenticated;
+grant execute on function public.tester_count() to anon, authenticated;

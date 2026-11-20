@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IRON INTELLIGENCE: la app de fuerza que te dice cuándo subir el peso</title>
+<meta name="description" content="Registra tus series en segundos, analiza tu progreso y entra a la próxima sesión sabiendo qué cargar. Está en prueba: se buscan 25 personas que entrenen con pesas.">
+<meta name="theme-color" content="#070d10">
+<link rel="canonical" href="https://iron-intelligence-f5m5.vercel.app/web/">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_CL">
+<meta property="og:site_name" content="IRON INTELLIGENCE">
+<meta property="og:title" content="La app de fuerza que te dice cuándo subir el peso">
+<meta property="og:description" content="Está en prueba. Se buscan 25 personas que entrenen con pesas para usarla antes del lanzamiento.">
+<meta property="og:url" content="https://iron-intelligence-f5m5.vercel.app/web/">
+<meta property="og:image" content="https://iron-intelligence-f5m5.vercel.app/web/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/web/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face {
+  font-family: 'Archivo'; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap;
+  src: url('/web/fonts/archivo-latin.woff2') format('woff2');
+}
+:root {
+  color-scheme: dark;
+  --ink: #070d10; --graphite: #0c161a; --panel: #101d22; --line: rgba(185, 232, 242, .14); --line-strong: rgba(185, 232, 242, .26);
+  --chalk: #f2f6f6; --mute: #9fb0b6; --fire: #ff6a1a; --amber: #ffb054; --go: #34e0a1; --data: #58c7ff; --ember: #ff8f86;
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  --edge: clamp(20px, 5vw, 64px);
+  --nav: 68px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav) + 12px); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--ink); color: var(--chalk);
+  font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 1.0625rem; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+::selection { background: var(--fire); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--fire); outline-offset: 3px; border-radius: 6px; }
+img { max-width: 100%; display: block; }
+h1, h2, h3, p, ol, ul, fieldset { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: inherit; text-underline-offset: 4px; }
+
+.wrap { width: min(100% - 2 * var(--edge), 1180px); margin-inline: auto; }
+.skip { position: absolute; left: 12px; top: -80px; z-index: 50; background: var(--chalk); color: var(--ink); padding: 12px 16px; border-radius: 12px; font-weight: 700; text-decoration: none; }
+.skip:focus { top: 12px; }
+
+/* Tipografía por el eje de ancho: ancha y pesada en títulos, condensada en rótulos, normal en lectura. */
+.display { font-stretch: 112%; font-weight: 900; letter-spacing: -0.02em; line-height: .98; text-wrap: balance; }
+h1.display { font-size: clamp(2.5rem, 5.4vw, 4.6rem); }
+h2.display { font-size: clamp(2rem, 3.8vw, 3.25rem); }
+h3 { font-stretch: 106%; font-weight: 800; font-size: 1.25rem; line-height: 1.2; letter-spacing: -0.005em; }
+.lead { font-size: clamp(1.0625rem, 1.5vw, 1.25rem); line-height: 1.5; color: var(--mute); max-width: 34em; }
+.note { color: var(--mute); font-size: 1rem; }
+.cond { font-stretch: 78%; font-weight: 600; letter-spacing: .01em; }
+.num { font-stretch: 118%; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Botones: suben un paso con el puntero y se hunden al presionar. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px;
+  border: 0; border-radius: 18px; cursor: pointer; text-decoration: none; white-space: nowrap;
+  font: inherit; font-stretch: 108%; font-weight: 800; font-size: 1rem; letter-spacing: .01em;
+  transition: translate 160ms var(--out), scale 140ms var(--out), background-color 160ms var(--out), border-color 160ms var(--out);
+}
+.btn:active { scale: .97; }
+.btn-fire { color: #160a02; background: linear-gradient(180deg, #ff9148 0%, #ff6a1a 52%, #f0520a 100%); box-shadow: 0 14px 30px -12px rgb(255 106 26 / .7), inset 0 1px 0 rgb(255 255 255 / .38); }
+.btn-ghost { color: var(--chalk); background: rgb(190 240 245 / .07); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.btn-small { min-height: 44px; padding: 0 18px; border-radius: 14px; font-size: .9375rem; }
+.btn[disabled] { opacity: .55; cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { translate: 0 -2px; }
+  .btn-ghost:hover { background: rgb(190 240 245 / .12); }
+  .link:hover { background-size: 100% 1px; }
+  .nav a.link:hover { color: var(--chalk); }
+}
+.link { text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 220ms var(--out), color 160ms var(--out); padding-block: 4px; }
+
+/* Cabecera */
+.nav { position: sticky; top: 0; z-index: 20; height: var(--nav); background: rgb(7 13 16 / .78); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border-bottom: 1px solid var(--line); }
+.nav .wrap { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; min-height: 44px; }
+.brand img { width: 36px; height: 36px; border-radius: 10px; }
+.brand span { font-stretch: 118%; font-weight: 800; font-size: .9375rem; letter-spacing: .05em; line-height: 1.05; }
+.nav nav { display: flex; align-items: center; gap: 28px; }
+.nav a.link { display: inline-flex; align-items: center; min-height: 44px; color: var(--mute); font-size: .9375rem; font-weight: 600; background-position: 0 calc(100% - 8px); }
+.brand, .nav nav { flex: none; }
+.brand { min-width: 44px; }
+@media (max-width: 859px) { .nav a.link { display: none; } }
+@media (max-width: 430px) { .brand { gap: 9px; } .brand span { font-size: .8125rem; letter-spacing: .03em; } .nav .btn-small { padding: 0 13px; font-size: .875rem; } .nav .wrap { gap: 10px; } }
+@media (max-width: 350px) { .brand span { display: none; } }
+
+/* Portada */
+.hero { position: relative; overflow: hidden; isolation: isolate; }
+.hero::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(70% 60% at 4% -8%, rgb(255 110 30 / .34), transparent 62%),
+    radial-gradient(60% 55% at 104% 10%, rgb(18 190 170 / .20), transparent 66%);
+}
+.hero .wrap { display: grid; gap: 40px; padding-block: clamp(36px, 6vw, 72px) 0; }
+.hero-copy { display: flex; flex-direction: column; gap: 22px; align-self: center; padding-bottom: clamp(8px, 5vw, 72px); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .9375rem; }
+.facts li { display: inline-flex; align-items: center; gap: 8px; }
+.facts svg { flex: none; color: var(--go); }
+.hero-shot { justify-self: center; align-self: end; margin-bottom: -120px; }
+@media (min-width: 900px) {
+  .hero .wrap { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px; min-height: calc(100svh - var(--nav)); }
+  .hero-shot { justify-self: end; margin-bottom: -64px; }
+}
+@media (max-width: 899px) { .actions .btn { flex: 1 1 100%; } }
+
+/* Marco de teléfono con una pantalla real de la app */
+.phone { width: min(100%, 330px); aspect-ratio: 1 / 2; padding: 8px; border-radius: 46px; background: #0b1519; box-shadow: inset 0 0 0 1px var(--line-strong), 0 50px 90px -50px rgb(0 0 0 / .95), 0 0 0 1px rgb(0 0 0 / .6); }
+.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 38px; }
+.hero .phone { width: auto; height: min(760px, calc(100svh - var(--nav) - 36px)); min-height: 520px; }
+@media (max-width: 899px) { .hero .phone { height: 560px; min-height: 0; } }
+
+/* Secciones */
+.section { padding-block: clamp(72px, 10vw, 132px); border-top: 1px solid var(--line); }
+.section-head { display: flex; flex-direction: column; gap: 18px; max-width: 40rem; }
+.split { display: grid; gap: 48px; align-items: center; }
+.split .phone { justify-self: center; }
+@media (min-width: 900px) {
+  .split { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 72px; }
+  .split.flip > .phone { order: -1; justify-self: start; }
+  .split > .phone { justify-self: end; }
+}
+.points { display: grid; gap: 22px; margin-top: 34px; }
+.points li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.points svg { color: var(--amber); margin-top: 2px; }
+.points p { color: var(--mute); margin-top: 4px; }
+
+.duo { display: grid; gap: 44px; align-items: end; }
+.duo-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; justify-items: center; }
+.duo-shots .phone { border-radius: 30px; padding: 5px; }
+.duo-shots .phone img { border-radius: 25px; }
+@media (min-width: 900px) {
+  .duo { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: center; }
+  .duo-shots { gap: 28px; }
+  .duo-shots .phone { border-radius: 46px; padding: 8px; }
+  .duo-shots .phone img { border-radius: 38px; }
+  .duo-shots .phone:last-child { margin-top: 72px; }
+}
+
+/* La prueba */
+.trial { display: grid; gap: 48px; }
+@media (min-width: 900px) { .trial { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 72px; align-items: start; } }
+.steps { display: grid; gap: 0; margin-top: 36px; counter-reset: paso; }
+.steps li { counter-increment: paso; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 18px; padding-block: 24px; border-top: 1px solid var(--line); }
+.steps li::before { content: counter(paso); font-stretch: 118%; font-weight: 800; font-size: 2rem; line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; }
+.steps p { color: var(--mute); margin-top: 6px; }
+.slots { padding: 28px; border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
+.discs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; max-width: 320px; }
+.disc { aspect-ratio: 1; border-radius: 50%; border: 3px solid #4b5d63; display: grid; place-items: center; transition: background-color 300ms var(--out), border-color 300ms var(--out); }
+.disc::after { content: ''; width: 28%; aspect-ratio: 1; border-radius: 50%; background: var(--graphite); border: 3px solid #4b5d63; transition: border-color 300ms var(--out); }
+.disc.on { background: var(--fire); border-color: var(--fire); }
+.disc.on::after { border-color: var(--fire); }
+.slots-count { margin-top: 22px; font-size: clamp(1.125rem, 4.6vw, 1.375rem); line-height: 1.2; }
+.slots .note { margin-top: 10px; }
+
+/* Formulario */
+.join { display: grid; gap: 44px; }
+@media (min-width: 900px) { .join { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; } }
+.form { display: grid; gap: 24px; padding: clamp(22px, 3.2vw, 36px); border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
+.field { display: grid; gap: 8px; border: 0; min-width: 0; }
+.field > label, .field > legend { font-weight: 700; font-size: 1rem; }
+.field > legend { margin-bottom: 8px; }
+.hint { color: var(--mute); font-size: .9375rem; }
+.input {
+  width: 100%; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgb(190 240 245 / .06);
+  color: var(--chalk); font: inherit; font-size: 1rem; outline: none; transition: border-color 160ms var(--out), box-shadow 160ms var(--out);
+}
+select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239fb0b6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 44px; }
+select.input option { background: #101d22; color: var(--chalk); }
+.input::placeholder { color: #7f9198; }
+.input:focus { border-color: var(--fire); box-shadow: 0 0 0 4px rgb(255 106 26 / .18); }
+.input[aria-invalid='true'] { border-color: var(--ember); }
+.pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.pill { position: relative; flex: 1 1 0; min-width: 0; }
+.pill input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.pill span { display: grid; place-items: center; min-height: 52px; padding: 0 8px; border-radius: 14px; border: 1px solid var(--line-strong); font-weight: 700; text-align: center; white-space: nowrap; transition: background-color 160ms var(--out), color 160ms var(--out), border-color 160ms var(--out), scale 140ms var(--out); }
+.pill input:checked + span { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+.pill input:focus-visible + span { outline: 2px solid var(--fire); outline-offset: 3px; }
+.pill input:active + span { scale: .97; }
+.check { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; }
+.check input { width: 24px; height: 24px; margin: 0; accent-color: var(--fire); }
+.error { color: var(--ember); font-size: .9375rem; font-weight: 600; }
+.error:empty { display: none; }
+.form .btn { width: 100%; }
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.done { display: grid; gap: 18px; }
+.done ol { display: grid; gap: 10px; counter-reset: paso; }
+.done ol li { counter-increment: paso; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; color: var(--mute); }
+.done ol li::before { content: counter(paso); color: var(--amber); font-weight: 800; font-stretch: 118%; }
+[hidden] { display: none !important; }
+
+/* Preguntas */
+.faq { display: grid; gap: 44px; }
+@media (min-width: 900px) { .faq { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; } }
+.qa { border-top: 1px solid var(--line); }
+.qa:last-child { border-bottom: 1px solid var(--line); }
+.qa summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 64px; padding-block: 14px; cursor: pointer; list-style: none; font-stretch: 106%; font-weight: 800; font-size: 1.125rem; line-height: 1.25; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary svg { flex: none; color: var(--mute); transition: rotate 200ms var(--out); }
+.qa[open] summary svg { rotate: 45deg; }
+.qa p { color: var(--mute); padding-bottom: 22px; max-width: 38em; }
+
+/* Pie */
+.foot { border-top: 1px solid var(--line); padding-block: clamp(56px, 8vw, 104px) 40px; }
+.motto { font-stretch: 125%; font-weight: 900; font-size: clamp(2.6rem, 9.4vw, 8.2rem); line-height: .92; letter-spacing: -0.03em; }
+.motto span { display: block; }
+.motto span:last-child { color: var(--fire); }
+.foot-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; margin-top: clamp(40px, 6vw, 72px); color: var(--mute); font-size: .9375rem; }
+.foot-row nav { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.foot-row a { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* La portada entra una sola vez al cargar. */
+@keyframes enter { from { opacity: 0; translate: 0 14px; } }
+@keyframes fade { from { opacity: 0; } }
+.hero-copy > * { animation: enter 520ms var(--out) both; }
+.hero-copy > :nth-child(2) { animation-delay: 60ms; }
+.hero-copy > :nth-child(3) { animation-delay: 110ms; }
+.hero-copy > :nth-child(4) { animation-delay: 150ms; }
+.hero-shot { animation: enter 700ms var(--out) 120ms both; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero-copy > *, .hero-shot { animation: fade 200ms ease-out both; animation-delay: 0ms; }
+  .btn, .pill span, .qa summary svg { transition-property: background-color, border-color, color; }
+  .btn:active, .pill input:active + span { scale: 1; }
+  .btn:hover { translate: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#contenido">Ir al contenido</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#inicio" aria-label="IRON INTELLIGENCE, inicio">
+      <img src="/icon.svg" alt="" width="36" height="36">
+      <span>IRON<br>INTELLIGENCE</span>
+    </a>
+    <nav aria-label="Secciones">
+      <a class="link" href="#registra">Cómo funciona</a>
+      <a class="link" href="#prueba">La prueba</a>
+      <a class="link" href="#preguntas">Preguntas</a>
+      <a class="btn btn-fire btn-small" href="#inscripcion">Quiero probarla</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenido">
+
+<section class="hero" id="inicio">
+  <div class="wrap">
+    <div class="hero-copy">
+      <h1 class="display">La app de fuerza que te dice cuándo subir el peso.</h1>
+      <p class="lead">Registra cada serie en segundos, mira cómo progresas y entra a la próxima sesión sabiendo qué cargar. Está en prueba y busco 25 personas que entrenen con pesas.</p>
+      <div class="actions">
+        <a class="btn btn-fire" href="#inscripcion">Quiero probarla</a>
+        <a class="btn btn-ghost" href="#registra">Ver cómo funciona</a>
+      </div>
+      <ul class="facts">
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Android y iPhone</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Funciona sin conexión</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No pide fotos tuyas</li>
+      </ul>
+    </div>
+    <div class="phone hero-shot">
+      <img src="/web/img/serie.webp" width="702" height="1404" alt="Pantalla de entrenamiento: una serie hecha con 80 kg por 7, la serie activa con la rueda de peso y la escala de repeticiones en reserva, y el descanso corriendo abajo." fetchpriority="high">
+    </div>
+  </div>
+</section>
+
+<section class="section" id="registra">
+  <div class="wrap split">
+    <div>
+      <div class="section-head">
+        <h2 class="display">Pensada para usarse entre una serie y la siguiente.</h2>
+        <p class="lead">Con una mano, el pulso alto y poco tiempo. Cada serie queda con su peso, sus repeticiones y cuántas te quedaban.</p>
+      </div>
+      <ul class="points">
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8v8"/><path d="M12 6v12"/><path d="M17 8v8"/></svg>
+          <div><h3>Rueda de peso</h3><p>Deslizas y el peso cambia. Las series que vienen toman el mismo valor.</p></div>
+        </li>
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>
+          <div><h3>Descanso con aviso</h3><p>Marcas la serie, corre la cuenta y te avisa cuando toca volver.</p></div>
+        </li>
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+          <div><h3>Discos y calentamiento calculados</h3><p>Qué discos van por lado para el peso que elegiste y qué series hacer antes de la pesada.</p></div>
+        </li>
+      </ul>
+    </div>
+    <div class="phone">
+      <img src="/web/img/ejercicio-en-curso.webp" width="702" height="1404" loading="lazy" alt="Ejercicio en curso: press inclinado con barra, objetivo de 4 series de 8 a 12 repeticiones, la última sesión, la recomendación de mantener el peso y aumentar repeticiones, y dos series ya hechas.">
+    </div>
+  </div>
+</section>
+
+<section class="section" id="analiza">
+  <div class="wrap duo">
+    <div>
+      <div class="section-head">
+        <h2 class="display">Tus números, ordenados para decidir.</h2>
+        <p class="lead">Cuántas series llevas por músculo esta semana, cómo avanza cada ejercicio y cuál es tu mejor marca. Con eso la app propone la carga de la próxima sesión, y tú decides.</p>
+      </div>
+      <ul class="points">
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+          <div><h3>Volumen por grupo muscular</h3><p>Series directas e indirectas de la semana sobre un cuerpo en 3D.</p></div>
+        </li>
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          <div><h3>Progresión por ejercicio</h3><p>Peso, repeticiones, volumen y 1RM estimado, sesión a sesión.</p></div>
+        </li>
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+          <div><h3>Ciclos con semana de descarga</h3><p>La app lleva la cuenta de las semanas y te avisa cuándo toca bajar la carga.</p></div>
+        </li>
+      </ul>
+    </div>
+    <div class="duo-shots">
+      <div class="phone"><img src="/web/img/analisis.webp" width="702" height="1404" loading="lazy" alt="Pantalla de análisis: 3 sesiones, 57 series y 37,5 toneladas movidas en la semana, con un cuerpo en 3D que muestra los músculos trabajados."></div>
+      <div class="phone"><img src="/web/img/progresion.webp" width="702" height="1404" loading="lazy" alt="Pantalla de progresión del press de banca con barra: gráfico de peso que sube de 80 a 92,5 kg entre septiembre y noviembre."></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="biblioteca">
+  <div class="wrap split flip">
+    <div>
+      <div class="section-head">
+        <h2 class="display"><span class="num">448</span> ejercicios, cada uno con su figura en movimiento.</h2>
+        <p class="lead">Antes de cargar el peso ves qué vas a hacer: la máquina o el banco, el recorrido y los músculos que trabajan.</p>
+      </div>
+      <ul class="points">
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+          <div><h3>Indicaciones y errores frecuentes</h3><p>Cada ficha trae cómo ejecutarlo y qué evitar.</p></div>
+        </li>
+        <li>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/></svg>
+          <div><h3>Rutinas propias o desde una plantilla</h3><p>Armas la tuya, partes de una de las nueve plantillas o generas un plan según tu perfil.</p></div>
+        </li>
+      </ul>
+    </div>
+    <div class="phone">
+      <img src="/web/img/ficha.webp" width="702" height="1404" loading="lazy" alt="Ficha de la prensa de piernas: figura del ejercicio en la máquina, cuerpo con cuádriceps y glúteos marcados, indicaciones técnicas y errores frecuentes.">
+    </div>
+  </div>
+</section>
+
+<section class="section" id="prueba">
+  <div class="wrap trial">
+    <div>
+      <div class="section-head">
+        <h2 class="display">La prueba dura dos semanas.</h2>
+        <p class="lead">Antes de lanzarla necesito que la use gente que entrena de verdad. Lo que reportes lo reviso yo y se ve en la app.</p>
+      </div>
+      <ol class="steps">
+        <li><div><h3>Te inscribes</h3><p>Dejas tu correo y tu tipo de teléfono. Toma un minuto.</p></div></li>
+        <li><div><h3>La instalas</h3><p>Al inscribirte se abre el acceso. Se instala desde el navegador, sin pasar por una tienda.</p></div></li>
+        <li><div><h3>Entrenas y me cuentas</h3><p>La usas en tus sesiones y me dices qué falló, qué te confundió y qué te faltó.</p></div></li>
+      </ol>
+      <p class="note" style="margin-top: 22px">Si usas Android, más adelante puede que te pida un paso más: unirte a la prueba dentro de Google Play y mantenerte inscrito 14 días. Es lo que Google pide antes de publicar una app nueva.</p>
+    </div>
+    <aside class="slots" aria-labelledby="cupos-titulo">
+      <h3 id="cupos-titulo">Cupos de la primera ronda</h3>
+      <div class="discs" id="discos" role="img" aria-label="25 cupos" style="margin-top: 22px">
+        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
+        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
+        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
+        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
+        <span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span><span class="disc"></span>
+      </div>
+      <p class="slots-count num" id="cupos" aria-live="polite">25 cupos</p>
+      <p class="note">Un disco por persona. Se llenan a medida que llegan las inscripciones.</p>
+      <a class="btn btn-fire" href="#inscripcion" style="margin-top: 22px; width: 100%">Tomar un cupo</a>
+    </aside>
+  </div>
+</section>
+
+<section class="section" id="inscripcion">
+  <div class="wrap join">
+    <div class="section-head">
+      <h2 class="display">Inscríbete en la prueba.</h2>
+      <p class="lead">Seis preguntas. Al enviar se abre el acceso a la app.</p>
+      <p class="note">Uso tu correo solo para darte acceso a la prueba y escribirte sobre ella. Puedes pedir que lo borre respondiendo a cualquier correo de la prueba. Más detalle en la <a href="/privacidad.html">política de privacidad</a>.</p>
+    </div>
+
+    <div>
+      <form class="form" id="form" novalidate>
+        <div class="field">
+          <label for="nombre">Nombre o apodo</label>
+          <input class="input" id="nombre" name="nombre" type="text" autocomplete="given-name" maxlength="60" required aria-describedby="e-nombre">
+          <p class="error" id="e-nombre" role="alert"></p>
+        </div>
+        <div class="field">
+          <label for="correo">Correo</label>
+          <input class="input" id="correo" name="correo" type="email" inputmode="email" autocomplete="email" maxlength="120" required aria-describedby="h-correo e-correo">
+          <p class="hint" id="h-correo">Si usas Android, que sea el de tu cuenta de Google: sirve después para la prueba en Google Play.</p>
+          <p class="error" id="e-correo" role="alert"></p>
+        </div>
+        <fieldset class="field" aria-describedby="e-telefono">
+          <legend>¿Qué teléfono usas?</legend>
+          <div class="pills">
+            <label class="pill"><input type="radio" name="telefono" value="android" required><span>Android</span></label>
+            <label class="pill"><input type="radio" name="telefono" value="iphone"><span>iPhone</span></label>
+          </div>
+          <p class="error" id="e-telefono" role="alert"></p>
+        </fieldset>
+        <fieldset class="field" aria-describedby="e-dias">
+          <legend>¿Cuántos días entrenas por semana?</legend>
+          <div class="pills">
+            <label class="pill"><input type="radio" name="dias" value="1-2" required><span>1 a 2</span></label>
+            <label class="pill"><input type="radio" name="dias" value="3-4"><span>3 a 4</span></label>
+            <label class="pill"><input type="radio" name="dias" value="5+"><span>5 o más</span></label>
+          </div>
+          <p class="error" id="e-dias" role="alert"></p>
+        </fieldset>
+        <div class="field">
+          <label for="anota">¿Dónde anotas hoy tus entrenamientos?</label>
+          <select class="input" id="anota" name="anota" required aria-describedby="e-anota">
+            <option value="" selected disabled>Elige una opción</option>
+            <option value="notas">En las notas del teléfono</option>
+            <option value="papel">En papel</option>
+            <option value="otra_app">En otra app</option>
+            <option value="ninguna">En ninguna parte</option>
+          </select>
+          <p class="error" id="e-anota" role="alert"></p>
+        </div>
+        <div class="field">
+          <label for="contacto">¿Por dónde prefieres que te escriba? <span class="hint">(opcional)</span></label>
+          <input class="input" id="contacto" name="contacto" type="text" maxlength="120" placeholder="Correo, Instagram o WhatsApp">
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="adulto" name="adulto" required aria-describedby="e-adulto"><span>Tengo 18 años o más</span></label>
+          <p class="error" id="e-adulto" role="alert"></p>
+        </div>
+        <div class="trap" aria-hidden="true"><label>No completar <input type="text" name="sitio" tabindex="-1" autocomplete="off"></label></div>
+        <p class="error" id="e-envio" role="alert"></p>
+        <button class="btn btn-fire" type="submit" id="enviar">Inscribirme en la prueba</button>
+      </form>
+
+      <div class="form done" id="listo" hidden tabindex="-1">
+        <h3 class="display" style="font-size: 1.75rem">Ya tienes tu cupo.</h3>
+        <p class="lead" id="listo-texto">Abre la app desde tu teléfono e instálala así:</p>
+        <ol id="pasos-android">
+          <li>Abre el enlace en Chrome.</li>
+          <li>Toca el menú de los tres puntos y elige Instalar app.</li>
+          <li>Crea tu cuenta con el mismo correo que dejaste aquí.</li>
+        </ol>
+        <ol id="pasos-iphone" hidden>
+          <li>Abre el enlace en Safari.</li>
+          <li>Toca Compartir y elige Añadir a pantalla de inicio.</li>
+          <li>Crea tu cuenta con el mismo correo que dejaste aquí.</li>
+        </ol>
+        <a class="btn btn-fire" href="/">Abrir la app</a>
+        <p class="note">Te escribiré al correo que dejaste para saber cómo te fue.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="preguntas">
+  <div class="wrap faq">
+    <div class="section-head">
+      <h2 class="display">Preguntas antes de inscribirte.</h2>
+    </div>
+    <div>
+      <details class="qa">
+        <summary>¿Cuánto cuesta?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Probarla no cuesta nada. El precio final todavía no está definido.</p>
+      </details>
+      <details class="qa">
+        <summary>¿Cuándo se lanza?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Todavía no hay fecha. Depende de lo que salga en la prueba.</p>
+      </details>
+      <details class="qa">
+        <summary>¿Funciona en iPhone?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Sí. Se instala desde Safari: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app.</p>
+      </details>
+      <details class="qa">
+        <summary>¿Necesito internet en el gimnasio?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>No. Los entrenamientos se guardan en tu teléfono. Si creaste una cuenta, se respaldan cuando vuelve la conexión.</p>
+      </details>
+      <details class="qa">
+        <summary>¿Qué datos míos guarda?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Tus entrenamientos y, si creas una cuenta, tu correo. El peso corporal, las medidas y el registro de recuperación son opcionales. No pide fotos tuyas.</p>
+      </details>
+      <details class="qa">
+        <summary>¿Tengo que saber de programación para ser tester?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>No. Basta con entrenar y contar lo que te pasó: en qué pantalla estabas y qué esperabas que ocurriera. Una captura de pantalla ayuda mucho.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p class="motto" aria-label="Registra. Analiza. Progresa."><span>Registra.</span><span>Analiza.</span><span>Progresa.</span></p>
+    <div class="foot-row">
+      <span>IRON INTELLIGENCE, app de entrenamiento de fuerza en prueba.</span>
+      <nav aria-label="Legal">
+        <a class="link" href="/privacidad.html">Política de privacidad</a>
+        <a class="link" href="/terminos.html">Términos de uso</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var SB = 'https://flwbkclkebkmebtfljcg.supabase.co';
+  var KEY = 'sb_publishable_RgAOFfsMq21HfSWfGgO7nA_QpnPGfSG';
+  var TOTAL = 25;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function rpc(fn, body) {
+    return fetch(SB + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    }).then(function (r) {
+      if (r.ok) return r.status === 204 ? null : r.json().catch(function () { return null; });
+      return r.json().catch(function () { return {}; }).then(function (e) { throw new Error((e && e.message) || String(r.status)); });
+    });
+  }
+
+  // Cupos: un disco por inscripción real.
+  function paint(n) {
+    var taken = Math.max(0, Math.min(TOTAL, n));
+    var discs = $('discos').children;
+    for (var i = 0; i < discs.length; i++) discs[i].classList.toggle('on', i < taken);
+    var left = TOTAL - taken;
+    var text = taken === 0 ? '25 cupos' : left === 0 ? 'Cupos completos' : left === 1 ? 'Queda 1 cupo de 25' : 'Quedan ' + left + ' cupos de 25';
+    $('cupos').textContent = text;
+    $('discos').setAttribute('aria-label', text);
+    if (left === 0) $('cupos').insertAdjacentHTML('afterend', '<p class="note" id="espera">La inscripción sigue abierta como lista de espera.</p>');
+  }
+  rpc('tester_count').then(function (n) { if (typeof n === 'number') paint(n); }).catch(function () {});
+
+  var form = $('form');
+  var MSG = {
+    nombre: 'Escribe tu nombre o un apodo.',
+    correo: 'Escribe un correo válido, por ejemplo nombre@gmail.com.',
+    telefono: 'Elige Android o iPhone.',
+    dias: 'Elige cuántos días entrenas.',
+    anota: 'Elige una opción.',
+    adulto: 'La prueba es para mayores de 18 años.'
+  };
+  function setError(name, on) {
+    var box = $('e-' + name);
+    box.textContent = on ? MSG[name] : '';
+    var els = form.elements[name];
+    var list = els && els.length && !els.tagName ? els : [els];
+    for (var i = 0; i < list.length; i++) if (list[i]) list[i].setAttribute('aria-invalid', on ? 'true' : 'false');
+  }
+  function read() {
+    var f = form.elements;
+    return {
+      nombre: f.nombre.value.trim(),
+      correo: f.correo.value.trim(),
+      telefono: f.telefono.value,
+      dias: f.dias.value,
+      anota: f.anota.value,
+      contacto: f.contacto.value.trim(),
+      adulto: f.adulto.checked
+    };
+  }
+  function validate(v) {
+    var bad = {
+      nombre: !v.nombre,
+      correo: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.correo),
+      telefono: !v.telefono,
+      dias: !v.dias,
+      anota: !v.anota,
+      adulto: !v.adulto
+    };
+    var first = null;
+    Object.keys(bad).forEach(function (k) { setError(k, bad[k]); if (bad[k] && !first) first = k; });
+    return first;
+  }
+  form.addEventListener('input', function (e) { if (e.target.name && MSG[e.target.name]) setError(e.target.name, false); });
+  form.addEventListener('change', function (e) { if (e.target.name && MSG[e.target.name]) setError(e.target.name, false); });
+
+  function showDone(os) {
+    form.hidden = true;
+    $('pasos-android').hidden = os === 'iphone';
+    $('pasos-iphone').hidden = os !== 'iphone';
+    var box = $('listo');
+    box.hidden = false;
+    box.focus({ preventScroll: true });
+    box.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('e-envio').textContent = '';
+    var v = read();
+    var first = validate(v);
+    if (first) {
+      var el = form.elements[first];
+      (el && el.length && !el.tagName ? el[0] : el).focus();
+      return;
+    }
+    var btn = $('enviar');
+    if (form.elements.sitio.value) { showDone(v.telefono); return; } // trampa para envíos automáticos
+    btn.disabled = true; btn.textContent = 'Enviando';
+    var origen = null;
+    try { origen = new URLSearchParams(location.search).get('o'); } catch (err) {}
+    rpc('join_testers', { p_name: v.nombre, p_email: v.correo, p_phone_os: v.telefono, p_days: v.dias, p_logs: v.anota, p_contact: v.contacto || null, p_adult: true, p_source: origen })
+      .then(function () {
+        try { localStorage.setItem('ii_tester', v.telefono); } catch (err) {}
+        showDone(v.telefono);
+        rpc('tester_count').then(function (n) { if (typeof n === 'number') { var w = $('espera'); if (w) w.remove(); paint(n); } }).catch(function () {});
+      })
+      .catch(function (err) {
+        var m = String(err && err.message || '');
+        $('e-envio').textContent = m.indexOf('full') >= 0 ? 'La lista está completa por ahora. Vuelve a intentarlo en unos días.'
+          : m.indexOf('bad_email') >= 0 ? 'Revisa el correo: no parece válido.'
+          : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.';
+        btn.disabled = false; btn.textContent = 'Inscribirme en la prueba';
+      });
+  });
+
+  // Quien ya se inscribió en este teléfono ve directo el acceso.
+  try {
+    var saved = localStorage.getItem('ii_tester');
+    if (saved) { form.hidden = true; $('pasos-android').hidden = saved === 'iphone'; $('pasos-iphone').hidden = saved !== 'iphone'; $('listo').hidden = false; }
+  } catch (err) {}
+})();
+</script>
+</body>
+</html>
