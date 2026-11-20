@@ -15,8 +15,15 @@ export interface Scene {
   anchor?: V; pivot?: V; stack?: V;
   /** Barra recta entre las manos (jalones); figura invertida (parada de manos); sin movimiento (isométricos). */
   bar?: boolean; flip?: boolean; still?: boolean;
-  /** Profundidad para el render 3D (vista lateral): medio ancho del agarre, apertura de codos, medio ancho de pies y apertura de rodillas. */
-  d3?: { grip?: number; flare?: number; stance?: number; knee?: number };
+  /** Asas verticales (contractora); separación lateral de las dos poleas de un cruce. */
+  handle?: 'v'; anchorZ?: number;
+  /**
+   * Profundidad para el render 3D (vista lateral): medio ancho del agarre, apertura de codos, medio ancho de pies y
+   * apertura de rodillas. El agarre puede cambiar entre la postura inicial y la final ([inicio, fin]): así se abren
+   * y se cierran los brazos en las aperturas. `el` dice hacia dónde apunta el codo respecto del hombro, en el marco
+   * del tronco: [hacia delante del pecho, hacia la cabeza].
+   */
+  d3?: { grip?: number | [number, number]; flare?: number; stance?: number; knee?: number; el?: [number, number] };
 }
 
 const P = (x: number, y: number, lean: number, o: Partial<Pose> = {}): Pose => ({ hip: [x, y], lean, ...o });
@@ -33,14 +40,21 @@ const JUMP_B = P(36, 37.5, 4, { leg: [6, -8], arm: [158, 168] });
 export const SCENES: Record<string, Scene | string> = {
   // ---- Empujes ----
   press_h: { view: 'side', bench: true, a: P(46, 48, -90, { hand: [29.5, 31.5], foot: BENCH_FEET }), b: P(46, 48, -90, { hand: [34, 43.5], foot: BENCH_FEET }) },
-  'press_h@m': { view: 'side', bench: true, seat: true, a: P(24, 51, -6, { hand: [29, 36.5], foot: [38, 65] }), b: P(24, 51, -6, { hand: [38.6, 35], foot: [38, 65] }) },
+  'press_h@m': { view: 'side', bench: true, seat: true, pivot: [27, 12], a: P(24, 51, -6, { hand: [30.5, 41], foot: [38, 65] }), b: P(24, 51, -6, { hand: [38.6, 40.2], foot: [38, 65] }) },
   'press_h@c': { view: 'side', anchor: [5, 27], a: P(30, 42.5, 8, { hand: [35, 28], foot: [23, 65], foot2: [38, 65] }), b: P(30, 42.5, 8, { hand: [48.6, 27], foot: [23, 65], foot2: [38, 65] }) },
   press_incline: { view: 'side', bench: true, a: P(46, 51, -55, { hand: [33, 25], foot: [58, 65] }), b: P(46, 51, -55, { hand: [39, 36.5], foot: [58, 65] }) },
-  'press_incline@m': { view: 'side', bench: true, seat: true, a: P(24, 51, -22, { hand: [27, 34], foot: [38, 65] }), b: P(24, 51, -22, { hand: [31, 20], foot: [38, 65] }) },
+  'press_incline@m': { view: 'side', bench: true, seat: true, pivot: [10, 30], a: P(24, 51, -22, { hand: [27.5, 38.5], foot: [38, 65] }), b: P(24, 51, -22, { hand: [30.4, 25.2], foot: [38, 65] }) },
   press_decline: { view: 'side', bench: true, a: P(45, 45, -103, { hand: [30, 32.5], foot: [56, 58] }), b: P(45, 45, -103, { hand: [34.5, 44.5], foot: [56, 58] }) },
-  'press_decline@m': { view: 'side', bench: true, seat: true, a: P(24, 51, -6, { hand: [29, 39], foot: [38, 65] }), b: P(24, 51, -6, { hand: [37, 43.5], foot: [38, 65] }) },
+  'press_decline@m': { view: 'side', bench: true, seat: true, pivot: [27, 12], a: P(24, 51, -6, { hand: [30.5, 42.5], foot: [38, 65] }), b: P(24, 51, -6, { hand: [37.6, 45], foot: [38, 65] }) },
   press_close: 'press_h',
-  fly: { view: 'front', anchor: [33, 22], a: fr({ arm: [92, 84] }), b: fr({ hand: [2.6, 27], e: -1 }) },
+  // Aperturas: de lado y con profundidad real. Los brazos se abren hacia los costados y se cierran delante del pecho
+  // en arco, con el codo casi fijo. Con mancuernas, tumbado en el banco; en la contractora, sentado con los brazos
+  // de la máquina; en poleas, de pie entre las dos columnas.
+  fly: { view: 'side', bench: true, a: P(46, 48, -90, { hand: [34.6, 45.4], foot: BENCH_FEET }), b: P(46, 48, -90, { hand: [33.6, 32.4], foot: BENCH_FEET }), d3: { grip: [24, 2], flare: 1, el: [-3, 0] } },
+  fly_incline: { view: 'side', bench: true, a: P(46, 51, -55, { hand: [36.8, 41.6], foot: [58, 65] }), b: P(46, 51, -55, { hand: [43, 31.6], foot: [58, 65] }), d3: { grip: [24, 2], flare: 1, el: [-3, 0] } },
+  'fly@m': { view: 'side', bench: true, seat: true, handle: 'v', pivot: [24.5, 13], a: P(24, 51, -4, { hand: [25.4, 38.6], foot: [38, 65] }), b: P(24, 51, -4, { hand: [38.2, 38.8], foot: [38, 65] }), d3: { grip: [24, 2], flare: 1, el: [-2.5, -1.5] } },
+  'fly@c': { view: 'side', anchor: [27, 9], anchorZ: 18, a: P(30, 42.5, 10, { hand: [31, 31], foot: [23, 65], foot2: [38, 65] }), b: P(30, 42.5, 10, { hand: [44, 38.5], foot: [23, 65], foot2: [38, 65] }), d3: { grip: [24, 1.8], flare: 1, el: [-3, -1] } },
+  'fly@b': { view: 'front', anchor: [33, 22], a: fr({ arm: [92, 84] }), b: fr({ hand: [2.6, 27], e: -1 }) },
   pushup: { view: 'side', a: PUSH_A, b: P(31, 58.5, 87, { hand: [44.5, 65], foot: [9, 63], ft: 20 }) },
   dip: { view: 'side', props: DIP_BARS, a: P(34, 42, 6, { hand: [36, 41.5], leg: [-8, -50] }), b: P(33, 48.5, 22, { hand: [36, 41.5], leg: [-20, -82] }) },
   'dip@m': { view: 'side', bench: true, seat: true, pivot: [12, 44], a: P(26, 51, 2, { hand: [32, 40.5], foot: [40, 65] }), b: P(26, 51, 2, { hand: [31.5, 49.5], foot: [40, 65] }) },
@@ -49,6 +63,8 @@ export const SCENES: Record<string, Scene | string> = {
   // ---- Hombros ----
   raise_lat: { view: 'front', anchor: [32, 62], a: fr({ arm: [4, 6] }), b: fr({ arm: [84, 88] }) },
   raise_front: { view: 'side', anchor: [8, 62], a: st({ arm: [3, 6] }), b: st({ arm: [88, 92] }) },
+  // Deltoides posterior en máquina: sentado con el pecho contra el respaldo; los brazos se abren hacia atrás.
+  'raise_rear@m': { view: 'side', seat: true, handle: 'v', pivot: [29, 13], stack: [58, 30], props: [['r', 30.2, 34, 2.6, 14]], a: P(24, 51, 6, { hand: [39.4, 37.6], foot: [36, 65] }), b: P(24, 51, 6, { hand: [26.4, 37.6], foot: [36, 65] }), d3: { grip: [2, 24], flare: 1, el: [-1.5, -1.5] } },
   raise_rear: { view: 'front', anchor: [33, 22], a: fr({ hand: [2.6, 29], e: -1 }), b: fr({ arm: [86, 90] }) },
   facepull: { view: 'side', anchor: [65, 14], a: st({ arm: [86, 95] }), b: st({ arm: [70, 150] }) },
   upright_row: { view: 'front', anchor: [0, 66], a: fr({ arm: [2, -8] }), b: fr({ arm: [112, -55] }) },
@@ -69,7 +85,7 @@ export const SCENES: Record<string, Scene | string> = {
   hang: still('front', HANG, { floor: false, props: [['l', 14, 9, 58, 9, 2.6]] }),
   // ---- Brazos ----
   curl: { view: 'side', anchor: [50, 66], a: st({ arm: [2, 10] }), b: st({ arm: [6, 152] }) },
-  'curl@m': { view: 'side', seat: true, props: [['l', 29.5, 39, 37, 45, 3.2], ['l', 35, 46, 35, 67, 2]], a: P(24, 51, 10, { arm: [52, 60], foot: [38, 65] }), b: P(24, 51, 10, { arm: [52, 172], foot: [38, 65] }) },
+  'curl@m': { view: 'side', seat: true, pivot: [38, 45.5], props: [['l', 29.5, 39, 37, 45, 3.2], ['l', 35, 46, 35, 67, 2]], a: P(24, 51, 10, { arm: [52, 60], foot: [38, 65] }), b: P(24, 51, 10, { arm: [52, 172], foot: [38, 65] }) },
   curl_rev: 'curl',
   tri_down: { view: 'side', anchor: [47, 5], a: P(33, 41, 8, { arm: [8, 118], foot: [33, 65] }), b: P(33, 41, 8, { arm: [8, 10], foot: [33, 65] }) },
   tri_oh: { view: 'side', anchor: [8, 62], a: st({ arm: [176, -28] }), b: st({ arm: [176, 180] }) },
@@ -143,8 +159,9 @@ export const SCENES: Record<string, Scene | string> = {
 // empujes horizontales, pies al ancho de hombros con las rodillas siguiendo la punta del pie en la sentadilla,
 // agarre cerrado en las extensiones de tríceps, pies en línea en la zancada.
 const D3: Record<string, NonNullable<Scene['d3']>> = {
-  press_h: { grip: 10, flare: 5.5 }, 'press_h@m': { grip: 8.5, flare: 5 }, 'press_h@c': { grip: 7, flare: 3 }, press_incline: { grip: 10, flare: 5.5 }, 'press_incline@m': { grip: 8.5, flare: 5 },
-  press_decline: { grip: 10, flare: 5.5 }, 'press_decline@m': { grip: 8.5, flare: 5 }, pushup: { grip: 8.5, flare: 4, stance: 2.6 }, dip: { grip: 6.9, flare: 1.6, stance: 2.4 }, 'dip@m': { grip: 7, flare: 2 },
+  // En los press el codo baja por detrás del plano del pecho y algo hacia la cadera: el antebrazo queda detrás de la mano.
+  press_h: { grip: 10, flare: 5.5, el: [-5, -2] }, 'press_h@m': { grip: 8.5, flare: 5, el: [-5, -2] }, 'press_h@c': { grip: 7, flare: 3, el: [-5, -2] }, press_incline: { grip: 10, flare: 5.5, el: [-5, -2] }, 'press_incline@m': { grip: 8.5, flare: 5, el: [-5, -2] },
+  press_decline: { grip: 10, flare: 5.5, el: [-5, -2] }, 'press_decline@m': { grip: 8.5, flare: 5, el: [-5, -2] }, pushup: { grip: 8.5, flare: 4, stance: 2.6 }, dip: { grip: 6.9, flare: 1.6, stance: 2.4 }, 'dip@m': { grip: 7, flare: 2 },
   press_oh: { grip: 8.2, flare: 4.5, stance: 4.6 }, 'press_oh@m': { grip: 8.5, flare: 5 }, raise_front: { grip: 6 }, facepull: { grip: 4.6, flare: 7 },
   row: { grip: 7.6, flare: 2.6, stance: 4.6 }, 'row@m': { grip: 6.2, flare: 2 }, 'row@c': { grip: 3.2, flare: 1.4 }, 'row@b': { grip: 7.6, flare: 3 }, pullover: { grip: 3.4, flare: 1.5 },
   curl: { grip: 6, flare: 0.3 }, 'curl@m': { grip: 5, flare: 0.6 }, curl_rev: { grip: 6, flare: 0.5 }, tri_down: { grip: 3, flare: 0.5 }, tri_oh: { grip: 3, flare: 1.6 }, tri_lying: { grip: 4, flare: 1 },
@@ -155,11 +172,12 @@ const D3: Record<string, NonNullable<Scene['d3']>> = {
   situp: { stance: 3.6 }, crunch: { stance: 3.6 }, rollout: { grip: 6 }, plank: { grip: 6, stance: 3 }, sled: { grip: 6 },
 };
 // El press cerrado comparte postura con el de banca, pero con las manos al ancho de los hombros y los codos pegados.
-SCENES.press_close = { ...(SCENES.press_h as Scene), d3: { grip: 4.8, flare: 1.2 } };
+SCENES.press_close = { ...(SCENES.press_h as Scene), d3: { grip: 4.8, flare: 1.2, el: [-5, -3] } };
 for (const k in D3) { const sc = SCENES[k]; if (sc && typeof sc !== 'string' && !sc.d3) sc.d3 = D3[k]; }
 
 /** Ejercicios cuya postura no es la general de su patrón. */
 const BY_ID: Record<string, string> = {
+  incline_db_fly: 'fly_incline', incline_cable_fly: 'fly_incline',
   seated_calf_raise: 'calf_seated', seated_calf_raise_machine: 'calf_seated', suspension_pike: 'plank', fitball_pike: 'plank',
   wall_sit: 'wallsit', handstand_hold: 'handstand', handstand_push_up: 'hspu', l_sit: 'lsit', hollow_hold: 'hollow', front_lever: 'frontlever',
   ring_support_hold: 'support', dead_hang: 'hang', lying_leg_curl: 'legcurl', leg_curl_lever: 'legcurl', kneeling_leg_curl: 'legcurl@s',

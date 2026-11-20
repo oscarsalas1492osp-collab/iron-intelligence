@@ -38,15 +38,17 @@ const mat = (color: string, roughness: number, metalness: number, emissive = 0) 
 };
 const M = {
   clay: mat('#d3d5da', 0.66, 0.02), bone: mat('#c2c3c6', 0.7, 0.02), hot: mat('#ff2e12', 0.5, 0.02, 0.62), warm: mat('#ff8f5a', 0.55, 0.02, 0.2),
-  steel: mat('#e4e6ea', 0.38, 0.25), iron: mat('#c9ccd2', 0.55, 0.1), pad: mat('#b4b7be', 0.75, 0.02), frame: mat('#d5d7dc', 0.5, 0.15),
+  // Los implementos van un tono más oscuro que el cuerpo: bancos, máquinas y discos deben leerse de un vistazo.
+  steel: mat('#e4e6ea', 0.38, 0.25), iron: mat('#7d838d', 0.55, 0.15), pad: mat('#565c66', 0.8, 0.02), frame: mat('#9aa1ab', 0.48, 0.3),
   cable: mat('#f1f2f4', 0.5, 0.1), band: mat('#ffb054', 0.6, 0), rope: mat('#e0d3b6', 0.9, 0),
 };
 const CYL = new CylinderGeometry(1, 1, 1, 20), BALL = new SphereGeometry(1, 24, 16), BOX = new BoxGeometry(1, 1, 1);
 const UP = new Vector3(0, 1, 0);
 
 // ---------- postura en 3D ----------
-interface Limb3 { a: Vector3; b: Vector3; c: Vector3; d?: Vector3 }
-interface Pose3 { hip: Vector3; sh: Vector3; head: Vector3; arms: Limb3[]; legs: Limb3[]; right: Vector3; fwd: Vector3; side: boolean; j: Joints; w: (p: V, z?: number) => Vector3 }
+/** `g`: punto de agarre (centro del puño) cuando la mano sujeta algo; el implemento se dibuja ahí. */
+interface Limb3 { a: Vector3; b: Vector3; c: Vector3; d?: Vector3; g?: Vector3 }
+interface Pose3 { hip: Vector3; sh: Vector3; head: Vector3; arms: Limb3[]; legs: Limb3[]; right: Vector3; fwd: Vector3; side: boolean; j: Joints; w: (p: V, z?: number) => Vector3; fist?: boolean }
 const ZS = ANAT.SW, ZH = ANAT.HW, K3 = ANAT.SW / 6.5;   // K3: las pistas de profundidad se escribieron para hombros de 6,5
 
 /** Articulación intermedia en 3D: conserva el largo de los huesos y se abre hacia donde apunta `pole`. */
@@ -60,19 +62,26 @@ function ik3(S: Vector3, H: Vector3, l1: number, l2: number, pole: Vector3): [Ve
   return [S.clone().addScaledVector(dir, al).addScaledVector(side.normalize(), h), end];
 }
 
-function lift(sc: Scene, j: Joints): Pose3 {
+const PALM = 1.7;                          // del hueso de la muñeca al centro del puño
+function lift(sc: Scene, j: Joints, t = 1, fist = false): Pose3 {
   const side = j.view === 'side', d3 = sc.d3 ?? {};
+  // Un agarre que cambia entre el inicio y el final recorre un arco, no una recta: el codo no se dobla a mitad de camino.
+  const arc = (v: number | [number, number]): number => (typeof v === 'number' ? v : v[0] >= v[1] ? v[1] + (v[0] - v[1]) * Math.sqrt(Math.max(0, 1 - t * t)) : v[0] + (v[1] - v[0]) * Math.sqrt(Math.max(0, 1 - (1 - t) * (1 - t))));
   const w = (p: V, z = 0) => new Vector3(p[0], sc.flip ? p[1] - 5.4 : FLOOR - p[1], z);
   const arms: Limb3[] = [], legs: Limb3[] = [];
   if (side) {
     // De lado, la postura 2D da el plano del movimiento; el agarre, la apertura de codos y la separación de pies
     // le dan la profundidad que tiene el ejercicio real.
     const sameA = sameLimb(j.arms[0], j.arms[1]), sameL = sameLimb(j.legs[0], j.legs[1]);
-    const grip = d3.grip != null ? d3.grip * K3 : ZS + 0.3, flare = (d3.flare ?? 0.9) * K3, stance = d3.stance != null ? d3.stance * K3 : ZH + 0.5, knee = (d3.knee ?? 0.5) * K3;
+    const grip = d3.grip != null ? arc(d3.grip) * K3 : ZS + 0.3, flare = (d3.flare ?? 0.9) * K3, stance = d3.stance != null ? d3.stance * K3 : ZH + 0.5, knee = (d3.knee ?? 0.5) * K3;
     for (const i of [0, 1]) {
       const s = i ? -1 : 1, a = sameA ? j.arms[0] : j.arms[i], l = sameL ? j.legs[0] : j.legs[i];
-      const S = w(a.a, s * ZS), [E, H] = ik3(S, w(a.c, s * grip), ANAT.UA, ANAT.FA, w(a.b, s * (ZS + flare + Math.max(0, grip - ZS) * 0.35)));
-      arms.push({ a: S, b: E, c: H });
+      const pz = s * (ZS + flare + Math.max(0, grip - ZS) * 0.35);
+      // Codo: por defecto donde lo deja la postura de perfil; con `el`, hacia donde se indica respecto del tronco.
+      const pole = d3.el ? w(add2(add2(a.a, front2(j.hip, j.sh, true), d3.el[0]), unit2(j.hip, j.sh), d3.el[1]), pz) : w(a.b, pz);
+      const S = w(a.a, s * ZS), palm = fist ? PALM : 0, [E, H] = ik3(S, w(a.c, s * grip), ANAT.UA, ANAT.FA + palm, pole);
+      // La mano que sujeta algo se cierra: el punto de agarre queda en el centro del puño, no en la muñeca.
+      arms.push({ a: S, b: E, c: palm ? E.clone().lerp(H, ANAT.FA / (ANAT.FA + palm)) : H, g: H });
       const Hp = w(l.a, s * ZH), [K, A] = ik3(Hp, w(l.c, s * stance), ANAT.TH, ANAT.SH, w(l.b, s * (stance + knee)));
       const toe = l.d ?? l.c;
       legs.push({ a: Hp, b: K, c: A, d: w(toe, s * (stance + 0.9)).add(A).sub(w(l.c, s * stance)) });
@@ -219,7 +228,10 @@ class Anatomy {
       const o = ((i === 0) === p.side ? 1 : 0) * B.per;             // derecha del cuerpo = lado −x del modelo
       const ax = l.b.clone().sub(l.a), f = l.c.clone().sub(l.b);
       const fr = frontOf(ax.clone().normalize(), f, 1, x, p.fwd);
-      this.set(B.arm + o, l.a, l.b, ax, fr, L(REST.S, REST.E)); this.set(B.fore + o, l.b, l.c, f, fr, L(REST.E, REST.W)); this.set(B.hand + o, l.c, null, f, fr, L(REST.W, REST.F));
+      this.set(B.arm + o, l.a, l.b, ax, fr, L(REST.S, REST.E)); this.set(B.fore + o, l.b, l.c, f, fr, L(REST.E, REST.W));
+      // Mano cerrada sobre el agarre: más corta que la mano abierta.
+      const hl = L(REST.W, REST.F);
+      this.set(B.hand + o, l.c, p.fist ? l.c.clone().addScaledVector(f.clone().normalize(), hl * S_M * 0.6) : null, f, fr, hl);
     });
     p.legs.forEach((l, i) => {
       const o = ((i === 0) === p.side ? 1 : 0) * B.per;
@@ -271,37 +283,67 @@ class Gear {
     this.group.clear();
     const { j, w, side } = p, Z = new Vector3(0, 0, 1), X = new Vector3(1, 0, 0);
     const across = side ? Z : X;                       // eje que cruza el cuerpo de lado a lado
-    const hands = p.arms.map((l) => l.c), mid = hands[0].clone().add(hands[1]).multiplyScalar(0.5);
+    const hands = p.arms.map((l) => l.g ?? l.c), mid = hands[0].clone().add(hands[1]).multiplyScalar(0.5);
     const cx = j.hip[0];
 
     // ---- Mobiliario ----
+    const ground = FLOOR - 0.7;
+    const footBar = (x: number) => this.tube(w([x, ground], -6.8), w([x, ground], 6.8), 0.85, M.frame);   // pata transversal apoyada en el suelo
     if (side && sc.bench) {
-      const n = front2(j.hip, j.sh, true), u = unit2(j.hip, j.sh);
-      const a = add2(add2(j.hip, u, -2.5), n, -4.7), b = add2(add2(j.sh, u, ANAT.NECK * 1.15), n, -4.7);
-      this.slab(w, a, b, 2.8, 10.5, 0, M.pad);
-      const feet = Math.abs(u[0]) > 0.55 ? [mix2(a, b, 0.12), mix2(a, b, 0.85)] : [a];
-      for (const f of feet) for (const z of [-3.8, 3.8]) this.tube(w(f, z), w([f[0], FLOOR], z), 0.75, M.frame);
+      const n = front2(j.hip, j.sh, true), u = unit2(j.hip, j.sh), flat = Math.abs(u[0]) > 0.55;
+      const a = add2(add2(j.hip, u, -2.5), n, -5), b = add2(add2(j.sh, u, ANAT.NECK * 1.15), n, -5);
+      this.slab(w, a, b, 3.4, 11.5, 0, M.pad);                                    // colchoneta
+      const fa = add2(a, n, -2.7), fb = add2(b, n, -2.7);
+      this.tube(w(mix2(fa, fb, 0.04)), w(mix2(fa, fb, 0.96)), 1, M.frame);        // larguero bajo la colchoneta
+      if (flat) {
+        // Banco tumbado: dos patas con su travesaño y un larguero que las une a ras de suelo.
+        const xs = [mix2(fa, fb, 0.14), mix2(fa, fb, 0.86)];
+        for (const f of xs) { this.tube(w(f), w([f[0], ground]), 1, M.frame); footBar(f[0]); }
+        this.tube(w([xs[0][0], ground]), w([xs[1][0], ground]), 0.7, M.frame);
+        // Con barra: soportes a la altura de la cabeza, donde descansa la barra.
+        if (eq === 'barbell' && sc.a.hand) {
+          const hx = sc.a.hand[0] - 5.5, top = sc.a.hand[1] + 2.4;
+          for (const z of [-10.5, 10.5]) { this.tube(w([hx, ground], z), w([hx, top], z), 0.85, M.frame); this.tube(w([hx, top + 1.6], z), w([hx + 2.4, top + 1.6], z), 0.6, M.frame); this.tube(w([hx - 3.5, ground], z), w([hx + 3.5, ground], z), 0.8, M.frame); }
+        }
+      } else {
+        // Respaldo de máquina o banco inclinado: un tirante baja por detrás hasta el suelo.
+        const f = mix2(fa, fb, 0.72), gx = f[0] - 5.5;
+        this.tube(w(f), w([gx, ground]), 1, M.frame); footBar(gx);
+      }
     }
     if (side && sc.seat) {
-      const y = j.hip[1] + 4.6;
-      this.slab(w, [j.hip[0] - 4, y], [j.hip[0] + 9, y], 2.8, 10.5, 0, M.pad);
-      this.tube(w([j.hip[0] + 2.5, y]), w([j.hip[0] + 2.5, FLOOR]), 1.2, M.frame);
+      const y = j.hip[1] + 4.6, x0 = j.hip[0];
+      this.slab(w, [x0 - 4, y], [x0 + 9, y], 3.2, 11.5, 0, M.pad);
+      this.tube(w([x0 + 2.5, y + 1.4]), w([x0 + 2.5, ground]), 1.3, M.frame);
+      this.tube(w([x0 - 9, ground]), w([x0 + 10.5, ground]), 0.8, M.frame); footBar(x0 + 10.5);
     }
     for (const pr of sc.props ?? []) this.prop(pr, p);
     if (eq === 'cable' && sc.anchor) {
       const xs = side || sc.anchor[0] === 0 ? [(side ? 0 : cx) + sc.anchor[0]] : [cx + sc.anchor[0], cx - sc.anchor[0]];
-      for (const x of xs) { const z = side ? 0 : this.farZ; this.tube(w([x, 4], z), w([x, FLOOR], z), 1.15, M.frame); this.disc(w([x, sc.anchor[1]], z), 2.1, 1, across, M.steel); }
+      // Un cruce de poleas tiene dos columnas, una a cada lado del cuerpo.
+      const zs = side ? (sc.anchorZ ? [-sc.anchorZ, sc.anchorZ] : [0]) : [this.farZ];
+      for (const x of xs) for (const z of zs) { this.tube(w([x, 4], z), w([x, FLOOR], z), 1.15, M.frame); this.disc(w([x, sc.anchor[1]], z), 2.1, 1, across, M.steel); if (side && sc.anchorZ) this.tube(w([x - 4, ground], z), w([x + 4, ground], z), 0.85, M.frame); }
+      if (side && sc.anchorZ) for (const x of xs) this.tube(w([x, 4.6], -sc.anchorZ), w([x, 4.6], sc.anchorZ), 0.9, M.frame);
     }
     if (eq === 'smith' && side) for (const z of [-15, 15]) this.tube(w([j.arms[0].c[0], 3], z), w([j.arms[0].c[0], FLOOR], z), 0.6, M.frame);
     if (MACH.includes(eq) && side) {
-      const s = sc.stack ?? [3.4, 36];
-      if (sc.pivot) {
-        this.tube(w(sc.pivot, -ZS - 1.5), w(sc.pivot, ZS + 1.5), 0.9, M.frame);
-        p.arms.forEach((l, i) => this.tube(w(sc.pivot!, (i ? -1 : 1) * (ZS + 0.6)), l.c, 0.7, M.frame));
+      const st = sc.stack ?? [3.4, 36], tx = st[0] + 3.3;
+      // Torre de placas (o disco, en las de palanca) con su base, unida al asiento por un larguero.
+      if (eq === 'lever') { this.tube(w([tx, st[1] + 12]), w([tx, ground]), 1.2, M.frame); this.disc(w([tx, st[1] + 14]), 4.5, 1.5, Z, M.iron); this.disc(w([tx, st[1] + 14]), 1.3, 1.8, Z, M.steel); }
+      else {
+        const b = this.add(BOX, M.frame); b.position.copy(w([tx, st[1] + 12])); b.scale.set(6.6, 24, 7.5);
+        for (const t of [0.2, 0.36, 0.52, 0.68, 0.84]) { const l = this.add(BOX, M.iron); l.position.copy(w([tx, st[1] + 24 * t])); l.scale.set(6.9, 0.5, 7.8); }
       }
-      if (eq === 'lever') { this.tube(w([s[0] + 3.3, s[1] + 12]), w([s[0] + 3.3, FLOOR]), 1.1, M.frame); this.disc(w([s[0] + 3.3, s[1] + 14]), 4.5, 1.5, Z, M.iron); this.disc(w([s[0] + 3.3, s[1] + 14]), 1.3, 1.8, Z, M.steel); }
-      else { const b = this.add(BOX, M.frame); b.position.copy(w([s[0] + 3.3, s[1] + 12])); b.scale.set(6.6, 24, 7.5);
-        for (const t of [0.25, 0.5, 0.75]) { const l = this.add(BOX, M.iron); l.position.copy(w([s[0] + 3.3, s[1] + 24 * t])); l.scale.set(6.9, 0.45, 7.8); } }
+      footBar(tx); this.tube(w([tx, ground]), w([j.hip[0] + 4, ground]), 0.8, M.frame);
+      // Brazos de la máquina: de su eje a cada mano. Sin eje propio, salen de lo alto de la torre.
+      const load0 = sc.load ?? 'hand';
+      // (solo sentado o tumbado: de pie, unos brazos hasta las manos no corresponden a ninguna máquina real)
+      const pv: V | null = sc.pivot ?? (load0 === 'hand' && !sc.bar && (sc.seat || sc.bench) ? [tx, st[1] + 1.5] : null);
+      if (pv) {
+        this.tube(w(pv, -ZS - 2), w(pv, ZS + 2), 1, M.frame);
+        if (pv[1] < 20) this.tube(w([pv[0], pv[1]]), w([tx, st[1] + 1]), 1, M.frame);       // eje alto: viga hasta la torre
+        if (load0 === 'hand') hands.forEach((h, i) => this.tube(w(pv, (i ? -1 : 1) * (ZS + 1.2)), h, 0.85, M.frame));
+      }
     }
 
     // ---- Carga ----
@@ -340,7 +382,7 @@ class Gear {
     // ---- En las manos ----
     const anchorOf = (h: Vector3): Vector3 | null => {
       if (!sc.anchor) return null;
-      if (side) return w(sc.anchor);
+      if (side) return w(sc.anchor, sc.anchorZ ? (h.z >= 0 ? 1 : -1) * sc.anchorZ : 0);
       if (sc.anchor[0] === 0) return w([cx, sc.anchor[1]], this.farZ);
       return w([cx + (h.x >= cx ? 1 : -1) * sc.anchor[0], sc.anchor[1]], this.farZ);
     };
@@ -366,7 +408,9 @@ class Gear {
     } else if (eq === 'suspension') {
       for (const h of hands) this.tube(sc.anchor && side ? w(sc.anchor) : new Vector3(side ? h.x : cx + (h.x >= cx ? 5 : -5), FLOOR - 3, side ? 0 : -1), h, 0.32, M.band);
     } else if (MACH.includes(eq)) {
-      if (sc.seat || sc.bench || sc.bar) for (const h of hands) this.tube(h.clone().addScaledVector(across, -1.9), h.clone().addScaledVector(across, 1.9), 0.55, M.steel);
+      // Asas: horizontales en los press y remos, verticales en la contractora.
+      const ax = sc.handle === 'v' ? UP : across;
+      if (sc.seat || sc.bench || sc.bar) for (const h of hands) this.tube(h.clone().addScaledVector(ax, -2.5), h.clone().addScaledVector(ax, 2.5), 0.62, M.steel);
       if (sc.bar && !side && sc.anchor) this.tube(w([cx, sc.anchor[1]], 0.5), mid, 0.3, M.cable);
     }
   }
@@ -431,7 +475,7 @@ export class Figure3D {
     }
     const s = box.getBoundingSphere(new Sphere()); this.center.copy(s.center); this.radius = s.radius;
   }
-  private set(t: number): Pose3 { this.gear.farZ = BACK.includes(this.ex.primary) ? 3.2 : -2.8; const p = lift(this.sc, solve(this.sc.view, this.a, this.b, t, ANAT)); this.body.roles(this.ex); this.body.pose(p); this.gear.build(this.sc, p, this.ex.equipment); return p; }
+  private set(t: number): Pose3 { this.gear.farZ = BACK.includes(this.ex.primary) ? 3.2 : -2.8; const fist = (this.sc.load ?? 'hand') === 'hand' && !(this.ex.equipment === 'bodyweight' && !this.sc.props?.length); const p = lift(this.sc, solve(this.sc.view, this.a, this.b, t, ANAT), t, fist); p.fist = fist; this.body.roles(this.ex); this.body.pose(p); this.gear.build(this.sc, p, this.ex.equipment); return p; }
 
   /** Dibuja el instante `t` (0 inicio, 1 final) y devuelve el lienzo WebGL, del tamaño pedido. */
   draw(t: number, px: number): HTMLCanvasElement {

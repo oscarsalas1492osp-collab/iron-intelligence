@@ -277,7 +277,7 @@ const keyOf = (ex: FigureEx, sc: Scene) => {
 
 // Las figuras ya dibujadas se guardan en el dispositivo: al volver a abrir la app aparecen al instante, sin redibujarlas.
 // El número de versión se sube cuando cambia el dibujo, para descartar las guardadas.
-const STORE = 'thumb:5:';
+const STORE = 'thumb:6:';
 let hydrated: Promise<void> | null = null;
 const hydrate = () => (hydrated ??= (async () => {
   try {
