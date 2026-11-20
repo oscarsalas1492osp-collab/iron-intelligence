@@ -1,3 +1,4 @@
+import { InsightCards } from '../ui/extras';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DAY, e1rm, weekStart } from '../domain/calc';
@@ -126,6 +127,7 @@ export default function Analysis() {
           {top.length ? <div className="space-y-2">{top.map((t) => <div key={t.id} className="flex items-center justify-between gap-2 text-sm"><span className="truncate">{t.name}</span><b className="tnum shrink-0">{t.sets}</b></div>)}</div> : <p className="text-sm text-mute">Sin series para este grupo en la semana seleccionada.</p>}
         </Card>
       </div>
+      <InsightCards />
     </div>
   );
 }

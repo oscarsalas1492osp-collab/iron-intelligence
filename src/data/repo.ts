@@ -1,12 +1,16 @@
 // Repositorio: todas las escrituras de la app pasan por aquí.
 // Valida, marca la fila como pendiente de sincronizar y avisa a los suscriptores.
-import { clamp, rpeFromRir, uid, ymd } from '../domain/calc';
+import { clamp, roundTo, rpeFromRir, uid, ymd } from '../domain/calc';
 import { isLibraryId, mergeExercises } from '../domain/exerciseLibrary';
+import { cycleInfo, cycleTarget, DELOAD_TAG, deloadWeight } from '../domain/cycle';
+import { guessExercise, matchExercise, type ImportedSession } from '../domain/importers';
+import type { PlanDay } from '../domain/generator';
 import { recommend, workWeight } from '../domain/progression';
+import type { SharedRoutine } from '../domain/share';
 import { recentReadiness } from '../domain/recovery';
 import { cleanGroups, joinGroup, leaveGroup, moveUnit, type Arrangement } from '../domain/superset';
 import { TECHNIQUE } from '../domain/techniques';
-import { defaultTarget, type Base, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Target, type Technique } from '../domain/types';
+import { defaultTarget, type Base, type BodyMeasure, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Settings, type Target, type Technique } from '../domain/types';
 import { validate, ValidationError, type TableName } from '../domain/validation';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db, getUserId } from './db';
@@ -48,6 +52,11 @@ export async function getProfile(): Promise<Profile> {
 }
 export const saveProfile = (p: Profile) => save('profiles', { ...p, id: getUserId(), userId: getUserId() });
 /** Cambia solo los campos indicados, leyendo el perfil vigente dentro de una transacción. */
+/** Cambia ajustes de entrenamiento (ciclo, barra y discos, avisos) sin tocar el resto del perfil. */
+export async function updateSettings(patch: Partial<Settings>): Promise<Profile> {
+  const p = await getProfile();
+  return saveProfile({ ...p, settings: { ...(p.settings ?? {}), ...patch } });
+}
 export function updateProfile(patch: Partial<Profile>): Promise<Profile> {
   return db.transaction('rw', db.profiles, async () => saveProfile({ ...(await getProfile()), ...patch }));
 }
@@ -143,6 +152,93 @@ export async function createFromTemplate(templateId: string): Promise<Routine[]>
   return out;
 }
 
+/** Crea las rutinas de un plan generado. */
+export async function createFromPlan(split: string, days: PlanDay[]): Promise<Routine[]> {
+  const out: Routine[] = [];
+  for (const d of days) {
+    const r = await createRoutine(d.name, split, d.days);
+    let order = 0;
+    for (const [exerciseId, over] of d.exercises) await save('routineItems', { ...newBase(), routineId: r.id, exerciseId, order: order++, superset: null, ...targetFor(exerciseId, over) } as RoutineItem);
+    out.push(r);
+  }
+  return out;
+}
+
+/** Datos de una rutina propia listos para compartir por enlace. */
+export async function shareableRoutine(routineId: string): Promise<SharedRoutine | null> {
+  const r = await db.routines.get(routineId);
+  if (!r) return null;
+  const items = await getItems(routineId);
+  const exs = await getExercises();
+  const keys = [...new Set(items.map((i) => i.superset).filter(Boolean))];
+  return {
+    name: r.name, split: r.split, days: r.days,
+    items: items.map((i) => ({ exerciseId: i.exerciseId, group: i.superset ? keys.indexOf(i.superset) : null, target: { sets: i.sets, repMin: i.repMin, repMax: i.repMax, rirMin: i.rirMin, rirMax: i.rirMax, restSec: i.restSec } })),
+    custom: items.map((i) => exs.find((e) => e.id === i.exerciseId)).filter((e): e is ExerciseDef => !!e && e.custom && !isLibraryId(e.id)).map((e) => ({ id: e.id, name: e.name, primary: e.primary, type: e.type, equipment: e.equipment })),
+  };
+}
+
+const blankExercise = (name: string, primary: ExerciseDef['primary'], type: ExerciseDef['type'], equipment: ExerciseDef['equipment']): ExerciseDef => ({
+  id: uid(), name: name.trim().slice(0, 80) || 'Ejercicio', primary, secondary: [], type, equipment, machine: '', focus: '', aka: '', measure: 'reps', category: 'strength',
+  cues: [], mistakes: [], rom: '', execution: '', safety: '', increment: 2.5, photo: null, custom: true,
+});
+
+/** Añade a las rutinas propias una recibida por enlace. Los ejercicios propios de quien la compartió se crean aquí. */
+export async function importSharedRoutine(sr: SharedRoutine): Promise<Routine> {
+  const exs = await getExercises();
+  const idMap = new Map<string, string>();
+  for (const c of sr.custom) {
+    const same = exs.find((e) => e.custom && e.name.toLowerCase() === c.name.toLowerCase());
+    if (same) { idMap.set(c.id, same.id); continue; }
+    const made = await saveExercise(blankExercise(c.name, c.primary, c.type, c.equipment));
+    idMap.set(c.id, made.id);
+  }
+  const known = new Set((await getExercises()).map((e) => e.id));
+  const r = await createRoutine(sr.name, sr.split || 'Compartida', sr.days);
+  const groupKey = new Map<number, string>();
+  let order = 0;
+  for (const it of sr.items) {
+    const exerciseId = idMap.get(it.exerciseId) ?? it.exerciseId;
+    if (!known.has(exerciseId)) continue;
+    const superset = it.group == null ? null : groupKey.get(it.group) ?? groupKey.set(it.group, uid()).get(it.group)!;
+    await save('routineItems', { ...newBase(), routineId: r.id, exerciseId, order: order++, superset, ...it.target } as RoutineItem);
+  }
+  return r;
+}
+
+/** Guarda sesiones traídas de otra app. Las que ya existen (misma hora de inicio) se omiten. */
+export async function importSessions(list: ImportedSession[]): Promise<{ sessions: number; sets: number; created: number; skipped: number }> {
+  const existing = new Set(mine(await db.sessions.toArray()).map((s) => s.startedAt));
+  let exs = await getExercises();
+  const cache = new Map<string, ExerciseDef>();
+  let sessions = 0, sets = 0, created = 0, skipped = 0;
+  for (const src of list) {
+    if (existing.has(src.start)) { skipped++; continue; }
+    const rows: SetLog[] = []; const ids: string[] = []; const targets: Record<string, Target> = {};
+    const base = newBase();
+    for (const e of src.exercises) {
+      let ex = cache.get(e.name) ?? matchExercise(e.name, exs) ?? undefined;
+      if (!ex) { const g = guessExercise(e.name); ex = await saveExercise(blankExercise(e.name, g.primary, 'compound', g.equipment)); exs = [...exs, ex]; created++; }
+      cache.set(e.name, ex);
+      const work = e.sets.filter((s) => !s.warmup);
+      if (!work.length || ids.includes(ex.id)) continue;
+      ids.push(ex.id);
+      const reps = work.map((s) => (ex!.measure === 'reps' ? s.reps : s.seconds || s.reps)).filter((n) => n > 0);
+      if (!reps.length) { ids.pop(); continue; }
+      targets[ex.id] = { ...defaultTarget(ex), sets: Math.min(12, work.length) };
+      work.forEach((s, i) => {
+        const n = ex!.measure === 'reps' ? s.reps : s.seconds || s.reps;
+        if (n > 0) rows.push({ ...newBase(), sessionId: base.id, exerciseId: ex!.id, order: i, weight: s.weight, reps: n, rir: s.rir, rpe: rpeFromRir(s.rir), failure: s.rir === 0, endReason: s.rir === 0 ? 'momentary' : 'none', metTarget: true, done: true, completedAt: src.start, restSec: null, note: '', technique: '', sub: 0 });
+      });
+    }
+    if (!rows.length) { skipped++; continue; }
+    await save('sessions', { ...base, routineId: null, name: src.name.slice(0, 80), startedAt: src.start, endedAt: src.start + (src.durationMs || 0), status: 'done', pausedAt: null, pausedMs: 0, notes: 'Importada', exerciseIds: ids, targets, supersets: [] } as Session);
+    for (const r of rows) await save('sets', r);
+    sessions++; sets += rows.length;
+  }
+  return { sessions, sets, created, skipped };
+}
+
 // ---------- Historial enriquecido ----------
 /** Todas las series completadas de sesiones del usuario, con la fecha de su sesión. */
 export async function getDoneSets(includeActive = false): Promise<ASet[]> {
@@ -150,7 +246,7 @@ export async function getDoneSets(includeActive = false): Promise<ASet[]> {
   const byId = new Map(sessions.map((s) => [s.id, s]));
   return mine(await db.sets.toArray())
     .filter((s) => s.done && byId.has(s.sessionId))
-    .map((s) => ({ sessionId: s.sessionId, exerciseId: s.exerciseId, date: byId.get(s.sessionId)!.startedAt, order: s.order, weight: s.weight, reps: s.reps, rir: s.rir, failure: s.failure, endReason: s.endReason, ...(s.sub ? { ext: true } : {}) }));
+    .map((s) => ({ sessionId: s.sessionId, exerciseId: s.exerciseId, date: byId.get(s.sessionId)!.startedAt, order: s.order, weight: s.weight, reps: s.reps, rir: s.rir, failure: s.failure, endReason: s.endReason, ...(s.sub ? { ext: true } : {}), ...(byId.get(s.sessionId)!.notes?.includes(DELOAD_TAG) ? { deload: true } : {}) }));
 }
 
 export async function recommendationFor(ex: ExerciseDef, target: Target, history?: ASet[]) {
@@ -164,16 +260,17 @@ export async function getActiveSession(): Promise<Session | undefined> {
   return mine(await db.sessions.toArray()).find((s) => s.status !== 'done');
 }
 
-async function presetSets(sessionId: string, ex: ExerciseDef, target: Target, history: ASet[]): Promise<SetLog[]> {
+async function presetSets(sessionId: string, ex: ExerciseDef, target: Target, history: ASet[], deload = false): Promise<SetLog[]> {
   const past = sessionsOf(history, ex.id);
   const rec = await recommendationFor(ex, target, history);
   const last = past[0];
   const lastW = last ? workWeight(last) : 0;
-  const weight = rec.weight ?? lastW;
+  // En la semana de descarga se baja la carga; las repeticiones parten del mínimo del rango.
+  const weight = deload ? roundTo(deloadWeight(rec.weight ?? lastW), ex.increment) : rec.weight ?? lastW;
   const lastReps = last ? last.sets.filter((s) => s.weight === lastW).map((s) => s.reps) : [];
   return Array.from({ length: target.sets }, (_, i) => ({
     ...newBase(), sessionId, exerciseId: ex.id, order: i, weight,
-    reps: weight === lastW && lastReps[i] != null ? clamp(lastReps[i], 1, 200) : target.repMin,
+    reps: !deload && weight === lastW && lastReps[i] != null ? clamp(lastReps[i], 1, 200) : target.repMin,
     rir: null, rpe: null, failure: false, endReason: 'none' as const, metTarget: false, done: false, completedAt: null, restSec: null, note: '', technique: '' as const, sub: 0,
   }));
 }
@@ -192,17 +289,20 @@ async function createSession(routineId: string | null): Promise<Session> {
   const routine = routineId ? await db.routines.get(routineId) : undefined;
   // Se omiten ejercicios que ya no existen (p. ej. uno propio eliminado después de armar la rutina).
   const items = (routineId ? await getItems(routineId) : []).filter((i) => exercises.some((e) => e.id === i.exerciseId));
+  // Con un ciclo activo, el objetivo del día depende de la semana: RIR que baja semana a semana y descarga al final.
+  const cycle = (await getProfile()).settings?.cycle;
+  const info = cycleInfo(cycle);
   const session: Session = {
-    ...newBase(), routineId, name: routine?.name ?? 'Entrenamiento libre', startedAt: Date.now(), endedAt: null, status: 'active', pausedAt: null, pausedMs: 0, notes: '',
+    ...newBase(), routineId, name: routine?.name ?? 'Entrenamiento libre', startedAt: Date.now(), endedAt: null, status: 'active', pausedAt: null, pausedMs: 0, notes: info?.deload ? DELOAD_TAG : '',
     exerciseIds: items.map((i) => i.exerciseId),
-    targets: Object.fromEntries(items.map((i) => [i.exerciseId, { sets: i.sets, repMin: i.repMin, repMax: i.repMax, rirMin: i.rirMin, rirMax: i.rirMax, restSec: i.restSec }])),
+    targets: Object.fromEntries(items.map((i) => [i.exerciseId, cycleTarget({ sets: i.sets, repMin: i.repMin, repMax: i.repMax, rirMin: i.rirMin, rirMax: i.rirMax, restSec: i.restSec }, info, !!cycle?.deload)])),
     supersets: cleanGroups(items.map((i) => i.exerciseId), groupsOfItems(items).map((g) => g.map((id) => items.find((i) => i.id === id)?.exerciseId ?? ''))),
   };
   await save('sessions', session);
   for (const it of items) {
     const ex = exercises.find((e) => e.id === it.exerciseId);
     if (!ex) continue;
-    for (const s of await presetSets(session.id, ex, session.targets[ex.id], history)) await save('sets', s);
+    for (const s of await presetSets(session.id, ex, session.targets[ex.id], history, !!info?.deload)) await save('sets', s);
   }
   return session;
 }
@@ -396,6 +496,12 @@ export async function copyLastSession(sessionId: string, exerciseId: string): Pr
 export async function saveRecovery(vals: Omit<RecoveryLog, keyof Base | 'date'>, date = ymd(Date.now())): Promise<RecoveryLog> {
   const existing = mine(await db.recovery.where('date').equals(date).toArray())[0];
   return save('recovery', { ...(existing ?? newBase()), ...vals, date } as RecoveryLog);
+}
+/** Medidas corporales del día: se combinan con las ya anotadas ese día; un valor 0 borra esa medida. */
+export async function saveMeasures(values: Record<string, number>, date = ymd(Date.now())): Promise<BodyMeasure> {
+  const existing = mine(await db.measures.where('date').equals(date).toArray())[0];
+  const merged = Object.fromEntries(Object.entries({ ...(existing?.values ?? {}), ...values }).filter(([, v]) => v > 0));
+  return save('measures', { ...(existing ?? newBase()), date, values: merged } as BodyMeasure);
 }
 export async function saveBodyWeight(kg: number, date = ymd(Date.now())): Promise<BodyWeight> {
   const existing = mine(await db.bodyWeights.where('date').equals(date).toArray())[0];

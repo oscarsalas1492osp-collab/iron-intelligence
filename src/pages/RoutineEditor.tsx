@@ -1,3 +1,4 @@
+import { ShareRoutineButton } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -123,9 +124,10 @@ export default function RoutineEditor() {
         {!items.length && <Empty icon="dumbbell" title="Rutina vacía" text="Añade ejercicios desde la biblioteca." />}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-4">
         <Btn icon="plus" onClick={() => setPicker(true)}>Añadir ejercicio</Btn>
         <Btn variant="primary" icon="play" disabled={!items.length} onClick={begin}>Iniciar esta rutina</Btn>
+        <ShareRoutineButton routineId={routine.id} />
         <Btn variant="danger" icon="trash" onClick={async () => { if (await confirm(`Se eliminará la rutina “${routine.name}”. Las sesiones ya registradas se conservan.`, { confirmLabel: 'Eliminar', danger: true })) { await run(() => deleteRoutine(id)); nav('/rutinas'); } }}>Eliminar rutina</Btn>
       </div>
 

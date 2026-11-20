@@ -24,6 +24,11 @@ export const schemas = {
     heightCm: z.number().min(100).max(250).nullable(), experience: z.enum(['beginner', 'intermediate', 'advanced']),
     goal: z.enum(['hypertrophy', 'strength', 'recomposition', 'maintenance']), daysAvailable: z.number().int().min(1).max(7),
     equipment: z.array(equipment), priorityMuscles: z.array(muscle), halfRir: z.boolean(), indirectCoef: z.number().min(0).max(1),
+    settings: z.object({
+      cycle: z.object({ start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weeks: z.number().int().min(3).max(12), deload: z.boolean() }).nullable().optional(),
+      bar: z.number().min(0).max(60).optional(), plates: z.array(z.number().min(0.25).max(50)).max(20).optional(),
+      restAlert: z.boolean().optional(), restSound: z.boolean().optional(),
+    }).default({}),
   }),
   exercises: z.object({
     ...base, baseId: z.string().nullable(), name: z.string().trim().min(2, 'El nombre es obligatorio').max(80), primary: muscle,
@@ -58,6 +63,7 @@ export const schemas = {
     motivation: z.number().int().min(1).max(5), stress: z.number().int().min(1).max(5),
   }),
   bodyWeights: z.object({ ...base, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), kg: z.number().min(25, 'Peso corporal fuera de rango').max(300, 'Peso corporal fuera de rango') }),
+  measures: z.object({ ...base, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), values: z.record(z.number().min(1, 'Medida fuera de rango').max(300, 'Medida fuera de rango')) }),
 } as const;
 
 export type TableName = keyof typeof schemas;

@@ -235,8 +235,8 @@ with sync_playwright() as p:
     def i1():
         go('/recuperacion'); pg.click('[aria-label="Fatiga general: 5"]'); pg.click('[aria-label="Calidad del sueño: 1"]'); pg.click('[aria-label="Disminuir Horas de sueño"]', click_count=4, delay=20)
         pg.click('button:has-text("Guardar registro")'); toast('Recuperación registrada'); pg.wait_for_selector('text=Registro de hoy (guardado)')
-        pg.click('[aria-label="Aumentar Peso de hoy (kg)"]', click_count=4, delay=20); pg.click('main button:has-text("Guardar"):not(:has-text("registro"))'); toast('Peso registrado'); pg.wait_for_selector('text=75.4 kg')
-        pg.click('[aria-label="Aumentar Peso de hoy (kg)"]'); pg.click('main button:has-text("Guardar"):not(:has-text("registro"))'); pg.wait_for_selector('text=75.5 kg'); pg.wait_for_timeout(300)
+        pg.click('[aria-label="Aumentar Peso de hoy (kg)"]', click_count=4, delay=20); pg.click('main button:has-text("Guardar"):not(:has-text("registro")):not(:has-text("medidas"))'); toast('Peso registrado'); pg.wait_for_selector('text=75.4 kg')
+        pg.click('[aria-label="Aumentar Peso de hoy (kg)"]'); pg.click('main button:has-text("Guardar"):not(:has-text("registro")):not(:has-text("medidas"))'); pg.wait_for_selector('text=75.5 kg'); pg.wait_for_timeout(300)
         assert pg.locator('[aria-label^="Eliminar peso"]').count()==1, 'dos pesos el mismo día'
         pg.reload(); pg.wait_for_selector('text=Registro de hoy (guardado)'); assert pg.get_attribute('[aria-label="Fatiga general: 5"]','aria-pressed')=='true'; shot('I_recup')
         go('/'); pg.wait_for_selector('text=75.5 kg')

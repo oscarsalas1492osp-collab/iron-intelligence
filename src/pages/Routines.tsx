@@ -1,3 +1,4 @@
+import { PlanButton } from '../ui/extras';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createFromTemplate, createRoutine } from '../data/repo';
@@ -42,6 +43,7 @@ export default function Routines() {
         </Empty>
       )}
       {!!routines?.length && <Btn className="mt-4 w-full" onClick={() => setTpl(true)}>Añadir desde plantilla</Btn>}
+      <PlanButton className="mt-2 w-full" />
 
       <Sheet open={creating} onClose={() => setCreating(false)} title="Nueva rutina">
         <Field label="Nombre"><input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej.: Pecho y tríceps" onKeyDown={(e) => e.key === 'Enter' && create()} /></Field>

@@ -41,6 +41,13 @@ El proyecto es compatible con Capacitor (`npx cap init`, `npx cap add android`, 
 | Registro de series a prueba de toques repetidos: el RIR se puede marcar después de completar, el peso y las repeticiones pasan a las series siguientes, el ejercicio en pantalla no cambia solo | Completo |
 | Subida a la nube tolerante a filas de versiones anteriores y a filas rechazadas (no bloquean al resto) | Completo |
 | Figuras ya dibujadas guardadas en el dispositivo; no se dibujan mientras se toca la pantalla | Completo |
+| Ayudas de gimnasio: series de calentamiento, calculadora de discos, aviso de récord al instante, sonido y notificación al terminar el descanso | Completo |
+| Compartir: tarjeta de imagen del entrenamiento y de la semana, rutina por enlace (sin servidor) e importación de la rutina recibida | Completo |
+| Importar historial desde Strong, Hevy y CSV parecidos | Completo |
+| Ciclos de entrenamiento con RIR progresivo y semana de descarga | Completo |
+| Generador de plan según días, equipo, experiencia y prioridades; 9 programas prearmados | Completo |
+| Medidas corporales, racha semanal, constancia, equilibrio empuje-tirón y niveles de fuerza | Completo |
+| iPhone: instalable desde Safari con aviso de instalación; publicación en App Store y apps de reloj documentadas en docs/iphone-y-reloj.md | Parcial |
 | Inicio de sesión con Google (botón visible cuando el proveedor está activo en Supabase) | Código listo; falta activar el proveedor |
 | Eliminación de cuenta y datos, en la app y en `eliminar-cuenta.html` | Código listo; requiere la función `delete_account` de `supabase/schema.sql` |
 | Política de privacidad y términos de uso (`privacidad.html`, `terminos.html`) | Completo |

@@ -1,3 +1,4 @@
+import { MeasuresCard } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../data/db';
@@ -67,6 +68,7 @@ export default function Recovery() {
           </Card>
         </div>
 
+        <MeasuresCard />
         <div>
           <H2>Peso corporal</H2>
           <Card>

@@ -23,3 +23,12 @@ self.addEventListener('fetch', (e) => {
       .catch(() => caches.match(req, { ignoreVary: true }).then((r) => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });
+
+// Al tocar un aviso (por ejemplo, el de fin de descanso), se vuelve a la app abierta o se abre.
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const open = list.find((c) => 'focus' in c);
+    return open ? open.focus() : self.clients.openWindow('./#/entrenar');
+  }));
+});

@@ -24,6 +24,8 @@ export interface ASet {
   endReason: EndReason;
   /** Tramo de una técnica avanzada (bajada de un dropset, pausa de un descanso-pausa…): suma tonelaje, no cuenta como serie. */
   ext?: boolean;
+  /** Serie de una semana de descarga: cuenta en el volumen, pero no como referencia para la progresión. */
+  deload?: boolean;
 }
 
 /** Series principales: las que cuentan como «una serie» en el volumen semanal y en la progresión. */
@@ -93,7 +95,7 @@ export function topContributors(sets: ASet[], ex: ExMap, coef: number, muscle: M
 /** Agrupa las series de un ejercicio por sesión, de la más reciente a la más antigua. */
 export function sessionsOf(sets: ASet[], exerciseId: string): (PerfSession & { sessionId: string })[] {
   const by = new Map<string, ASet[]>();
-  for (const s of mainSets(sets)) if (s.exerciseId === exerciseId) (by.get(s.sessionId) ?? by.set(s.sessionId, []).get(s.sessionId)!).push(s);
+  for (const s of mainSets(sets)) if (s.exerciseId === exerciseId && !s.deload) (by.get(s.sessionId) ?? by.set(s.sessionId, []).get(s.sessionId)!).push(s);
   return [...by.entries()]
     .map(([sessionId, xs]) => ({ sessionId, date: xs[0].date, sets: xs.sort((a, b) => a.order - b.order) }))
     .sort((a, b) => b.date - a.date);

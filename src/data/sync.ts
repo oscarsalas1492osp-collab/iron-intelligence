@@ -11,7 +11,7 @@ import { db, getUserId, setUserId } from './db';
 
 export const REMOTE_TABLE: Record<TableName, string> = {
   profiles: 'profiles', exercises: 'exercises', routines: 'routines', routineItems: 'routine_items',
-  sessions: 'sessions', sets: 'set_logs', recovery: 'recovery_logs', bodyWeights: 'body_weights',
+  sessions: 'sessions', sets: 'set_logs', recovery: 'recovery_logs', bodyWeights: 'body_weights', measures: 'body_measures',
 };
 
 const snake = (k: string) => k.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
@@ -42,6 +42,7 @@ export interface SyncResult { pulled: number; pushed: number }
  * campos añadidos después (biseries, técnicas…): sin completarlos, el servidor rechaza la subida entera.
  */
 const LEGACY: Partial<Record<TableName, Record<string, unknown>>> = {
+  profiles: { settings: {} },
   sessions: { supersets: [] },
   sets: { technique: '', sub: 0 },
   routineItems: { superset: null },

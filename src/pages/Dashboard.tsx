@@ -1,3 +1,4 @@
+import { IosInstallHint, WeekExtras } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -98,6 +99,7 @@ export default function Dashboard() {
         <Link to="/perfil" aria-label="Perfil" className="wd-x grid h-12 w-12 shrink-0 place-items-center rounded-full bg-card2 text-lg font-extrabold">{profile.name ? profile.name[0].toUpperCase() : <Icon name="user" />}</Link>
       </header>
 
+      <IosInstallHint />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-8 md:[grid-template-areas:'today_figure''week_figure''list_figure'] md:[grid-template-rows:auto_auto_1fr]">
         <section className="hero rounded-[28px] p-5 md:[grid-area:today]">
           <div className="relative z-[1]">
@@ -126,6 +128,7 @@ export default function Dashboard() {
             <RingStat value={nWeek} max={prevSets || nWeek || 1} color="#ffb054" figure={nWeek} label="series" note={dSets != null ? `${signed(dSets)} vs. anterior` : undefined} good={dSets != null && dSets > 0} />
             <RingStat value={ton} max={prevTon || ton || 1} color="#58c7ff" figure={(ton / 1000).toFixed(1).replace('.', ',')} label="toneladas" note={dTon != null ? `${signed(dTon)} vs. anterior` : undefined} good={dTon != null && dTon > 0} />
           </div>
+          <WeekExtras />
         </section>
 
         <section className="rounded-panel bg-card p-4 md:[grid-area:figure]" aria-label="Grupos musculares de la semana">

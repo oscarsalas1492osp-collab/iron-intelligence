@@ -160,6 +160,26 @@ export interface Profile extends Base {
   halfRir: boolean;
   /** Fracción con la que una serie indirecta cuenta para un músculo secundario (0–1). */
   indirectCoef: number;
+  /** Ajustes de entrenamiento. Las filas guardadas por versiones anteriores no lo traen. */
+  settings?: Settings;
+}
+
+/** Ciclo de entrenamiento (mesociclo): semanas de trabajo que van acercándose al fallo y, si se elige, una de descarga al final. */
+export interface Cycle { start: string; weeks: number; deload: boolean }
+export interface Settings {
+  cycle?: Cycle | null;
+  /** Peso de la barra (kg) y discos disponibles por lado, para la calculadora de discos. */
+  bar?: number;
+  plates?: number[];
+  /** Aviso al terminar el descanso cuando la app no está en pantalla, y sonido. */
+  restAlert?: boolean;
+  restSound?: boolean;
+}
+
+/** Medidas corporales de un día, en centímetros (o % en grasa corporal). */
+export interface BodyMeasure extends Base {
+  date: string;
+  values: Record<string, number>;
 }
 
 export const DEFAULT_TARGET: Record<ExType, Target> = {

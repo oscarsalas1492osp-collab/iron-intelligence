@@ -1,3 +1,4 @@
+import { ImportCard, TrainingSettings } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -115,6 +116,8 @@ export default function Profile() {
             <Btn className="w-full" onClick={() => file.current?.click()}>Restaurar desde una copia</Btn>
             <input ref={file} type="file" accept="application/json,.json" className="hidden" aria-label="Archivo de copia de seguridad" onChange={(e) => { const f = e.target.files?.[0]; if (f) void onImport(f); e.target.value = ''; }} />
           </Card>
+          <TrainingSettings />
+          <ImportCard />
           <H2>Privacidad</H2>
           <Card className="space-y-3">
             <p className="text-xs text-mute">Tus registros solo se usan para mostrarte tus análisis. No hay publicidad ni se comparten con terceros.</p>

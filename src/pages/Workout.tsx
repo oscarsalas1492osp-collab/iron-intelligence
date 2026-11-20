@@ -1,5 +1,9 @@
 // REGISTRO DE ENTRENAMIENTO — funcionalidad principal.
 // Cada cambio se escribe de inmediato en la base local: si la app se cierra, la sesión se recupera tal cual.
+import { ToolsButton } from '../ui/extras';
+import { beep, clearRestNotice, notifyRestEnd, primeAudio } from '../ui/alerts';
+import { isRecord } from '../domain/insights';
+import { DELOAD_TAG } from '../domain/cycle';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -129,7 +133,7 @@ function RirScale({ rir, halfRir, onPick, small, of = '' }: { rir: number | null
         const on = rir != null && (r === 5 ? rir >= 5 : Math.floor(rir) === r);
         const heat = intensityOf(r);
         return (
-          <button type="button" key={r} aria-label={`RIR ${r === 5 ? '5 o más' : r}${of}`} aria-pressed={on} onClick={() => onPick(on && !halfRir ? null : r)}
+          <button type="button" key={r} aria-label={`RIR ${r === 5 ? '5 o más' : r}${of}`} aria-pressed={on} onClick={() => { if (!tapLocked()) onPick(on && !halfRir ? null : r); }}
             className={cx('num relative text-lg transition-colors', small ? 'h-11' : 'h-12', on ? 'text-ink' : 'bg-card2 text-mute hover:text-chalk')} style={on ? { background: heat.color, color: r >= 3 ? '#f3f1ec' : '#16181b' } : undefined}>
             {r === 5 ? '5+' : r}
             {!on && <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: heat.color }} />}
@@ -140,7 +144,7 @@ function RirScale({ rir, halfRir, onPick, small, of = '' }: { rir: number | null
   );
 }
 
-function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; ask?: boolean; onAsked?: () => void; onOpen: () => void; onDone: () => void; onExtend?: (added: SetLog, pause: number) => void }) {
+function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; ask?: boolean; onAsked?: () => void; onOpen: () => void; onDone: (saved: SetLog) => void; onExtend?: (added: SetLog, pause: number) => void }) {
   const unit = MEASURE_UNIT[measure];
   const run = useAction();
   const [more, setMore] = useState(false); const [tech, setTech] = useState(false);
@@ -168,7 +172,7 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
         <div className={cx('mb-2 rounded-panel bg-card p-3 animate-rise', tag && 'ml-5')} role="group" aria-label={`RIR de la ${name}`}>
           <div className="mb-1.5 flex items-baseline justify-between gap-3">
             <span className="text-sm font-semibold">¿Cuántas repeticiones te quedaban?</span>
-            <button type="button" className="wd-c shrink-0 text-sm text-mute underline" onClick={onAsked}>Sin RIR</button>
+            <button type="button" className="wd-c shrink-0 text-sm text-mute underline" onClick={() => { if (!tapLocked()) onAsked?.(); }}>Sin RIR</button>
           </div>
           <RirScale small of={` para la ${name}`} rir={s.rir} halfRir={halfRir} onPick={(r) => { void patch({ rir: r }); onAsked?.(); }} />
         </div>
@@ -191,8 +195,13 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
           onClick={async (e) => {
             e.stopPropagation();
             if (tapLocked()) return;
+            primeAudio();
             tapLock = Date.now() + 5000;
-            try { if (s.done) await run(() => uncompleteSet(s.id)); else if (await run(() => completeSet(s.id))) { onDone(); revealSet(s.id); } }
+            try {
+              if (s.done) await run(() => uncompleteSet(s.id));
+              // Se usa la serie tal como quedó guardada: si el peso se acababa de teclear, la fila aún muestra el anterior.
+              else { const saved = await run(() => completeSet(s.id)); if (saved) { onDone(saved); revealSet(s.id); } }
+            }
             finally { tapLock = Date.now() + 500; }
           }}
           className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-ctl transition active:scale-95', s.done ? 'bg-go text-ink' : 'bg-fire text-ink')}>
@@ -311,6 +320,14 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
 }
 
 /** Series principales de un ejercicio con sus tramos de técnica a continuación. */
+/** Aviso de récord al completar una serie: se compara con el historial y con lo ya hecho hoy. */
+function recordText(history: ASet[], today: SetLog[], s: SetLog): string | null {
+  if (s.sub) return null;
+  const before: ASet[] = [...history, ...today.filter((x) => x.done && x.id !== s.id && x.exerciseId === s.exerciseId && !x.sub).map((x) => ({ sessionId: x.sessionId, exerciseId: x.exerciseId, date: 0, order: x.order, weight: x.weight, reps: x.reps, rir: x.rir, failure: x.failure, endReason: x.endReason }))];
+  const r = isRecord(before, s.exerciseId, s.weight, s.reps, s.rir);
+  return r === 'weight' ? `Nuevo récord de carga: ${fmtKg(s.weight)} kg` : r === 'e1rm' ? 'Nuevo récord: tu mejor 1RM estimado en este ejercicio' : null;
+}
+
 const familiesOf = (sets: SetLog[]) => sets.filter((s) => !s.sub).map((m) => ({ main: m, ext: sets.filter((x) => x.sub > 0 && x.order === m.order) }));
 
 /** Lista de ejercicios con los que se puede formar o ampliar una biserie. */
@@ -345,7 +362,12 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
   const [askId, setAskId] = useState<string | null>(null);
   const fams = familiesOf(sets);
   const allDone = sets.length > 0 && sets.every((s) => s.done);
-  const done = (s: SetLog) => { onRest(target.restSec); setAskId(s.rir == null ? s.id : null); const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null); if (!nx) toast('Ejercicio completado'); };
+  const done = (s: SetLog) => {
+    onRest(target.restSec); setAskId(s.rir == null ? s.id : null);
+    const nx = sets.find((x) => !x.done && x.id !== s.id); setOpenId(nx?.id ?? null);
+    const rec = recordText(history, sets, s);
+    if (rec) toast(rec); else if (!nx) toast('Ejercicio completado');
+  };
   const extend = (x: SetLog, pause: number) => { setOpenId(x.id); onRest(pause); };
 
   return (
@@ -355,7 +377,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
       <div className="space-y-1.5">
         {fams.map((f, i) => [f.main, ...f.ext].map((s) => (
           <SetRow key={s.id} s={s} n={i + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[i - 1]?.main} halfRir={halfRir} ask={askId === s.id} onAsked={() => setAskId(null)}
-            onOpen={() => setOpenId(s.id)} onDone={() => done(s)} onExtend={extend} />
+            onOpen={() => setOpenId(s.id)} onDone={done} onExtend={extend} />
         )))}
       </div>
 
@@ -363,7 +385,10 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
         <Btn icon="plus" className="whitespace-nowrap" onClick={async () => { const s = await run(() => addSet(session.id, ex.id)); if (s) setOpenId(s.id); }}>Añadir serie</Btn>
         <Btn icon="copy" className="whitespace-nowrap" disabled={!last} aria-label="Copiar la sesión anterior" onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar anterior</Btn>
       </div>
-      <Btn className="w-full" icon="plus" aria-label="Unir en biserie con otro ejercicio" onClick={() => setJoin(true)}>Unir en biserie</Btn>
+      <div className="grid grid-cols-2 gap-2">
+        <Btn icon="plus" className="whitespace-nowrap !px-2" aria-label="Unir en biserie con otro ejercicio" onClick={() => setJoin(true)}>Unir en biserie</Btn>
+        <ToolsButton ex={ex} weight={sets.find((s) => !s.done)?.weight ?? sets[sets.length - 1]?.weight ?? 0} className="whitespace-nowrap !px-2" />
+      </div>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
       <button type="button" className="wd-c w-full py-2 text-sm text-mute underline" onClick={async () => { if (await confirm(`Se quitará “${ex.name}” de esta sesión junto con sus series.`, { confirmLabel: 'Quitar', danger: true })) await run(() => removeExerciseFromSession(session.id, ex.id)); }}>Quitar este ejercicio de la sesión</button>
 
@@ -397,7 +422,8 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
     setAskId(s.rir == null ? s.id : null);
     // Dentro de la ronda no hay descanso: se pasa de inmediato al siguiente ejercicio.
     onRest(pendingInRound ? 0 : rest);
-    if (!nx) toast(`${label} completada`);
+    const rec = recordText(history, sets, s);
+    if (rec) toast(rec); else if (!nx) toast(`${label} completada`);
   };
 
   return (
@@ -418,7 +444,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
           <div className="space-y-1.5">
             {byEx.flatMap(({ ex, fams }) => (fams[r] ? [fams[r].main, ...fams[r].ext] : []).map((s) => (
               <SetRow key={s.id} s={s} n={r + 1} step={ex.increment} measure={ex.measure} open={openId === s.id} prev={fams[r - 1]?.main} halfRir={halfRir} title={ex.name} ask={askId === s.id} onAsked={() => setAskId(null)}
-                onOpen={() => setOpenId(s.id)} onDone={() => done(s, r)} onExtend={(x, pause) => { setOpenId(x.id); onRest(pause); }} />
+                onOpen={() => setOpenId(s.id)} onDone={(x) => done(x, r)} onExtend={(x, pause) => { setOpenId(x.id); onRest(pause); }} />
             )))}
           </div>
         </section>
@@ -510,10 +536,17 @@ function Active({ session }: { session: Session }) {
   };
   const setRest = (r: Rest | null) => { storeRest(r && r.end > Date.now() ? r : null); setRestState(r && r.end > Date.now() ? r : null); };
   /** Inicia el descanso; con 0 segundos lo cancela (paso inmediato al siguiente ejercicio de una biserie o a una bajada). */
-  const restFor = (sec: number) => setRest(sec > 0 ? { end: Date.now() + sec * 1000, total: sec } : null);
+  const restFor = (sec: number) => { void clearRestNotice(); setRest(sec > 0 ? { end: Date.now() + sec * 1000, total: sec } : null); };
 
   useEffect(() => {
-    if (rest && now >= rest.end) { setRest(null); try { navigator.vibrate?.([250, 120, 250]); } catch { /* sin vibración */ } toast('Descanso terminado'); }
+    if (rest && now >= rest.end) {
+      setRest(null); try { navigator.vibrate?.([250, 120, 250]); } catch { /* sin vibración */ } toast('Descanso terminado');
+      if (profile.settings?.restSound !== false) beep();
+      if (profile.settings?.restAlert) {
+        const nx = sets.find((s) => !s.done && (!current || s.exerciseId === current)) ?? sets.find((s) => !s.done);
+        void notifyRestEnd(nx ? `Sigue: ${ex.get(nx.exerciseId)?.name ?? 'siguiente serie'}, ${fmtKg(nx.weight)} kg × ${nx.reps}` : 'Vuelve cuando quieras a tu entrenamiento');
+      }
+    }
   }, [now, rest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Al entrar, la sesión se muestra desde arriba aunque la pantalla anterior quedara desplazada.
@@ -603,6 +636,7 @@ function Active({ session }: { session: Session }) {
         </div>
       )}
 
+      {session.notes?.includes(DELOAD_TAG) && <div className="mb-3 rounded-ctl bg-data/10 p-3 text-sm"><b className="text-data">Semana de descarga.</b> Menos series, menos carga y lejos del fallo: hoy toca recuperar.</div>}
       {paused && <div className="mb-3 rounded-ctl bg-card2 p-3 text-sm text-mute">Sesión en pausa: el cronómetro está detenido. Puedes seguir registrando o reanudar.</div>}
 
       {/* pan-y: el desplazamiento vertical sigue siendo del navegador; el horizontal queda para cambiar de ejercicio. */}

@@ -2,7 +2,7 @@
 // Es la fuente de verdad en el dispositivo: cada serie se escribe aquí en el momento,
 // por lo que cerrar la app o perder conexión no pierde información.
 import Dexie, { type Table } from 'dexie';
-import type { BodyWeight, ExerciseRow, Profile, RecoveryLog, Routine, RoutineItem, Session, SetLog } from '../domain/types';
+import type { BodyMeasure, BodyWeight, ExerciseRow, Profile, RecoveryLog, Routine, RoutineItem, Session, SetLog } from '../domain/types';
 
 export interface Meta { key: string; value: unknown }
 
@@ -15,6 +15,7 @@ export class IronDB extends Dexie {
   sets!: Table<SetLog, string>;
   recovery!: Table<RecoveryLog, string>;
   bodyWeights!: Table<BodyWeight, string>;
+  measures!: Table<BodyMeasure, string>;
   meta!: Table<Meta, string>;
 
   constructor(name = 'iron-intelligence') {
@@ -30,6 +31,7 @@ export class IronDB extends Dexie {
       bodyWeights: 'id, userId, dirty, date',
       meta: 'key',
     });
+    this.version(2).stores({ measures: 'id, userId, dirty, date' });
   }
 }
 

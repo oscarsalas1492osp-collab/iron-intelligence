@@ -1,3 +1,4 @@
+import { ShareSessionButton } from '../ui/extras';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -72,7 +73,8 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
         })}
       </div>
       {session.notes && <p className="mt-3 text-sm text-mute">{session.notes}</p>}
-      <Btn variant="danger" icon="trash" className="mt-4 w-full" onClick={async () => { if (await confirm('Se eliminará la sesión completa con todas sus series. Esta acción no se puede deshacer.', { confirmLabel: 'Eliminar sesión', danger: true })) { await run(() => deleteSession(session.id), 'Sesión eliminada'); onClose(); } }}>Eliminar sesión</Btn>
+      <ShareSessionButton session={session} sets={sets} />
+      <Btn variant="danger" icon="trash" className="mt-2 w-full" onClick={async () => { if (await confirm('Se eliminará la sesión completa con todas sus series. Esta acción no se puede deshacer.', { confirmLabel: 'Eliminar sesión', danger: true })) { await run(() => deleteSession(session.id), 'Sesión eliminada'); onClose(); } }}>Eliminar sesión</Btn>
       {edit && <SetEditor s={edit} onClose={() => setEdit(null)} />}
     </Sheet>
   );
