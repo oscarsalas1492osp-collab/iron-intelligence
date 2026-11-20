@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
-    { "src": "/", "has": [{ "type": "host", "value": "iron-intelligence-f5m5-.*" }], "dest": "/precache.json" },
+    { "src": "/a", "has": [{ "type": "host", "value": "^iron-intelligence-f5m5-.*\\.vercel\\.app$" }], "dest": "/precache.json" },
+    { "src": "/b", "has": [{ "type": "host", "value": "intelligence-f5m5-" }], "dest": "/precache.json" },
     { "handle": "filesystem" }
   ]
 }
