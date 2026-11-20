@@ -7,6 +7,7 @@ export { cx };
 const PATHS: Record<string, string> = {
   home: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
   dumbbell: 'M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12',
+  plate: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5z',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',

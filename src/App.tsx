@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Library from './pages/Library';
 import More from './pages/More';
+import Plates from './pages/Plates';
 import Profile from './pages/Profile';
 import RoutineEditor from './pages/RoutineEditor';
 import Routines from './pages/Routines';
@@ -72,6 +73,7 @@ export default function App() {
                 <Route path="/ejercicios" element={<Library />} />
                 <Route path="/historial" element={<History />} />
                 <Route path="/analisis" element={<Analysis />} />
+                <Route path="/discos" element={<Plates />} />
                 <Route path="/recuperacion" element={<Recovery />} />
                 <Route path="/asistente" element={<Assistant />} />
                 <Route path="/perfil" element={<Profile />} />

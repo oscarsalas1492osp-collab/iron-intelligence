@@ -7,6 +7,7 @@ import { MORE } from '../ui/Layout';
 const DESC: Record<string, string> = {
   '/ejercicios': 'Biblioteca, máquinas y ejercicios propios',
   '/analisis': 'Volumen por músculo y proximidad al fallo',
+  '/discos': 'Calculadora de discos por lado',
   '/recuperacion': 'Sueño, fatiga, estrés y peso corporal',
   '/asistente': 'Preguntas sobre tu historial',
   '/perfil': 'Objetivos, ajustes, copias y cuenta',

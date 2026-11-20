@@ -11,6 +11,7 @@ const NAV = [
   { to: '/ejercicios', label: 'Ejercicios', icon: 'book' },
   { to: '/historial', label: 'Historial', icon: 'calendar' },
   { to: '/analisis', label: 'Análisis', icon: 'chart' },
+  { to: '/discos', label: 'Discos', icon: 'plate' },
   { to: '/recuperacion', label: 'Recuperación', icon: 'heart' },
   { to: '/asistente', label: 'Asistente', icon: 'chat' },
   { to: '/perfil', label: 'Perfil y datos', icon: 'user' },

@@ -13,11 +13,12 @@ import { parseWorkouts } from '../domain/importers';
 import { adherence, balance, LEVELS, strengthLevels, weekStreak } from '../domain/insights';
 import { MUSCLE_LABEL } from '../domain/muscles';
 import { decodeRoutine, encodeRoutine } from '../domain/share';
-import { BARS, PLATES, platesPerSide, warmupSets } from '../domain/tools';
+import { warmupSets } from '../domain/tools';
 import type { ExerciseDef, Session, SetLog, Settings } from '../domain/types';
 import { inWeek, mainSets, muscleVolume, tonnage } from '../domain/volume';
 import { useDoneSets, useExercises, useExMap, useProfile, useSessions, useUserId } from '../hooks';
 import { askNotify, canNotify, primeAudio } from './alerts';
+import { PlateCalc } from './plates';
 import { Bar, Btn, Card, Empty, Field, H2, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from './components';
 import { drawCard, shareBlob, shareLink, type CardData } from './shareCard';
 
@@ -41,12 +42,11 @@ function ToolsSheet({ ex, weight, onClose }: { ex: ExerciseDef; weight: number; 
   const [doneIdx, setDoneIdx] = useState<number[]>([]);
   const bar = st.bar ?? (ex.equipment === 'barbell' || ex.equipment === 'smith' ? 20 : ex.equipment === 'ez_bar' ? 10 : 0);
   const warm = warmupSets(w, ex.increment, ex.equipment === 'barbell' ? bar : 0);
-  const pl = platesPerSide(w, bar, st.plates?.length ? st.plates : PLATES);
   return (
     <Sheet open onClose={onClose} title={ex.name}>
       <div className="space-y-4">
         <Seg options={[{ value: 'warm', label: 'Calentamiento' }, { value: 'plates', label: 'Discos' }]} value={tab} onChange={setTab} />
-        <Stepper label="Peso de trabajo (kg)" value={w} step={ex.increment || 2.5} max={1000} onChange={setW} />
+        {tab === 'warm' && <Stepper label="Peso de trabajo (kg)" value={w} step={ex.increment || 2.5} max={1000} onChange={setW} />}
         {tab === 'warm' ? (
           <div>
             {warm.length ? (
@@ -67,17 +67,7 @@ function ToolsSheet({ ex, weight, onClose }: { ex: ExerciseDef; weight: number; 
           </div>
         ) : (
           <div>
-            <div className="label mb-1.5">Barra</div>
-            <Seg options={BARS.map((b) => ({ value: b, label: b ? `${fmtKg(b)} kg` : 'Sin barra' }))} value={bar} onChange={(b) => run(() => updateSettings({ bar: b }))} />
-            <div className="mt-4 rounded-panel bg-card2 p-4 text-center">
-              <div className="label">Por cada lado</div>
-              {pl.side.length ? (
-                <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-                  {pl.side.map((p, i) => <span key={i} className="num grid place-items-center rounded-lg bg-fire/90 px-2 text-ink" style={{ height: 34 + Math.min(30, p * 1.2), minWidth: 44 }}>{fmtKg(p)}</span>)}
-                </div>
-              ) : <div className="mt-2 text-sm text-mute">{w <= bar ? 'Solo la barra.' : 'Indica un peso mayor que la barra.'}</div>}
-              {pl.rest > 0 && <div className="mt-2 text-sm text-[#ffb054]">Faltan {fmtKg(pl.rest)} kg que no se pueden cargar con estos discos.</div>}
-            </div>
+            <PlateCalc weight={w} onWeight={setW} step={ex.increment || 2.5} barDefault={bar} />
             {!loaded && <p className="mt-3 text-xs text-mute">Este ejercicio no suele cargarse con discos; la calculadora sirve igual si tu máquina los usa.</p>}
           </div>
         )}

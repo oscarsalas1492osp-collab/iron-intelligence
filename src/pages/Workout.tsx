@@ -2,6 +2,7 @@
 // Cada cambio se escribe de inmediato en la base local: si la app se cierra, la sesión se recupera tal cual.
 import { ADJ_KEY } from '../domain/feedback';
 import { ToolsButton } from '../ui/extras';
+import { WeightWheel } from '../ui/plates';
 import { beep, clearRestNotice, notifyRestEnd, primeAudio } from '../ui/alerts';
 import { isRecord } from '../domain/insights';
 import { DELOAD_TAG } from '../domain/cycle';
@@ -296,59 +297,6 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
         </div>
       )}
       {sheets}
-    </div>
-  );
-}
-
-/**
- * Rueda de peso: una cinta horizontal que se desliza con el pulgar y se detiene en cada carga posible.
- * Complementa a los botones; el valor se guarda cuando la cinta se queda quieta.
- */
-function WeightWheel({ value, step, onChange, label }: { value: number; step: number; onChange: (v: number) => void; label: string }) {
-  const W = 60;
-  const ref = useRef<HTMLDivElement>(null);
-  const inc = step > 0 ? step : 2.5;
-  const top = Math.max(300, Math.ceil((value + 100) / 100) * 100);
-  const onGrid = Math.abs(value / inc - Math.round(value / inc)) < 1e-6;
-  const extra = onGrid ? null : value;
-  const vals = useMemo(() => {
-    const xs: number[] = [];
-    for (let i = 0; i * inc <= top + 1e-9; i++) xs.push(Math.round(i * inc * 100) / 100);
-    if (extra != null) { xs.push(extra); xs.sort((a, b) => a - b); }
-    return xs;
-  }, [inc, top, extra]);
-  const idx = Math.max(0, vals.indexOf(value));
-  const [mid, setMid] = useState(idx);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
-  const latest = useRef({ value, vals, onChange }); latest.current = { value, vals, onChange };
-  // Si el peso cambia por los botones o por otra serie, la cinta se coloca sola en ese valor.
-  useEffect(() => {
-    const el = ref.current;
-    if (el && Math.abs(el.scrollLeft - idx * W) > 2) el.scrollLeft = idx * W;
-    setMid(idx);
-  }, [idx]);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const onScroll = () => {
-    const el = ref.current; if (!el) return;
-    const i = Math.min(vals.length - 1, Math.max(0, Math.round(el.scrollLeft / W)));
-    setMid(i);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => { const l = latest.current; const v = l.vals[Math.min(l.vals.length - 1, Math.max(0, Math.round((ref.current?.scrollLeft ?? 0) / W)))]; if (v != null && v !== l.value) l.onChange(v); }, 160);
-  };
-  return (
-    <div className="mt-2.5" data-noswipe>
-      <div className="relative">
-        <div ref={ref} onScroll={onScroll} role="group" aria-label={label} className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto rounded-ctl bg-ink/50" style={{ paddingInline: `calc(50% - ${W / 2}px)`, touchAction: 'pan-x pan-y' }}>
-          {vals.map((v, i) => (
-            <button type="button" key={v} tabIndex={-1} aria-hidden onClick={() => ref.current?.scrollTo({ left: i * W, behavior: 'smooth' })}
-              className={cx('num shrink-0 snap-center text-center transition-colors', i === mid ? 'text-xl text-chalk' : Math.abs(i - mid) === 1 ? 'text-base text-chalk/55' : 'text-sm text-chalk/25')} style={{ width: W, height: 46 }}>
-              {fmtKg(v)}
-            </button>
-          ))}
-        </div>
-        <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-[60px] -translate-x-1/2 rounded-ctl border-2 border-fire/70" />
-      </div>
-      <div className="wd-c mt-1 text-center text-xs text-mute">Desliza para cambiar el peso</div>
     </div>
   );
 }

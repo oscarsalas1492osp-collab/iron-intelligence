@@ -165,10 +165,10 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .chip[aria-selected='true'] { background: var(--chalk); color: var(--ink); box-shadow: none; }
 .flow { position: relative; height: 470px; margin-top: 26px; perspective: 1500px; touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; outline-offset: 8px; }
 .flow:active { cursor: grabbing; }
-.slide { position: absolute; left: 50%; top: 10px; width: 215px; padding: 0; border: 0; background: none; cursor: pointer; transform-style: preserve-3d; transition: transform 560ms var(--drawer), opacity 400ms var(--out); will-change: transform; }
+.slide { position: absolute; left: 50%; top: 10px; width: 215px; padding: 0; border: 0; background: none; cursor: inherit; transform-style: preserve-3d; will-change: transform, opacity; touch-action: pan-y; }
 .slide .phone { display: block; border-radius: 34px; padding: 6px; }
 .slide .phone img { border-radius: 28px; }
-.slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(7 13 16 / .5); opacity: var(--dim, 0); transition: opacity 400ms var(--out); pointer-events: none; }
+.slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(7 13 16 / .5); opacity: var(--dim, 0); pointer-events: none; }
 .caption { display: grid; justify-items: center; text-align: center; gap: 8px; margin: 26px auto 0; max-width: 34rem; min-height: 6.4rem; align-content: start; }
 .caption p { color: var(--mute); }
 .count { display: block; text-align: center; margin-top: 14px; font-size: .9375rem; color: var(--mute); }
@@ -335,7 +335,6 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   html { scroll-behavior: auto; }
   .hero-copy > *, .stage { animation: none; }
   .js .rv { translate: none; transition: opacity 300ms ease-out; }
-  .slide { transition: opacity 200ms ease-out; }
   .btn:active, .icon-btn:active, .chip:active, .tab:active, .seg button:active, .pill input:active + span { scale: 1; }
   .btn:hover, .card:hover { translate: none; }
   .barbell b, .warm li, .warm .track i, .qa[open] p, .ring.done { animation: none; }
@@ -843,61 +842,104 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
       ['ficha', 'Ficha', 'Cada ejercicio explicado', 'Figura en movimiento, músculos, indicaciones técnicas y errores frecuentes.'],
       ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Créalas desde cero, desde una plantilla o genera un plan según tu perfil.']
     ];
-    var flow = $('flow'), chips = $('chips'), active = 2, slides = [], tabs = [], moved = false;
+    var flow = $('flow'), chips = $('chips'), slides = [], tabs = [], N = S.length;
+    var active = 2, pos = 2, raf = 0, anim = null;
     S.forEach(function (s, i) {
       var c = document.createElement('button');
       c.type = 'button'; c.className = 'chip'; c.setAttribute('role', 'tab'); c.textContent = s[1];
       c.addEventListener('click', function () { go(i); });
       chips.appendChild(c); tabs.push(c);
       var b = document.createElement('button');
-      b.type = 'button'; b.className = 'slide'; b.setAttribute('aria-label', 'Ver ' + s[2]); b.tabIndex = -1;
-      b.innerHTML = '<span class="phone"><img loading="lazy" width="540" height="1080" alt="" src="/web/img/s/' + s[0] + '.webp"></span>';
-      b.addEventListener('click', function () { if (!moved) go(i); });
+      b.type = 'button'; b.className = 'slide'; b.setAttribute('aria-label', 'Ver ' + s[2]); b.tabIndex = -1; b.setAttribute('data-i', i);
+      b.innerHTML = '<span class="phone"><img loading="lazy" draggable="false" width="540" height="1080" alt="" src="/web/img/s/' + s[0] + '.webp"></span>';
       flow.appendChild(b); slides.push(b);
     });
+    function gapOf() { return slides[0].offsetWidth * 0.74; }
+    // La posición es continua: cada pantalla se coloca según su distancia a `pos`, así el giro acompaña al dedo.
     function layout() {
-      var w = slides[0].offsetWidth, gap = w * 0.74;
-      slides.forEach(function (el, i) {
-        var d = i - active, a = Math.abs(d), sg = d < 0 ? -1 : 1;
-        var x = a === 0 ? 0 : sg * (gap + (a - 1) * gap * 0.56);
-        var z = a === 0 ? 0 : -150 - (a - 1) * 90;
-        var r = a === 0 ? 0 : -sg * 46;
-        el.style.transform = 'translateX(calc(-50% + ' + x.toFixed(1) + 'px)) translateZ(' + z + 'px) rotateY(' + r + 'deg)';
-        el.style.opacity = a > 3 ? 0 : 1;
-        el.style.pointerEvents = a > 3 ? 'none' : 'auto';
-        el.style.visibility = a > 4 ? 'hidden' : 'visible';
-        el.style.zIndex = 50 - a;
-        el.style.setProperty('--dim', a === 0 ? 0 : Math.min(0.75, 0.3 + a * 0.15));
-        el.setAttribute('aria-hidden', a === 0 ? 'false' : 'true');
-        el.querySelector('img').alt = a === 0 ? 'Pantalla de la app: ' + S[i][2] + '. ' + S[i][3] : '';
-      });
+      var gap = gapOf();
+      for (var i = 0; i < N; i++) {
+        var el = slides[i], d = i - pos, a = Math.abs(d), sg = d < 0 ? -1 : 1, near = Math.min(1, a);
+        var x = sg * (a <= 1 ? a * gap : gap + (a - 1) * gap * 0.56);
+        var z = a <= 1 ? -150 * a : -150 - (a - 1) * 90;
+        var r = -sg * 46 * near;
+        el.style.transform = 'translateX(calc(-50% + ' + x.toFixed(1) + 'px)) translateZ(' + z.toFixed(1) + 'px) rotateY(' + r.toFixed(2) + 'deg)';
+        el.style.opacity = a >= 3.6 ? 0 : a > 3 ? ((3.6 - a) / 0.6).toFixed(2) : 1;
+        el.style.visibility = a > 4.2 ? 'hidden' : 'visible';
+        el.style.zIndex = Math.round(100 - a * 10);
+        el.style.setProperty('--dim', (a <= 1 ? 0.45 * a : Math.min(0.75, 0.3 + a * 0.15)).toFixed(3));
+      }
     }
-    function go(i) {
-      i = Math.max(0, Math.min(S.length - 1, i));
+    function mark(i) {
+      if (i === active && tabs[i].getAttribute('aria-selected') === 'true') return;
       active = i;
       tabs.forEach(function (t, n) { t.setAttribute('aria-selected', n === i ? 'true' : 'false'); t.tabIndex = n === i ? 0 : -1; });
       var t = tabs[i]; chips.scrollLeft = t.offsetLeft - chips.clientWidth / 2 + t.offsetWidth / 2;
       $('cap-t').textContent = S[i][2]; $('cap-d').textContent = S[i][3];
-      $('flow-count').textContent = (i + 1) + ' / ' + S.length;
-      $('flow-prev').disabled = i === 0; $('flow-next').disabled = i === S.length - 1;
+      $('flow-count').textContent = (i + 1) + ' / ' + N;
+      $('flow-prev').disabled = i === 0; $('flow-next').disabled = i === N - 1;
+      slides.forEach(function (el, n) { el.setAttribute('aria-hidden', n === i ? 'false' : 'true'); el.querySelector('img').alt = n === i ? 'Pantalla de la app: ' + S[n][2] + '. ' + S[n][3] : ''; });
+    }
+    function stopAnim() { if (raf) cancelAnimationFrame(raf); raf = 0; anim = null; }
+    function go(i) {
+      i = Math.max(0, Math.min(N - 1, i));
+      mark(i);
+      stopAnim();
+      if (reduced) { pos = i; layout(); return; }
+      var from = pos, dist = Math.abs(i - from);
+      if (dist < 0.001) { pos = i; layout(); return; }
+      anim = { from: from, to: i, t0: performance.now(), dur: 460 + 90 * Math.min(4, dist) };
+      raf = requestAnimationFrame(step);
+    }
+    function step(now) {
+      if (!anim) return;
+      var p = Math.min(1, (now - anim.t0) / anim.dur), e = 1 - Math.pow(1 - p, 4);
+      pos = anim.from + (anim.to - anim.from) * e;
       layout();
+      if (p < 1) raf = requestAnimationFrame(step); else { pos = anim.to; raf = 0; anim = null; layout(); }
     }
     $('flow-prev').addEventListener('click', function () { go(active - 1); });
     $('flow-next').addEventListener('click', function () { go(active + 1); });
     flow.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { go(active - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { go(active + 1); e.preventDefault(); } });
     chips.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { go(active + (e.key === 'ArrowLeft' ? -1 : 1)); tabs[active].focus(); e.preventDefault(); } });
-    var sx = 0, down = false;
-    flow.addEventListener('pointerdown', function (e) { down = true; moved = false; sx = e.clientX; });
-    addEventListener('pointermove', function (e) { if (down && Math.abs(e.clientX - sx) > 8) moved = true; });
-    addEventListener('pointerup', function (e) {
-      if (!down) return; down = false;
-      var dx = e.clientX - sx;
-      if (Math.abs(dx) > 36) { var w = slides[0].offsetWidth * 0.74; go(active - (dx > 0 ? 1 : -1) * Math.max(1, Math.round(Math.abs(dx) / w))); }
-      setTimeout(function () { moved = false; }, 0);
+
+    // Arrastre: las pantallas siguen al dedo y, al soltar, se asientan en la más cercana (con el impulso del gesto).
+    var down = false, moved = false, sx = 0, sp = 0, lx = 0, lt = 0, vel = 0, pid = null;
+    function limit(v) { return v < 0 ? v * 0.35 : v > N - 1 ? N - 1 + (v - (N - 1)) * 0.35 : v; }
+    flow.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      down = true; moved = false; sx = lx = e.clientX; sp = pos; lt = performance.now(); vel = 0; pid = e.pointerId; stopAnim();
     });
-    addEventListener('pointercancel', function () { down = false; });
+    flow.addEventListener('pointermove', function (e) {
+      if (!down || e.pointerId !== pid) return;
+      var dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) > 6) { moved = true; try { flow.setPointerCapture(pid); } catch (err) {} }
+      if (!moved) return;
+      var now = performance.now(), dt = Math.max(1, now - lt);
+      vel = 0.7 * vel + 0.3 * ((e.clientX - lx) / dt); lx = e.clientX; lt = now;
+      pos = limit(sp - dx / gapOf());
+      layout();
+      mark(Math.max(0, Math.min(N - 1, Math.round(pos))));
+    });
+    function release(e) {
+      if (!down || (e && e.pointerId !== pid)) return;
+      down = false;
+      if (moved) { go(Math.round(pos - vel * 260 / gapOf() * 1.4)); return; }
+      var hit = e && document.elementFromPoint(e.clientX, e.clientY), sl = hit && hit.closest ? hit.closest('.slide') : null;
+      go(sl ? +sl.getAttribute('data-i') : active);
+    }
+    flow.addEventListener('pointerup', release);
+    flow.addEventListener('pointercancel', function (e) { if (down && e.pointerId === pid) { down = false; go(Math.round(pos)); } });
+    // Con panel táctil o rueda horizontal, el desplazamiento lateral también pasa las pantallas.
+    var wheelT = 0;
+    flow.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault(); stopAnim();
+      pos = limit(pos + e.deltaX / gapOf() * 0.9); layout(); mark(Math.max(0, Math.min(N - 1, Math.round(pos))));
+      clearTimeout(wheelT); wheelT = setTimeout(function () { go(Math.round(pos)); }, 130);
+    }, { passive: false });
     addEventListener('resize', layout);
-    go(active);
+    mark(active); layout();
   });
 
   /* ---- Demostración: rueda, discos, calentamiento y descanso ---- */
