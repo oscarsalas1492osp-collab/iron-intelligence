@@ -5,6 +5,10 @@ const DAY = 86400000;
 /** Días de gracia tras el vencimiento de un plan pagado, por si el cobro se atrasa. La prueba gratis no tiene. */
 export const GRACE = 3 * DAY;
 
+/** Funciones que el servidor puede dejar solo para Pro. Lo que ya existe (una biserie creada durante la prueba) no se quita. */
+export const FEATURES = ['supersets', 'techniques', 'suggestions', 'templates', 'warmup', 'recovery', 'assistant'] as const;
+export type Feature = (typeof FEATURES)[number];
+
 export interface Prices { monthly: number; yearly: number }
 export interface Billing {
   enabled: boolean;
@@ -13,6 +17,10 @@ export interface Billing {
   freeRoutines: number;
   /** Días de historial que el plan gratis incluye en el análisis. */
   freeHistoryDays: number;
+  /** Ejercicios propios que permite el plan gratis. */
+  freeCustomExercises: number;
+  /** Funciones reservadas a Pro. */
+  proOnly: Feature[];
   prices: Record<string, Prices>;
   /** Enlaces de pago en la web (el medio de pago los entrega). En la app de Google Play se cobra por Google. */
   checkout: { monthly: string | null; yearly: string | null };
@@ -36,7 +44,13 @@ export interface PlanState {
   trialDays: number;
   freeRoutines: number;
   freeHistoryDays: number;
+  freeCustomExercises: number;
+  /** Funciones bloqueadas para esta persona ahora mismo (vacío si tiene Pro o no hay cobro). */
+  locked: Feature[];
 }
+
+/** ¿Esta función pide Pro a esta persona? */
+export const needsPro = (p: PlanState, f: Feature) => !p.pro && p.locked.includes(f);
 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const link = (v: unknown) => (typeof v === 'string' && /^https:\/\//.test(v) ? v : null);
@@ -53,15 +67,17 @@ export function parseBilling(v: unknown): Billing | null {
   return {
     enabled: o.enabled === true && Object.keys(prices).length > 0,
     trialDays: Math.min(60, Math.max(1, Math.round(num(o.trial_days, 21)))),
-    freeRoutines: Math.max(1, Math.round(num(o.free_routines, 4))),
-    freeHistoryDays: Math.max(7, Math.round(num(o.free_history_days, 90))),
+    freeRoutines: Math.max(1, Math.round(num(o.free_routines, 2))),
+    freeHistoryDays: Math.max(7, Math.round(num(o.free_history_days, 30))),
+    freeCustomExercises: Math.max(0, Math.round(num(o.free_custom_exercises, 3))),
+    proOnly: Array.isArray(o.pro_only) ? FEATURES.filter((f) => (o.pro_only as unknown[]).includes(f)) : [...FEATURES],
     prices,
     checkout: { monthly: link(c.monthly), yearly: link(c.yearly) },
   };
 }
 
 export function planState(billing: Billing | null, ent: Entitlement | null, now: number, signedIn: boolean): PlanState {
-  const base = { trialDays: billing?.trialDays ?? 21, freeRoutines: billing?.freeRoutines ?? 4, freeHistoryDays: billing?.freeHistoryDays ?? 90 };
+  const base = { trialDays: billing?.trialDays ?? 21, freeRoutines: billing?.freeRoutines ?? 2, freeHistoryDays: billing?.freeHistoryDays ?? 30, freeCustomExercises: billing?.freeCustomExercises ?? 3, locked: [] as Feature[] };
   if (!billing || !billing.enabled) return { billing: false, pro: true, kind: 'open', daysLeft: null, canTrial: false, ...base };
   if (ent) {
     const live = ent.status === 'trialing' || ent.status === 'active' || ent.status === 'grace' || ent.status === 'canceled';   // cancelado: sigue hasta el fin de lo pagado
@@ -71,7 +87,7 @@ export function planState(billing: Billing | null, ent: Entitlement | null, now:
       return { billing: true, pro: true, kind, daysLeft: ent.periodEnd === null ? null : Math.max(0, Math.ceil((ent.periodEnd - now) / DAY)), canTrial: false, ...base };
     }
   }
-  return { billing: true, pro: false, kind: 'free', daysLeft: null, canTrial: signedIn && !(ent?.trialUsed ?? false), ...base };
+  return { billing: true, pro: false, kind: 'free', daysLeft: null, canTrial: signedIn && !(ent?.trialUsed ?? false), ...base, locked: billing.proOnly };
 }
 
 /** Precio que se muestra: pesos chilenos para quien tiene el dispositivo en español de Chile, dólares para el resto. */

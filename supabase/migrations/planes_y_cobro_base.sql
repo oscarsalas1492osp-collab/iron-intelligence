@@ -13,11 +13,13 @@ revoke insert, update, delete, truncate on table public.app_flags from anon, aut
 insert into public.app_flags (key, value) values ('billing', jsonb_build_object(
   'enabled', false,
   'trial_days', 21,
-  'free_routines', 4,
-  'free_history_days', 90,
+  'free_routines', 2,
+  'free_history_days', 30,
+  'free_custom_exercises', 3,
+  'pro_only', jsonb_build_array('supersets', 'techniques', 'suggestions', 'templates', 'warmup', 'recovery', 'assistant'),
   'prices', jsonb_build_object(
-    'CLP', jsonb_build_object('monthly', 2990, 'yearly', 23990),
-    'USD', jsonb_build_object('monthly', 2.99, 'yearly', 23.99)
+    'CLP', jsonb_build_object('monthly', 4990, 'yearly', 39990),
+    'USD', jsonb_build_object('monthly', 4.99, 'yearly', 39.99)
   ),
   'checkout', jsonb_build_object('monthly', null, 'yearly', null)
 )) on conflict (key) do nothing;

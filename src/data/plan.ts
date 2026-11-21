@@ -1,7 +1,8 @@
 // Estado del plan del usuario: lo que dice el servidor, guardado en el dispositivo para que funcione sin conexión.
 // Si el servidor no responde o las tablas no existen, se conserva lo último conocido; si nunca se supo nada,
 // no hay cobro y todo queda abierto.
-import { parseBilling, type Billing, type Entitlement } from '../domain/plan';
+import { parseBilling, planState, type Billing, type Entitlement, type PlanState } from '../domain/plan';
+import { getUserId } from './db';
 import { cloudEnabled, supabase } from './sync';
 
 export interface PlanSnapshot { billing: Billing | null; ent: Entitlement | null; uid: string; at: number }
@@ -22,6 +23,12 @@ function set(next: PlanSnapshot) {
   snap = next;
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* sin almacenamiento: vale para esta visita */ }
   subs.forEach((cb) => cb());
+}
+
+/** El plan de quien usa la app ahora, para el código que no es de pantalla. */
+export function currentPlan(): PlanState {
+  const uid = getUserId();
+  return planState(snap.billing, snap.uid === uid ? snap.ent : null, Date.now(), uid !== 'local');
 }
 
 const ms = (v: unknown) => { const t = typeof v === 'string' ? Date.parse(v) : NaN; return Number.isFinite(t) ? t : null; };

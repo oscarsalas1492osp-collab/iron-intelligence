@@ -3,7 +3,7 @@
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPlanSnapshot, startTrial, subscribePlan } from '../data/plan';
-import { money, planState, priceFor, type PlanState } from '../domain/plan';
+import { money, needsPro, planState, priceFor, type Feature, type PlanState } from '../domain/plan';
 import { useUserId } from '../hooks';
 import { Btn, Card, Icon, Seg, Sheet, useUi } from './components';
 
@@ -22,15 +22,31 @@ const useSheetOpen = () => useSyncExternalStore((cb) => { sheetSubs.add(cb); ret
 
 const days = (n: number) => (n === 1 ? '1 día' : `${n} días`);
 
-function Benefits({ plan }: { plan: PlanState }) {
+/** Abre los planes si la función pide Pro; si no, sigue. Para botones: onClick={guard(() => hacerAlgo())}. */
+export function useProGuard(feature: Feature) {
+  const plan = usePlan(), locked = needsPro(plan, feature);
+  return { locked, guard: (go: () => void) => () => (locked ? openPlans() : go()) };
+}
+
+const PRO_TEXT: Record<Feature, string> = {
+  supersets: 'Biseries y triseries',
+  techniques: 'Técnicas de intensidad: series descendentes, descanso-pausa y más',
+  suggestions: 'Peso sugerido para cada ejercicio según tus últimas sesiones',
+  templates: 'Plantillas de rutinas listas para usar',
+  warmup: 'Calculadora de calentamiento',
+  recovery: 'Recuperación y fatiga por músculo',
+  assistant: 'Asistente que responde con tu propio historial',
+};
+
+function Benefits({ plan, proOnly }: { plan: PlanState; proOnly: Feature[] }) {
   const rows = [
     `Rutinas sin límite (gratis: hasta ${plan.freeRoutines})`,
+    ...proOnly.map((f) => PRO_TEXT[f]),
     `Análisis de todo tu historial (gratis: los últimos ${plan.freeHistoryDays} días)`,
-    'Recuperación y fatiga por músculo',
-    'Asistente que responde con tu propio historial',
+    `Ejercicios propios sin límite (gratis: hasta ${plan.freeCustomExercises})`,
   ];
   return (
-    <ul className="space-y-2.5">
+    <ul className="space-y-2">
       {rows.map((r) => (
         <li key={r} className="flex items-start gap-2.5 text-sm"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-go" /><span>{r}</span></li>
       ))}
@@ -55,8 +71,8 @@ export function PlanSheet() {
   return (
     <Sheet open={open} onClose={() => setSheet(false)} title="Iron Intelligence Pro">
       <div className="space-y-5">
-        <p className="text-sm text-mute">Registrar entrenamientos, la biblioteca de ejercicios y la calculadora de discos son gratis, sin anuncios. Pro suma esto:</p>
-        <Benefits plan={plan} />
+        <p className="text-sm text-mute">Registrar tus entrenamientos, la biblioteca de ejercicios y la calculadora de discos son gratis, sin anuncios. Pro abre todo lo demás:</p>
+        <Benefits plan={plan} proOnly={billing.proOnly} />
         {price && (
           <div>
             <Seg value={period} onChange={setPeriod} options={[{ value: 'yearly', label: 'Anual' }, { value: 'monthly', label: 'Mensual' }]} />
@@ -90,9 +106,9 @@ export function PlanSheet() {
 }
 
 /** Deja pasar si el plan lo permite; si no, explica qué es la función y ofrece ver los planes. */
-export function ProGate({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+export function ProGate({ feature, title, text, children }: { feature: Feature; title: string; text: string; children: ReactNode }) {
   const plan = usePlan();
-  if (plan.pro) return <>{children}</>;
+  if (!needsPro(plan, feature)) return <>{children}</>;
   return (
     <div className="mx-auto max-w-md pt-10 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-card2 text-fire"><Icon name="star" size={26} /></span>

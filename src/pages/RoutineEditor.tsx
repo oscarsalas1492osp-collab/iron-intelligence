@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../data/db';
 import { addItem, deleteItem, deleteRoutine, groupItems, moveItem, saveItem, saveRoutine, startSession, ungroupItem } from '../data/repo';
+import { openPlans, useProGuard } from '../ui/plan';
 import { groupLabel, MAX_GROUP, unitsOf } from '../domain/superset';
 import { useHoldDrag } from '../ui/useHoldDrag';
 import { MEASURE_UNIT, MUSCLE_LABEL } from '../domain/muscles';
@@ -49,8 +50,10 @@ export default function RoutineEditor() {
     .map((u) => u.map((itemId) => items.find((i) => i.id === itemId)!));
   const unitOfItem = (itemId: string) => units.find((u) => u.some((i) => i.id === itemId)) ?? [];
   const joinTargets = (itemId: string) => units.filter((u) => u.length < MAX_GROUP && !u.some((i) => i.id === itemId));
+  // Unir en biserie o triserie es parte de Pro; las que ya existen se conservan y se entrenan igual.
+  const superset = useProGuard('supersets');
   const drag = useHoldDrag(
-    (dragId, targetId) => void run(() => groupItems(id, dragId, targetId), unitOfItem(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada'),
+    (dragId, targetId) => { if (superset.locked) { openPlans(); return; } void run(() => groupItems(id, dragId, targetId), unitOfItem(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada'); },
     (dragId, targetId) => unitOfItem(dragId).length === 1 && !unitOfItem(targetId).some((i) => i.id === dragId),
   );
 
@@ -139,7 +142,7 @@ export default function RoutineEditor() {
           <TargetEditor value={edit} measure={ex.get(edit.exerciseId)?.measure} onChange={(t) => setEdit({ ...edit, ...t })} />
           {unitOfItem(edit.id).length === 1 && joinTargets(edit.id).length > 0 && (
             <Field label="Unir en biserie con" hint="Se hacen seguidos, sin descanso; una serie es la ronda completa. También puedes mantener presionado un ejercicio y arrastrarlo sobre otro.">
-              <select value="" aria-label="Unir en biserie con" onChange={async (e) => { const t = e.target.value; if (t && (await run(async () => { await groupItems(id, edit.id, t); return true; }, unitOfItem(t).length >= 2 ? 'Triserie creada' : 'Biserie creada'))) setEdit(null); }}>
+              <select value="" aria-label="Unir en biserie con" onChange={async (e) => { const t = e.target.value; if (t && superset.locked) { openPlans(); return; } if (t && (await run(async () => { await groupItems(id, edit.id, t); return true; }, unitOfItem(t).length >= 2 ? 'Triserie creada' : 'Biserie creada'))) setEdit(null); }}>
                 <option value="">Elegir ejercicio…</option>
                 {joinTargets(edit.id).map((u) => <option key={u[0].id} value={u[0].id}>{u.map((i) => ex.get(i.exerciseId)?.name ?? 'Ejercicio').join(' + ')}</option>)}
               </select>

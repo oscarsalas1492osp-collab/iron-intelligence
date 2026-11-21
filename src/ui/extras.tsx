@@ -15,6 +15,7 @@ import { MUSCLE_LABEL } from '../domain/muscles';
 import { decodeRoutine, encodeRoutine } from '../domain/share';
 import { warmupSets } from '../domain/tools';
 import type { ExerciseDef, Session, SetLog, Settings } from '../domain/types';
+import { openPlans, useProGuard } from './plan';
 import { inWeek, mainSets, muscleVolume, tonnage } from '../domain/volume';
 import { useDoneSets, useExercises, useExMap, useProfile, useSessions, useUserId } from '../hooks';
 import { askNotify, canNotify, primeAudio } from './alerts';
@@ -37,7 +38,10 @@ export function ToolsButton({ ex, weight, className }: { ex: ExerciseDef; weight
 function ToolsSheet({ ex, weight, onClose }: { ex: ExerciseDef; weight: number; onClose: () => void }) {
   const st = useProfile().settings ?? {}; const run = useAction();
   const loaded = PLATE_LOADED.includes(ex.equipment);
-  const [tab, setTab] = useState<'warm' | 'plates'>('warm');
+  // El calentamiento es parte de Pro; los discos siguen abiertos.
+  const warmPro = useProGuard('warmup');
+  const [tab, setTabRaw] = useState<'warm' | 'plates'>(warmPro.locked ? 'plates' : 'warm');
+  const setTab = (v: 'warm' | 'plates') => (v === 'warm' && warmPro.locked ? openPlans() : setTabRaw(v));
   const [w, setW] = useState(weight);
   const [doneIdx, setDoneIdx] = useState<number[]>([]);
   const bar = st.bar ?? (ex.equipment === 'barbell' || ex.equipment === 'smith' ? 20 : ex.equipment === 'ez_bar' ? 10 : 0);
@@ -45,7 +49,7 @@ function ToolsSheet({ ex, weight, onClose }: { ex: ExerciseDef; weight: number; 
   return (
     <Sheet open onClose={onClose} title={ex.name}>
       <div className="space-y-4">
-        <Seg options={[{ value: 'warm', label: 'Calentamiento' }, { value: 'plates', label: 'Discos' }]} value={tab} onChange={setTab} />
+        <Seg options={[{ value: 'warm', label: warmPro.locked ? 'Calentamiento (Pro)' : 'Calentamiento' }, { value: 'plates', label: 'Discos' }]} value={tab} onChange={setTab} />
         {tab === 'warm' && <Stepper label="Peso de trabajo (kg)" value={w} step={ex.increment || 2.5} max={1000} onChange={setW} />}
         {tab === 'warm' ? (
           <div>

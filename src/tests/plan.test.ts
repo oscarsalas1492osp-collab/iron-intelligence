@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GRACE, money, parseBilling, planState, priceFor, type Entitlement } from '../domain/plan';
+import { FEATURES, GRACE, money, needsPro, parseBilling, planState, priceFor, type Entitlement } from '../domain/plan';
 
 const DAY = 86400000, NOW = 1_800_000_000_000;
-const raw = { enabled: true, trial_days: 21, free_routines: 4, free_history_days: 90, prices: { CLP: { monthly: 2990, yearly: 23990 }, USD: { monthly: 2.99, yearly: 23.99 } }, checkout: { monthly: null, yearly: 'https://pago.example/anual' } };
+const raw = { enabled: true, trial_days: 21, free_routines: 2, free_history_days: 30, free_custom_exercises: 3, prices: { CLP: { monthly: 4990, yearly: 39990 }, USD: { monthly: 4.99, yearly: 39.99 } }, checkout: { monthly: null, yearly: 'https://pago.example/anual' } };
 const on = parseBilling(raw)!;
 const ent = (e: Partial<Entitlement>): Entitlement => ({ plan: 'pro', status: 'active', source: 'web', periodEnd: NOW + 10 * DAY, trialUsed: true, ...e });
 
@@ -14,7 +14,7 @@ describe('planes', () => {
     expect(parseBilling({ enabled: true, prices: {} })!.enabled).toBe(false);          // encendido pero sin precios: no se cobra
   });
   it('con cobro y sin plan: gratis, y la prueba solo con cuenta y una vez', () => {
-    expect(planState(on, null, NOW, true)).toMatchObject({ billing: true, pro: false, kind: 'free', canTrial: true, freeRoutines: 4, freeHistoryDays: 90 });
+    expect(planState(on, null, NOW, true)).toMatchObject({ billing: true, pro: false, kind: 'free', canTrial: true, freeRoutines: 2, freeHistoryDays: 30, freeCustomExercises: 3 });
     expect(planState(on, null, NOW, false).canTrial).toBe(false);
     expect(planState(on, ent({ status: 'expired', source: 'trial', periodEnd: NOW - DAY }), NOW, true)).toMatchObject({ pro: false, canTrial: false });
   });
@@ -34,11 +34,18 @@ describe('planes', () => {
   it('un regalo sin vencimiento no vence', () => {
     expect(planState(on, ent({ source: 'founder', periodEnd: null }), NOW + 9999 * DAY, true)).toMatchObject({ pro: true, kind: 'gift', daysLeft: null });
   });
+  it('los candados solo pesan en el plan gratis y los decide el servidor', () => {
+    const free = planState(on, null, NOW, true), pro = planState(on, ent({}), NOW, true), open = planState(null, null, NOW, true);
+    for (const f of FEATURES) { expect(needsPro(free, f)).toBe(true); expect(needsPro(pro, f)).toBe(false); expect(needsPro(open, f)).toBe(false); }
+    const some = planState(parseBilling({ ...raw, pro_only: ['supersets', 'inventada'] }), null, NOW, true);
+    expect(some.locked).toEqual(['supersets']);
+    expect(needsPro(some, 'techniques')).toBe(false);
+  });
   it('precios por región y enlaces de pago válidos', () => {
-    expect(priceFor(on, 'es-CL')).toMatchObject({ currency: 'CLP', monthly: 2990, yearly: 23990, saving: 33 });
-    expect(priceFor(on, 'en-US')).toMatchObject({ currency: 'USD', monthly: 2.99 });
-    expect(money(2990, 'CLP')).toBe('$2.990');
-    expect(money(2.99, 'USD')).toBe('US$2,99');
+    expect(priceFor(on, 'es-CL')).toMatchObject({ currency: 'CLP', monthly: 4990, yearly: 39990, saving: 33 });
+    expect(priceFor(on, 'en-US')).toMatchObject({ currency: 'USD', monthly: 4.99 });
+    expect(money(4990, 'CLP')).toBe('$4.990');
+    expect(money(4.99, 'USD')).toBe('US$4,99');
     expect(on.checkout).toEqual({ monthly: null, yearly: 'https://pago.example/anual' });
     expect(parseBilling({ ...raw, checkout: { monthly: 'javascript:alert(1)' } })!.checkout.monthly).toBeNull();
   });

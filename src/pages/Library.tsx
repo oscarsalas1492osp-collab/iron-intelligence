@@ -8,6 +8,7 @@ import { useExercises } from '../hooks';
 import { exerciseTones } from '../domain/heat';
 import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Chip, Empty, Field, H2, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
+import { openPlans, usePlan } from '../ui/plan';
 import { EquipmentArt, ExerciseThumb } from '../ui/EquipmentArt';
 import { ExerciseFigure } from '../ui/figure/ExerciseFigure';
 
@@ -301,9 +302,10 @@ export default function Library() {
   const [form, setForm] = useState<{ ex: ExerciseDef | null } | null>(null);
   const list = useFiltered(all, f);
   const own = all.filter((e) => e.custom).length;
+  const plan = usePlan();       // plan gratis: un número acotado de ejercicios propios
   return (
     <div>
-      <Title sub={`${all.length} ejercicios${own ? `, ${own} propios` : ''} y ${MACHINES.length} equipos`} right={<Btn variant="primary" icon="plus" onClick={() => setForm({ ex: null })}>Nuevo</Btn>}>Biblioteca</Title>
+      <Title sub={`${all.length} ejercicios${own ? `, ${own} propios` : ''} y ${MACHINES.length} equipos`} right={<Btn variant="primary" icon="plus" onClick={() => (!plan.pro && own >= plan.freeCustomExercises ? openPlans() : setForm({ ex: null }))}>Nuevo</Btn>}>Biblioteca</Title>
       <div className="mb-3"><Seg value={tab} onChange={setTab} options={[{ value: 'ex', label: 'Ejercicios' }, { value: 'eq', label: 'Equipamiento' }]} /></div>
       {tab === 'ex' ? (
         <>

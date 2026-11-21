@@ -9,6 +9,8 @@ import type { PlanDay } from '../domain/generator';
 import { recommend, workWeight } from '../domain/progression';
 import type { SharedRoutine } from '../domain/share';
 import { recentReadiness } from '../domain/recovery';
+import { needsPro } from '../domain/plan';
+import { currentPlan } from './plan';
 import { cleanGroups, joinGroup, leaveGroup, moveUnit, type Arrangement } from '../domain/superset';
 import { TECHNIQUE } from '../domain/techniques';
 import { defaultTarget, type Base, type BodyMeasure, type BodyWeight, type ExerciseDef, type ExerciseRow, type Profile, type RecoveryLog, type Routine, type RoutineItem, type Session, type SetLog, type Settings, type Target, type Technique } from '../domain/types';
@@ -276,7 +278,9 @@ async function presetSets(sessionId: string, ex: ExerciseDef, target: Target, hi
   const last = past[0];
   const lastW = last ? workWeight(last) : 0;
   // En la semana de descarga se baja la carga; las repeticiones parten del mínimo del rango.
-  const weight = deload ? roundTo(deloadWeight(rec.weight ?? lastW), ex.increment) : rec.weight ?? lastW;
+  // El peso sugerido es parte de Pro: en el plan gratis las series parten del último peso usado.
+  const start = needsPro(currentPlan(), 'suggestions') ? lastW : rec.weight ?? lastW;
+  const weight = deload ? roundTo(deloadWeight(start), ex.increment) : start;
   const lastReps = last ? last.sets.filter((s) => s.weight === lastW).map((s) => s.reps) : [];
   return Array.from({ length: target.sets }, (_, i) => ({
     ...newBase(), sessionId, exerciseId: ex.id, order: i, weight,

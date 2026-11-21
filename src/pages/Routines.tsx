@@ -1,6 +1,7 @@
 import { PlanButton } from '../ui/extras';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { needsPro } from '../domain/plan';
 import { openPlans, usePlan } from '../ui/plan';
 import { createFromTemplate, createRoutine } from '../data/repo';
 import { TEMPLATES } from '../data/templates';
@@ -17,6 +18,8 @@ export default function Routines() {
   // Plan gratis: un número acotado de rutinas propias. Al llegar al tope se ofrece Pro en vez de crear otra.
   const plan = usePlan(), full = !plan.pro && (routines?.length ?? 0) >= plan.freeRoutines;
   const guard = (go: () => void) => () => (full ? openPlans() : go());
+  // Las plantillas crean varias rutinas de una vez: son parte de Pro.
+  const tplGuard = (go: () => void) => () => (full || needsPro(plan, 'templates') ? openPlans() : go());
   const create = async () => { const r = await run(() => createRoutine(name)); if (r) { setCreating(false); setName(''); nav(`/rutinas/${r.id}`); } };
   return (
     <div>
@@ -43,11 +46,11 @@ export default function Routines() {
       {routines && !routines.length && (
         <Empty icon="list" title="Aún no tienes rutinas" text="Crea una desde cero o usa una plantilla y ajústala a tu gimnasio.">
           <Btn variant="primary" icon="plus" onClick={guard(() => setCreating(true))}>Crear rutina</Btn>
-          <Btn onClick={guard(() => setTpl(true))}>Usar plantilla</Btn>
+          <Btn onClick={tplGuard(() => setTpl(true))}>Usar plantilla</Btn>
         </Empty>
       )}
       {full && <p className="mt-4 text-center text-xs text-mute">El plan gratis incluye hasta {plan.freeRoutines} rutinas. Con Pro no hay límite.</p>}
-      {!!routines?.length && <Btn className="mt-4 w-full" onClick={guard(() => setTpl(true))}>Añadir desde plantilla</Btn>}
+      {!!routines?.length && <Btn className="mt-4 w-full" onClick={tplGuard(() => setTpl(true))}>Añadir desde plantilla</Btn>}
       <PlanButton className="mt-2 w-full" />
 
       <Sheet open={creating} onClose={() => setCreating(false)} title="Nueva rutina">

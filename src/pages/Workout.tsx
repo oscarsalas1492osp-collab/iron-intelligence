@@ -14,6 +14,7 @@ import { fmtDate, fmtDuration, fmtKg, intensityOf } from '../domain/calc';
 import { MEASURE_UNIT, MUSCLE_LABEL, unitText } from '../domain/muscles';
 import { recommend, type Recommendation } from '../domain/progression';
 import { recentReadiness } from '../domain/recovery';
+import { openPlans, useProGuard } from '../ui/plan';
 import { groupLabel, MAX_GROUP, unitsOf } from '../domain/superset';
 import { SUPERSET_INFO, TECHNIQUE, TECHNIQUES } from '../domain/techniques';
 import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Session, type SetLog, type Target, type Technique } from '../domain/types';
@@ -38,6 +39,14 @@ const ACTION_COLOR: Record<Recommendation['action'], string> = { increase: '#34e
 export function RecommendationCard({ rec, compact, measure = 'reps' }: { rec: Recommendation; compact?: boolean; measure?: Measure }) {
   const [open, setOpen] = useState(false);
   const color = ACTION_COLOR[rec.action];
+  // Plan gratis: la recomendación de carga es parte de Pro. Se muestra qué es, no el número.
+  const pro = useProGuard('suggestions');
+  if (pro.locked) return (
+    <button type="button" onClick={openPlans} className="flex w-full items-center justify-between gap-3 rounded-panel bg-card p-4 text-left">
+      <span className="min-w-0"><span className="block font-semibold">Peso sugerido para hoy</span><span className="block text-sm text-mute">Con Pro, la app te dice cuánto cargar según tus últimas sesiones.</span></span>
+      <span className="shrink-0 font-semibold text-fire">Ver Pro</span>
+    </button>
+  );
   return (
     <div className="cursor-pointer rounded-panel p-4" style={{ background: color + '17' }} onClick={() => setOpen(!open)}>
       <button type="button" className="flex w-full items-start justify-between gap-3 text-left" aria-expanded={open}>
@@ -61,6 +70,11 @@ export function RecommendationCard({ rec, compact, measure = 'reps' }: { rec: Re
 }
 
 // ---------- Pantalla de inicio de sesión de entrenamiento ----------
+function SuggestedLabel({ rec }: { rec: Recommendation }) {
+  const pro = useProGuard('suggestions');
+  return <span className="font-semibold text-data">{pro.locked ? 'Peso sugerido: en Pro' : rec.weight != null ? `Sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido'}</span>;
+}
+
 function StartScreen() {
   const routines = useRoutines(); const items = useAllItems(); const ex = useExMap();
   const nav = useNavigate(); const run = useAction();
@@ -149,7 +163,10 @@ function RirScale({ rir, halfRir, onPick, small, of = '' }: { rir: number | null
 function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked, onOpen, onDone, onExtend }: { s: SetLog; n: number; step: number; measure: Measure; open: boolean; prev?: SetLog; halfRir: boolean; title?: string; ask?: boolean; onAsked?: () => void; onOpen: () => void; onDone: (saved: SetLog) => void; onExtend?: (added: SetLog, pause: number) => void }) {
   const unit = MEASURE_UNIT[measure];
   const run = useAction();
-  const [more, setMore] = useState(false); const [tech, setTech] = useState(false);
+  const [more, setMore] = useState(false); const [tech, setTechRaw] = useState(false);
+  // Alargar una serie con una técnica es parte de Pro.
+  const techPro = useProGuard('techniques');
+  const setTech = (v: boolean) => (v && techPro.locked ? openPlans() : setTechRaw(v));
   const info = intensityOf(s.rir);
   // En una biserie hay una «serie 1» por ejercicio: el nombre accesible incluye cuál.
   const name = setName(s, n) + (title ? ` de ${title}` : '');
@@ -344,7 +361,7 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
         {/* En una biserie la cabecera es breve: la recomendación completa se abre a pedido para llegar antes a las series. */}
         {compact && !more && (
           <button type="button" onClick={() => setMore(true)} aria-expanded={false} className="wd-c -mb-3 block w-full truncate py-3 text-left text-sm text-mute">
-            <span className="font-semibold text-data">{rec.weight != null ? `Sugerido: ${fmtKg(rec.weight)} kg` : 'Sin peso sugerido'}</span>. Ver recomendación y última sesión
+            <SuggestedLabel rec={rec} />. Ver recomendación y última sesión
           </button>
         )}
       </div>
@@ -398,7 +415,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
   useEffect(() => { setOpenId(firstOpen); }, [ex.id, firstOpen]);
   // La serie en curso es siempre una pendiente: si la elegida ya se completó, pasa a ser la primera sin hacer.
   const activeId = sets.some((x) => x.id === openId && !x.done) ? openId : firstOpen;
-  const [join, setJoin] = useState(false);
+  const [join, setJoin] = useState(false); const superset = useProGuard('supersets');
   // Serie recién completada sin RIR: se pregunta debajo de ella en vez de obligar a marcarlo antes.
   const [askId, setAskId] = useState<string | null>(null);
   const fams = familiesOf(sets);
@@ -427,7 +444,7 @@ function ExercisePanel({ session, ex, sets, history, readiness, halfRir, onRest,
         <Btn icon="copy" className="whitespace-nowrap" disabled={!last} aria-label="Copiar la sesión anterior" onClick={() => run(async () => { await copyLastSession(session.id, ex.id); }, 'Series copiadas de la sesión anterior')}>Copiar anterior</Btn>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Btn icon="plus" className="whitespace-nowrap !px-2" aria-label="Unir en biserie con otro ejercicio" onClick={() => setJoin(true)}>Unir en biserie</Btn>
+        <Btn icon="plus" className="whitespace-nowrap !px-2" aria-label="Unir en biserie con otro ejercicio" onClick={superset.guard(() => setJoin(true))}>Unir en biserie</Btn>
         <ToolsButton ex={ex} weight={sets.find((s) => !s.done)?.weight ?? sets[sets.length - 1]?.weight ?? 0} className="whitespace-nowrap !px-2" />
       </div>
       {allDone && hasNext && <Btn variant="primary" size="lg" className="w-full" icon="right" onClick={onNext}>Siguiente ejercicio</Btn>}
@@ -451,7 +468,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
   const [openId, setOpenId] = useState<string | null>(firstOpen);
   useEffect(() => { setOpenId(firstOpen); }, [firstOpen]);
   const activeId = sequence.some((x) => x.id === openId && !x.done) ? openId : firstOpen;
-  const [join, setJoin] = useState(false);
+  const [join, setJoin] = useState(false); const superset = useProGuard('supersets');
   const [askId, setAskId] = useState<string | null>(null);
   const rest = Math.max(0, ...exs.map((e) => (session.targets[e.id] ?? defaultTarget(e)).restSec));
   const allDone = sets.length > 0 && sets.every((s) => s.done);
@@ -543,6 +560,7 @@ function Active({ session }: { session: Session }) {
 
   const ids = session.exerciseIds;
   const units = useMemo(() => unitsOf(ids, session.supersets), [ids, session.supersets]);
+  const superset = useProGuard('supersets');
   const current = cur && ids.includes(cur) ? cur : ids.find((id) => sets.some((s) => s.exerciseId === id && !s.done)) ?? ids[0] ?? null;
   const unitIdx = current ? units.findIndex((u) => u.includes(current)) : -1;
   const unit = unitIdx >= 0 ? units[unitIdx] : null;
@@ -560,7 +578,7 @@ function Active({ session }: { session: Session }) {
   // Unir ejercicios: mantener presionado uno y soltarlo sobre otro.
   const unitOf = (id: string) => units.find((u) => u.includes(id)) ?? [id];
   const drag = useHoldDrag(
-    (dragId, targetId) => { void run(() => groupInSession(session.id, dragId, targetId), unitOf(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada').then(() => select(targetId)); learned(); },
+    (dragId, targetId) => { if (superset.locked) { openPlans(); return; } void run(() => groupInSession(session.id, dragId, targetId), unitOf(targetId).length >= 2 ? 'Triserie creada' : 'Biserie creada').then(() => select(targetId)); learned(); },
     (dragId, targetId) => unitOf(dragId).length === 1 && !unitOf(targetId).includes(dragId),
   );
 

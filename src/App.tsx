@@ -85,8 +85,8 @@ export default function App() {
                 <Route path="/historial" element={<History />} />
                 <Route path="/analisis" element={<Analysis />} />
                 <Route path="/discos" element={<Plates />} />
-                <Route path="/recuperacion" element={<ProGate title="Recuperación" text="Registra sueño y fatiga, y mira cuánto se ha recuperado cada músculo antes de volver a entrenarlo."><Recovery /></ProGate>} />
-                <Route path="/asistente" element={<ProGate title="Asistente" text="Pregunta qué subir, qué te falta entrenar o cómo vas, y recibe respuestas armadas solo con tu historial."><Assistant /></ProGate>} />
+                <Route path="/recuperacion" element={<ProGate feature="recovery" title="Recuperación" text="Registra sueño y fatiga, y mira cuánto se ha recuperado cada músculo antes de volver a entrenarlo."><Recovery /></ProGate>} />
+                <Route path="/asistente" element={<ProGate feature="assistant" title="Asistente" text="Pregunta qué subir, qué te falta entrenar o cómo vas, y recibe respuestas armadas solo con tu historial."><Assistant /></ProGate>} />
                 <Route path="/perfil" element={<Profile />} />
                 <Route path="/fundamento" element={<Science />} />
                 <Route path="/mas" element={<More />} />
