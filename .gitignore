@@ -1,3 +1,10 @@
 node_modules
 dist
 .env.local
+
+# Paquete Android: claves y binarios nunca van al repositorio
+*.keystore
+*.jks
+*.aab
+*.apk
+android/app/

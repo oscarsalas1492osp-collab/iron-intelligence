@@ -75,10 +75,15 @@ export async function startTrial(uid: string): Promise<void> {
   await refreshPlan(uid, true);
 }
 
-/** La app instalada desde Google Play (envoltorio de la web): ahí el cobro va por Google, no por la web. */
+/**
+ * La app instalada desde Google Play (envoltorio de la web): ahí el cobro va por Google, no por la web.
+ * Se reconoce por cualquiera de tres señales: Android la abre con un origen «android-app://», el paquete
+ * arranca en «?origen=play», o está disponible el cobro de Google Play. Vale para toda la visita.
+ */
 export const inPlayApp = (() => {
   try {
-    if (document.referrer.startsWith('android-app://')) sessionStorage.setItem('ii_twa', '1');
+    const here = document.referrer.startsWith('android-app://') || new URLSearchParams(location.search).get('origen') === 'play' || 'getDigitalGoodsService' in window;
+    if (here) sessionStorage.setItem('ii_twa', '1');
     return sessionStorage.getItem('ii_twa') === '1';
   } catch { return false; }
 })();
