@@ -22,8 +22,8 @@ export interface Billing {
   /** Funciones reservadas a Pro. */
   proOnly: Feature[];
   prices: Record<string, Prices>;
-  /** Enlaces de pago en la web (el medio de pago los entrega). En la app de Google Play se cobra por Google. */
-  checkout: { monthly: string | null; yearly: string | null };
+  /** Pago en la web: por Mercado Pago (`mp`) o con enlaces fijos. En la app de Google Play se cobra por Google. */
+  checkout: { mp: boolean; monthly: string | null; yearly: string | null };
 }
 export interface Entitlement {
   plan: 'pro' | 'coach';
@@ -55,8 +55,11 @@ export const needsPro = (p: PlanState, f: Feature) => !p.pro && p.locked.include
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const link = (v: unknown) => (typeof v === 'string' && /^https:\/\//.test(v) ? v : null);
 
-/** Lee el ajuste `billing` que entrega el servidor. Cualquier cosa rara se trata como «sin cobro». */
-export function parseBilling(v: unknown): Billing | null {
+/**
+ * Lee el ajuste `billing` que entrega el servidor. Cualquier cosa rara se trata como «sin cobro».
+ * `uid`: las cuentas listadas en `preview` ven los planes aunque el cobro siga apagado para el resto (pruebas antes del lanzamiento).
+ */
+export function parseBilling(v: unknown, uid?: string): Billing | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>, prices: Record<string, Prices> = {};
   for (const [cur, p] of Object.entries((o.prices as Record<string, unknown>) ?? {})) {
@@ -65,14 +68,14 @@ export function parseBilling(v: unknown): Billing | null {
   }
   const c = (o.checkout as Record<string, unknown>) ?? {};
   return {
-    enabled: o.enabled === true && Object.keys(prices).length > 0,
+    enabled: (o.enabled === true || (!!uid && Array.isArray(o.preview) && o.preview.includes(uid))) && Object.keys(prices).length > 0,
     trialDays: Math.min(60, Math.max(1, Math.round(num(o.trial_days, 21)))),
     freeRoutines: Math.max(1, Math.round(num(o.free_routines, 2))),
     freeHistoryDays: Math.max(7, Math.round(num(o.free_history_days, 30))),
     freeCustomExercises: Math.max(0, Math.round(num(o.free_custom_exercises, 3))),
     proOnly: Array.isArray(o.pro_only) ? FEATURES.filter((f) => (o.pro_only as unknown[]).includes(f)) : [...FEATURES],
     prices,
-    checkout: { monthly: link(c.monthly), yearly: link(c.yearly) },
+    checkout: { mp: c.mp === true, monthly: link(c.monthly), yearly: link(c.yearly) },
   };
 }
 

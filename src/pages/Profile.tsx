@@ -6,6 +6,7 @@ import { download, exportBackup, exportCsv, importBackup } from '../data/backup'
 import { db } from '../data/db';
 import { updateProfile } from '../data/repo';
 import { cloudEnabled, deleteAccount, SESSION_EXPIRED, signOut, supabase, syncNow } from '../data/sync';
+import { renewing, stopRenewal } from '../data/plan';
 import { ymd } from '../domain/calc';
 import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import type { Experience, Goal, Profile as P } from '../domain/types';
@@ -38,10 +39,10 @@ export default function Profile() {
   const onDelete = async () => {
     const account = uid !== 'local';
     const text = account
-      ? 'Se eliminará tu cuenta y todos tus entrenamientos, rutinas y registros, en el servidor y en este dispositivo. No se puede deshacer. Si quieres conservarlos, descarga antes una copia.'
+      ? `Se eliminará tu cuenta y todos tus entrenamientos, rutinas y registros, en el servidor y en este dispositivo.${renewing() ? ' Tu suscripción a Pro se cancelará y no habrá más cobros.' : ''} No se puede deshacer. Si quieres conservarlos, descarga antes una copia.`
       : 'Se borrarán todos los entrenamientos, rutinas y registros guardados en este dispositivo. No se puede deshacer. Si quieres conservarlos, descarga antes una copia.';
     if (!(await confirm(text, { confirmLabel: account ? 'Eliminar todo' : 'Borrar datos', danger: true }))) return;
-    await run(deleteAccount, account ? 'Cuenta y datos eliminados' : 'Datos borrados de este dispositivo');
+    await run(async () => { await stopRenewal(); await deleteAccount(); }, account ? 'Cuenta y datos eliminados' : 'Datos borrados de este dispositivo');
   };
 
   const onImport = async (f: File) => {

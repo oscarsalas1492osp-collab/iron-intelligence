@@ -1,11 +1,11 @@
 import Coach from './pages/Coach';
 import { ImportRoutinePage } from './ui/extras';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { onLocalChange } from './data/repo';
 import { cloudEnabled, initAuth, scheduleSync, syncNow, takeReturnError } from './data/sync';
 import { useUserId } from './hooks';
-import { refreshPlan } from './data/plan';
+import { confirmPayment, paymentReturn, refreshPlan } from './data/plan';
 import { PlanSheet, ProGate } from './ui/plan';
 import Assistant from './pages/Assistant';
 import Auth, { NewPassword, useRecovering } from './pages/Auth';
@@ -35,6 +35,18 @@ const SKIP_KEY = 'ii_skip_auth';
 function ReturnNotice() {
   const { toast } = useUi();
   useEffect(() => { const e = takeReturnError(); if (e) toast(e, 'error'); }, [toast]);
+  return null;
+}
+
+/** Al volver de Mercado Pago: confirma el pago con el servidor y avisa cómo quedó. Espera a que la sesión esté lista. */
+function PaymentReturn({ uid }: { uid: string }) {
+  const { toast } = useUi(), done = useRef(false);
+  useEffect(() => {
+    if (!paymentReturn || done.current || uid === 'local') return;
+    done.current = true;
+    void confirmPayment(uid, paymentReturn.id).then((ok) => toast(
+      ok ? 'Pro activado. Gracias por suscribirte.' : 'Todavía no vemos tu pago. Si lo completaste, Pro se activará en unos minutos.', ok ? 'ok' : 'error'));
+  }, [uid, toast]);
   return null;
 }
 
@@ -70,6 +82,7 @@ export default function App() {
     <ErrorBoundary>
       <UiProvider>
         <ReturnNotice />
+        <PaymentReturn uid={uid} />
         {recovering ? <NewPassword /> : cloudEnabled && uid === 'local' && !skipped ? (
           <Auth onSkip={() => { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* sin almacenamiento */ } setSkipped(true); }} />
         ) : (

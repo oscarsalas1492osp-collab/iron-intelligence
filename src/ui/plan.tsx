@@ -1,11 +1,11 @@
 // Planes en pantalla: el estado del plan, la hoja con precios y los candados de las funciones Pro.
 // Mientras el cobro esté apagado nada de esto se dibuja y todo queda abierto.
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPlanSnapshot, startTrial, subscribePlan } from '../data/plan';
+import { accountEmail, cancelPayment, confirmPayment, getPlanSnapshot, inPlayApp, renewing, startCheckout, startTrial, subscribePlan } from '../data/plan';
 import { money, needsPro, planState, priceFor, type Feature, type PlanState } from '../domain/plan';
 import { useUserId } from '../hooks';
-import { Btn, Card, Icon, Seg, Sheet, useUi } from './components';
+import { Btn, Card, Field, Icon, Seg, Sheet, useUi } from './components';
 
 export function usePlan(): PlanState {
   const snap = useSyncExternalStore(subscribePlan, getPlanSnapshot, getPlanSnapshot), uid = useUserId();
@@ -54,20 +54,64 @@ function Benefits({ plan, proOnly }: { plan: PlanState; proOnly: Feature[] }) {
   );
 }
 
+/** Pago por Mercado Pago: pide el correo de la cuenta que paga y lleva a su página de pago. */
+function PayForm({ period, uid, onDone }: { period: 'yearly' | 'monthly'; uid: string; onDone: () => void }) {
+  const { toast } = useUi();
+  const [email, setEmail] = useState(''), [busy, setBusy] = useState(false);
+  useEffect(() => { let on = true; void accountEmail().then((e) => { if (on && e) setEmail((cur) => cur || e); }); return () => { on = false; }; }, []);
+  const pay = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try { await startCheckout(period, email.trim()); }                     // si sale bien, la página cambia a Mercado Pago
+    catch (err) { toast(err instanceof Error ? err.message : 'No se pudo iniciar el pago.', 'error'); setBusy(false); }
+  };
+  const restore = async () => {
+    setBusy(true);
+    const ok = await confirmPayment(uid, null, [0]);
+    setBusy(false);
+    toast(ok ? 'Pro activado.' : 'No encontramos una suscripción activa para esta cuenta.', ok ? 'ok' : 'error');
+    if (ok) onDone();
+  };
+  return (
+    <form className="space-y-3" onSubmit={(e) => void pay(e)}>
+      <Field label="Correo de tu cuenta de Mercado Pago" hint="Tiene que ser el de la cuenta con la que vas a pagar.">
+        <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      </Field>
+      <Btn type="submit" variant="primary" className="w-full" disabled={busy}>Suscribirme con Mercado Pago</Btn>
+      <p className="text-center text-xs text-mute">Pagas en Mercado Pago, en pesos chilenos. Se renueva {period === 'yearly' ? 'cada año' : 'cada mes'} y puedes cancelar cuando quieras desde esta misma pantalla.</p>
+      <button type="button" className="hit mx-auto block text-sm font-semibold text-mute underline underline-offset-4" disabled={busy} onClick={() => void restore()}>Ya me suscribí: actualizar mi plan</button>
+    </form>
+  );
+}
+
 /** Hoja con lo que incluye Pro, los precios y el paso siguiente según el estado de cada persona. */
 export function PlanSheet() {
   const open = useSheetOpen(), plan = usePlan(), uid = useUserId(), snap = useSyncExternalStore(subscribePlan, getPlanSnapshot, getPlanSnapshot);
-  const { toast } = useUi(), nav = useNavigate();
-  const [period, setPeriod] = useState<'yearly' | 'monthly'>('yearly'), [busy, setBusy] = useState(false);
+  const { toast, confirm } = useUi(), nav = useNavigate();
+  const [period, setPeriod] = useState<'yearly' | 'monthly'>('yearly'), [busy, setBusy] = useState(false), [payNow, setPayNow] = useState(false);
+  useEffect(() => { if (!open) setPayNow(false); }, [open]);
   const billing = snap.billing;
   if (!billing || !plan.billing) return null;
-  const price = priceFor(billing, typeof navigator === 'undefined' ? 'es-CL' : navigator.language), pay = billing.checkout[period];
+  // Dentro de la app de Google Play no se ofrece el pago por la web: ahí se cobra por Google.
+  const mp = billing.checkout.mp && !inPlayApp, link = inPlayApp ? null : billing.checkout[period];
+  const price = priceFor(billing, mp ? 'es-CL' : typeof navigator === 'undefined' ? 'es-CL' : navigator.language);
+  const mine = snap.uid === uid, web = mine && snap.ent?.source === 'web';
   const trial = async () => {
     setBusy(true);
     try { await startTrial(uid); toast(`Prueba de Pro activada: ${days(plan.trialDays)}`); setSheet(false); }
     catch (e) { toast(e instanceof Error ? e.message : 'No se pudo iniciar la prueba.', 'error'); }
     finally { setBusy(false); }
   };
+  const cancel = async () => {
+    if (!(await confirm('¿Cancelar la suscripción? No habrá más cobros y Pro seguirá activo hasta el fin del período que ya pagaste.', { confirmLabel: 'Cancelar suscripción', danger: true }))) return;
+    setBusy(true);
+    try { await cancelPayment(uid); toast('Suscripción cancelada. No habrá más cobros.'); }
+    catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción.', 'error'); }
+    finally { setBusy(false); }
+  };
+  const checkout = mp ? <PayForm period={period} uid={uid} onDone={() => setSheet(false)} />
+    : link ? <a href={link} target="_blank" rel="noopener noreferrer" className="btn-fire hit block w-full rounded-xl px-4 py-3 text-center font-semibold text-ink">Suscribirme a Pro</a>
+    : null;
   return (
     <Sheet open={open} onClose={() => setSheet(false)} title="Iron Intelligence Pro">
       <div className="space-y-5">
@@ -84,20 +128,26 @@ export function PlanSheet() {
         )}
         {plan.kind === 'trial' && <p className="rounded-xl bg-card2 px-3 py-2 text-sm">Estás probando Pro. {plan.daysLeft !== null && `Te quedan ${days(plan.daysLeft)}.`}</p>}
         {plan.pro && plan.kind !== 'trial' ? (
-          <p className="rounded-xl bg-card2 px-3 py-2 text-sm">{plan.kind === 'gift' ? 'Tienes Pro de regalo.' : 'Tu suscripción a Pro está activa.'}{plan.daysLeft !== null && ` Vigente por ${days(plan.daysLeft)} más.`}</p>
+          <div className="space-y-3">
+            <p className="rounded-xl bg-card2 px-3 py-2 text-sm">
+              {plan.kind === 'gift' ? 'Tienes Pro de regalo.' : web && !renewing(snap) ? 'Cancelaste la renovación: no habrá más cobros.' : 'Tu suscripción a Pro está activa.'}
+              {plan.daysLeft !== null && (web && renewing(snap) ? ` Se renueva en ${days(plan.daysLeft)}.` : ` Vigente por ${days(plan.daysLeft)} más.`)}
+            </p>
+            {web && renewing(snap) && <Btn variant="soft" className="w-full" disabled={busy} onClick={() => void cancel()}>Cancelar suscripción</Btn>}
+            {web && !renewing(snap) && checkout}
+          </div>
         ) : uid === 'local' ? (
           <div className="space-y-2">
             <p className="text-sm text-mute">Para probar Pro necesitas una cuenta: así tu plan te acompaña en todos tus dispositivos.</p>
             <Btn variant="primary" className="w-full" onClick={() => { setSheet(false); nav('/perfil'); }}>Ir a Perfil</Btn>
           </div>
-        ) : plan.canTrial ? (
+        ) : plan.canTrial && !payNow ? (
           <div className="space-y-2">
             <Btn variant="primary" className="w-full" disabled={busy} onClick={() => void trial()}>Probar Pro {days(plan.trialDays)} gratis</Btn>
             <p className="text-center text-xs text-mute">Sin tarjeta. Al terminar sigues en el plan gratis, con todos tus datos.</p>
+            {checkout && <button type="button" className="hit mx-auto block text-sm font-semibold text-mute underline underline-offset-4" onClick={() => setPayNow(true)}>Prefiero suscribirme ahora</button>}
           </div>
-        ) : pay ? (
-          <a href={pay} target="_blank" rel="noopener noreferrer" className="btn-fire hit block w-full rounded-xl px-4 py-3 text-center font-semibold text-ink">Suscribirme a Pro</a>
-        ) : (
+        ) : checkout ?? (
           <p className="rounded-xl bg-card2 px-3 py-2 text-sm text-mute">El pago todavía no está habilitado. Te avisaremos en la app cuando lo esté.</p>
         )}
       </div>
