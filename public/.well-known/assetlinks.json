@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.ironintelligence",
+        "sha256_cert_fingerprints": ["C3:0B:15:56:22:BF:F5:60:FE:85:3E:D0:07:32:5E:6E:F5:AE:08:BE:DF:6C:7C:35:3C:CD:1D:B2:98:D6:7B:5F"]
+      }
+    }]

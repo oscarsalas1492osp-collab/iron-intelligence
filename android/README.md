@@ -15,16 +15,21 @@ a pantalla completa, sin barra del navegador, y se actualiza sola cada vez que s
 `twa-manifest.json` tiene estos valores en el formato de Bubblewrap. Sirve tal cual con `bubblewrap build`, y
 como referencia si el paquete se genera con otra herramienta.
 
+## Hecho
+
+- 21-11-2026: paquete 1.0.0.0 (código 1) generado con PWABuilder, con clave de subida nueva. El `.zip` original,
+  con la clave y sus contraseñas, está solo en el computador de Oscar
+  (`Claude Herramientas\Iron Intelligence\android`), no en este repositorio.
+- `public/.well-known/assetlinks.json` publica la huella de la clave de subida: sirve para probar el `.apk`
+  instalado directo en un teléfono. Falta agregar la huella de la clave con la que firma Google Play.
+
 ## Lo que falta, en orden
 
-1. Crear la clave de subida en el computador de Oscar. La contraseña la pone él y el archivo queda en su carpeta,
-   nunca en el repositorio.
-2. Generar el paquete firmado (`.aab`).
-3. En Play Console: crear la app, subir el `.aab` a la prueba cerrada y copiar la huella SHA-256 de
+1. En Play Console: crear la app, subir el `.aab` a la prueba cerrada y copiar la huella SHA-256 de
    «Certificado de la clave de firma de la app» (Integridad de la app).
-4. Publicar esa huella en `public/.well-known/assetlinks.json`. Sin ese archivo, Android muestra la barra del
+2. Agregar esa huella a `public/.well-known/assetlinks.json`, junto a la de subida. Sin ella, Android muestra la barra del
    navegador dentro de la app.
-5. Prueba cerrada y, mientras corre, conectar el cobro de Google Play (productos de suscripción en Play Console,
+3. Prueba cerrada y, mientras corre, conectar el cobro de Google Play (productos de suscripción en Play Console,
    Digital Goods API en la app y verificación de compras en el servidor).
 
 ## No va al repositorio
