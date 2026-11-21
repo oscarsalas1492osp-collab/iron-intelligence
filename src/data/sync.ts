@@ -151,11 +151,33 @@ function readReturnError(): string | null {
 }
 export function oauthMessage(code: string, detail: string): string {
   const m = `${code} ${detail}`.toLowerCase();
+  // Enlace de correo (confirmación o recuperación) vencido o ya usado.
+  if (m.includes('otp_expired') || (m.includes('link') && (m.includes('expired') || m.includes('invalid')))) return 'El enlace del correo venció o ya se usó. Pide uno nuevo desde «¿Olvidaste tu contraseña?».';
   if (m.includes('access_denied')) return 'No se completó el inicio de sesión con Google. Puedes intentarlo de nuevo.';
   if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return 'El inicio de sesión con Google aún no está activado en el servidor.';
   if (m.includes('signup') && m.includes('disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor.';
   return `No se pudo iniciar sesión con Google${detail ? `: ${detail}` : ''}`;
 }
+// ---------- Recuperación de contraseña ----------
+/** El enlace del correo de recuperación vuelve a la app con type=recovery en la dirección. */
+function readRecovery(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { const h = window.location.hash; return !h.startsWith('#/') && new URLSearchParams(h.replace(/^#/, '')).get('type') === 'recovery'; } catch { return false; }
+}
+let recovering = readRecovery();
+const recoveryListeners = new Set<() => void>();
+function setRecovering(v: boolean): void {
+  if (recovering === v) return;
+  recovering = v;
+  // Al terminar se limpia la dirección, para que el enlace no vuelva a abrir el formulario al recargar.
+  if (!v && typeof window !== 'undefined' && !window.location.hash.startsWith('#/')) { try { window.history.replaceState(null, '', window.location.origin + window.location.pathname); } catch { /* sin historial */ } }
+  recoveryListeners.forEach((f) => f());
+}
+/** Hay que elegir una contraseña nueva: se llegó desde el enlace del correo de recuperación. */
+export function isRecovering(): boolean { return recovering; }
+export function onRecovering(cb: () => void): () => void { recoveryListeners.add(cb); return () => { recoveryListeners.delete(cb); }; }
+export function cancelRecovery(): void { setRecovering(false); }
+
 let returnError = readReturnError();
 /** Devuelve una sola vez el error con que volvió el proveedor, si lo hubo. */
 export function takeReturnError(): string | null { const e = returnError; returnError = null; return e; }
@@ -231,6 +253,8 @@ export function authMessage(e: unknown): string {
   if (m.includes('already registered') || m.includes('already been registered')) return 'Ese correo ya tiene una cuenta: usa “Iniciar sesión”';
   if (m.includes('password should be') || m.includes('weak password')) return 'La contraseña es demasiado débil: usa al menos 8 caracteres';
   if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Demasiados intentos seguidos: espera un minuto y vuelve a probar';
+  if (m.includes('different from the old') || m.includes('same password')) return 'La contraseña nueva debe ser distinta de la anterior';
+  if (m.includes('session missing') || m.includes('not authenticated') || m.includes('jwt')) return 'El enlace venció. Pide uno nuevo desde «¿Olvidaste tu contraseña?»';
   if (m.includes('invalid') && m.includes('email')) return 'El correo no es válido';
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor';
   if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('fetch')) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo';
@@ -269,6 +293,23 @@ export async function signUp(email: string, password: string): Promise<'ok' | 'c
   await adopt(res.data.user.id);
   void syncNow();
   return 'ok';
+}
+/** Envía el correo con el enlace para elegir una contraseña nueva. El servidor no revela si el correo tiene cuenta. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (!supabase) throw new Error('La sincronización en la nube no está configurada');
+  let res;
+  try {
+    res = await supabase.auth.resetPasswordForEmail(email, { redirectTo: typeof window !== 'undefined' ? window.location.origin + window.location.pathname : undefined });
+  } catch (e) { throw new Error(authMessage(e)); }
+  if (res.error) throw new Error(authMessage(res.error));
+}
+/** Guarda la contraseña nueva de quien llegó desde el enlace de recuperación (ese enlace ya deja la sesión iniciada). */
+export async function setNewPassword(password: string): Promise<void> {
+  if (!supabase) throw new Error('La sincronización en la nube no está configurada');
+  let res;
+  try { res = await supabase.auth.updateUser({ password }); } catch (e) { throw new Error(authMessage(e)); }
+  if (res.error) throw new Error(authMessage(res.error));
+  setRecovering(false);
 }
 // ---------- Inicio de sesión con Google ----------
 const GOOGLE_KEY = 'ii_google';
@@ -352,6 +393,7 @@ export function initAuth(): () => void {
   if (!supabase) return () => {};
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') { if (getUserId() !== 'local') setUserId('local'); return; }
+    if (event === 'PASSWORD_RECOVERY') setRecovering(true);
     const id = session?.user?.id;
     // Fuera del callback: la librería no admite llamadas propias mientras notifica el cambio.
     if (id && id !== getUserId()) setTimeout(() => void adopt(id).then(() => syncNow()), 0);

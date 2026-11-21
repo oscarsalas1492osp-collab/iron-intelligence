@@ -6,7 +6,7 @@ import { onLocalChange } from './data/repo';
 import { cloudEnabled, initAuth, scheduleSync, syncNow, takeReturnError } from './data/sync';
 import { useUserId } from './hooks';
 import Assistant from './pages/Assistant';
-import Auth from './pages/Auth';
+import Auth, { NewPassword, useRecovering } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Library from './pages/Library';
 import More from './pages/More';
@@ -38,6 +38,7 @@ function ReturnNotice() {
 
 export default function App() {
   const uid = useUserId();
+  const recovering = useRecovering();
   const [skipped, setSkipped] = useState(() => { try { return localStorage.getItem(SKIP_KEY) === '1'; } catch { return false; } });
 
   useEffect(() => initAuth(), []);
@@ -59,7 +60,7 @@ export default function App() {
     <ErrorBoundary>
       <UiProvider>
         <ReturnNotice />
-        {cloudEnabled && uid === 'local' && !skipped ? (
+        {recovering ? <NewPassword /> : cloudEnabled && uid === 'local' && !skipped ? (
           <Auth onSkip={() => { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* sin almacenamiento */ } setSkipped(true); }} />
         ) : (
           <Router>

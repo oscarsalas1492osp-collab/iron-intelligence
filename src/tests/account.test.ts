@@ -46,5 +46,7 @@ describe('inicio de sesión con Google', () => {
     expect(oauthMessage('access_denied', 'The user denied access')).toMatch(/No se completó/);
     expect(oauthMessage('validation_failed', 'Unsupported provider: provider is not enabled')).toMatch(/aún no está activado/);
     expect(oauthMessage('server_error', 'Algo falló')).toBe('No se pudo iniciar sesión con Google: Algo falló');
+    // Un enlace de correo vencido no se confunde con un fallo de Google.
+    expect(oauthMessage('otp_expired', 'Email link is invalid or has expired')).toMatch(/enlace del correo venció/);
   });
 });
