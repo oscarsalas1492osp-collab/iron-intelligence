@@ -6,6 +6,7 @@ import { patternOf } from '../../domain/exerciseLibrary';
 import type { Equipment, ExerciseDef, Muscle } from '../../domain/types';
 import { add, DIM, mix, sameLimb, solve, type Joints, type Limb, type V } from './rig';
 import { sceneFor, type Prop, type Scene } from './scenes';
+import { getFigureLook, useFigureLook, type FigureLook } from '../figurePref';
 
 const C = { near: '#d0d5dc', far: '#7b828d', gear: '#474d57', gearHi: '#69707b', tool: '#f3f1ec', toolFill: '#2a2e35', hot: '#ff6a1a', warm: '#b24a2c' };
 const FLOOR = 67.4;
@@ -262,7 +263,7 @@ let broken = typeof WebGLRenderingContext === 'undefined';
 const load3d = () => (mod ??= import('./render3d'));
 const thumbs = new Map<string, string>();
 const waiters = new Map<string, Set<() => void>>();
-const queue: { key: string; ex: FigureEx; sc: Scene; fig: Fig }[] = [];
+const queue: { key: string; ex: FigureEx; sc: Scene; fig: Fig; look: FigureLook }[] = [];
 type Fig = 'male' | 'female';
 /** Figura de los ejercicios: la misma que muestra el mapa muscular en este dispositivo. */
 const figNow = (): Fig => { try { return localStorage.getItem('ii_fig') === 'female' ? 'female' : 'male'; } catch { return 'male'; } };
@@ -272,12 +273,12 @@ const hash = (t: string) => { let h = 2166136261; for (let i = 0; i < t.length; 
 let pumping = false;
 const keyOf = (ex: FigureEx, sc: Scene) => {
   let id = sceneIds.get(sc); if (!id) { id = hash(JSON.stringify(sc)); sceneIds.set(sc, id); }
-  return `${figNow()}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
+  return `${figNow()}${getFigureLook() === 'piel' ? '+piel' : ''}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
 };
 
 // Las figuras ya dibujadas se guardan en el dispositivo: al volver a abrir la app aparecen al instante, sin redibujarlas.
 // El número de versión se sube cuando cambia el dibujo, para descartar las guardadas.
-const STORE = 'thumb:6:';
+const STORE = 'thumb:7:';
 let hydrated: Promise<void> | null = null;
 const hydrate = () => (hydrated ??= (async () => {
   try {
@@ -309,7 +310,7 @@ function pump(): void {
       while (job && !waiters.get(job.key)?.size) { waiters.delete(job.key); job = queue.shift(); }
       const c0 = Date.now();
       if (job) {
-        try { await m.prepare(job.fig); remember(job.key, m.renderThumb(job.ex, job.sc, 192, job.fig)); } catch { broken = true; queue.length = 0; }
+        try { m.setLook(job.look); await m.prepare(job.fig); m.setLook(job.look); remember(job.key, m.renderThumb(job.ex, job.sc, 192, job.fig)); } catch { broken = true; queue.length = 0; }
         waiters.get(job.key)?.forEach((cb) => cb()); waiters.delete(job.key);
       }
       // Tras cada figura se deja libre el doble de lo que tardó en dibujarse.
@@ -319,6 +320,7 @@ function pump(): void {
   }).catch(() => { broken = true; pumping = false; });
 }
 function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
+  useFigureLook();                       // al cambiar el aspecto cambia la clave y se pide la miniatura nueva
   const key = keyOf(ex, sc);
   const [url, setUrl] = useState<string | null>(() => thumbs.get(key) ?? null);
   useEffect(() => {
@@ -331,7 +333,7 @@ function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
     void hydrate().then(() => {
       if (!alive) return;
       if (thumbs.has(key)) { cb(); return; }
-      if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc, fig: figNow() }); }
+      if (!waiters.has(key)) { waiters.set(key, new Set()); queue.push({ key, ex, sc, fig: figNow(), look: getFigureLook() }); }
       waiters.get(key)!.add(cb);
       pump();
     });
@@ -346,12 +348,14 @@ function useThumb(ex: FigureEx, sc: Scene, on: boolean): string | null {
 function Motion3D({ ex, sc, size, className, onFail }: { ex: FigureEx; sc: Scene; size: number; className?: string; onFail: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
+  const look = useFigureLook();
   useEffect(() => {
     let raf = 0, dead = false, fig: InstanceType<Mod['Figure3D']> | null = null;
     const px = Math.min(520, Math.round(size * Math.min(2.5, window.devicePixelRatio || 1)));
     void load3d().then(async (m) => {
-      const who = figNow(); await m.prepare(who);
+      const who = figNow(); m.setLook(look); await m.prepare(who);
       if (dead || !ref.current) return;
+      m.setLook(look);
       fig = new m.Figure3D(ex, sc, !sc.still, who);
       const ctx = ref.current.getContext('2d')!;
       const paintAt = (t: number) => { ctx.clearRect(0, 0, px, px); ctx.drawImage(fig!.draw(t, px), 0, 0); };
@@ -372,7 +376,7 @@ function Motion3D({ ex, sc, size, className, onFail }: { ex: FigureEx; sc: Scene
     }).catch(() => { broken = true; onFail(); });
     return () => { dead = true; cancelAnimationFrame(raf); fig?.dispose(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ex.id, sc, size]);
+  }, [ex.id, sc, size, look]);
   const px = Math.min(520, Math.round(size * Math.min(2.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)));
   return <canvas ref={ref} width={px} height={px} role="img" aria-label="Ilustración del movimiento" className={className} style={{ width: className ? undefined : size, height: className ? undefined : size, opacity: ready ? 1 : 0, transition: 'opacity .25s' }} />;
 }

@@ -21,7 +21,7 @@ function loadSource(): Promise<Object3D> {
 }
 
 /** Cuánto se engrosa cada grupo a lo largo de su normal, en metros (el modelo mide 1,71 m). */
-const RELIEF: Record<string, number> = {
+export const RELIEF: Record<string, number> = {
   chest: 0.01, shoulders: 0.01, back: 0.0085, traps: 0.007, biceps: 0.0085, triceps: 0.0085, forearms: 0.004,
   abs: 0.0045, obliques: 0.003, lowerback: 0.004, glutes: 0.008, abductors: 0.005, adductors: 0.005,
   quads: 0.0095, hamstrings: 0.008, calves: 0.008, tibialis: 0.004, neck: 0.003,
@@ -107,7 +107,7 @@ function build(src: Object3D, figure: Figure): Object3D {
     const attr = new BufferAttribute(P, 3);
     geo.setAttribute('position', attr);
     if (g.index) geo.setIndex(g.index);
-    // Las normales se recalculan desde los triángulos: las del archivo vienen invertidas en las mitades reflejadas.
+    // Las normales se recalculan desde los triángulos (el archivo ya trae todos enrollados hacia fuera: tools/modelo/orientar.mjs).
     geo.computeVertexNormals();
     const N = geo.getAttribute('normal');
     const relief = (RELIEF[name] ?? 0) * (figure === 'female' ? FEMALE_RELIEF[name] ?? 0.9 : 1);
@@ -129,5 +129,49 @@ function build(src: Object3D, figure: Figure): Object3D {
 export function loadFigure(figure: Figure): Promise<Object3D> {
   let p = variants.get(figure);
   if (!p) { p = loadSource().then((src) => build(src, figure)); p.catch(() => variants.delete(figure)); variants.set(figure, p); }
+  return p;
+}
+
+/**
+ * Piel continua sobre la misma anatomía: una sola malla, construida sobre el modelo sin deformar (tools/modelo/piel),
+ * con sus pesos de hueso, el mapa de músculos y la sombra propia por vértice. Cada figura la lleva a sus proporciones
+ * con la misma deformación que usan los músculos.
+ */
+export interface SkinSource { geometry: BufferGeometry; groups: string[] }
+let skinSource: Promise<SkinSource> | null = null;
+const skins = new Map<Figure, Promise<SkinSource>>();
+function loadSkinSource(): Promise<SkinSource> {
+  if (!skinSource) {
+    const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    skinSource = loader.loadAsync(`${import.meta.env.BASE_URL}models/piel.glb`).then((g) => {
+      let found: Mesh | null = null;
+      g.scene.traverse((o) => { if (o instanceof Mesh && !found) found = o; });
+      if (!found) throw new Error('La piel no trae malla');
+      const mesh = found as Mesh;
+      mesh.updateMatrixWorld(true);
+      // Posiciones en metros en un arreglo propio: el archivo las trae cuantizadas, con la escala en el nodo.
+      const geometry = (mesh.geometry as BufferGeometry).clone(), pos = geometry.getAttribute('position'), v = new Vector3();
+      const P = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+      geometry.setAttribute('position', new BufferAttribute(P, 3));
+      return { geometry, groups: (mesh.userData.grupos as string[]) ?? [] };
+    }).catch((e) => { skinSource = null; throw e; });
+  }
+  return skinSource;
+}
+export function loadSkin(figure: Figure): Promise<SkinSource> {
+  let p = skins.get(figure);
+  if (!p) {
+    p = loadSkinSource().then((src) => {
+      const geometry = src.geometry.clone(), pos = geometry.getAttribute('position'), v = new Vector3();
+      const P = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) { reshape(v.fromBufferAttribute(pos, i), figure); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+      geometry.setAttribute('position', new BufferAttribute(P, 3));
+      return { geometry, groups: src.groups };
+    });
+    p.catch(() => skins.delete(figure));
+    skins.set(figure, p);
+  }
   return p;
 }

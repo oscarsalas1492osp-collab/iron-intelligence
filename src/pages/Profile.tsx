@@ -11,7 +11,7 @@ import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL } from '../domain/mus
 import type { Experience, Goal, Profile as P } from '../domain/types';
 import { useProfile, useSyncState, useUserId } from '../hooks';
 import { Btn, Card, Chip, Field, H2, Seg, Sheet, Title, useAction, useUi } from '../ui/components';
-import { setFigureChoice, useFigureChoice } from '../ui/figurePref';
+import { setFigureChoice, setFigureLook, useFigureChoice, useFigureLook } from '../ui/figurePref';
 import { AuthForm } from './Auth';
 
 const GOALS: { value: Goal; label: string }[] = [{ value: 'hypertrophy', label: 'Hipertrofia' }, { value: 'strength', label: 'Fuerza' }, { value: 'recomposition', label: 'Recomposición' }, { value: 'maintenance', label: 'Mantenimiento' }];
@@ -25,7 +25,7 @@ const GOAL_NOTE: Record<Goal, string> = {
 const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')));
 
 export default function Profile() {
-  const p = useProfile(); const uid = useUserId(); const sync = useSyncState(); const figure = useFigureChoice();
+  const p = useProfile(); const uid = useUserId(); const sync = useSyncState(); const figure = useFigureChoice(); const look = useFigureLook();
   const run = useAction(); const { toast, confirm } = useUi();
   const file = useRef<HTMLInputElement>(null);
   const [auth, setAuth] = useState(false);
@@ -66,6 +66,11 @@ export default function Profile() {
               <span className="label mb-1.5 block">Figura del mapa muscular</span>
               <Seg value={figure} onChange={setFigureChoice} options={[{ value: 'auto', label: 'Automática' }, { value: 'male', label: 'Masculina' }, { value: 'female', label: 'Femenina' }]} />
               <span className="mt-1 block text-xs text-mute">En automático sigue al sexo indicado arriba. Se guarda en este dispositivo.</span>
+            </div>
+            <div role="group" aria-label="Figura de los ejercicios">
+              <span className="label mb-1.5 block">Figura de los ejercicios</span>
+              <Seg value={look} onChange={setFigureLook} options={[{ value: 'anatomia', label: 'Anatomía' }, { value: 'piel', label: 'Atleta (en prueba)' }]} />
+              <span className="mt-1 block text-xs text-mute">Anatomía muestra cada músculo sin piel. Atleta es la misma figura con piel y ropa, todavía en ajuste. Se guarda en este dispositivo.</span>
             </div>
             <p className="text-xs text-mute">El peso corporal se registra en <Link to="/recuperacion" className="text-data underline">Recuperación</Link>.</p>
           </Card>

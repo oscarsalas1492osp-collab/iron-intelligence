@@ -6,13 +6,13 @@
 // Las miniaturas se renderizan una vez y se guardan como imagen; la ficha anima el movimiento en vivo.
 import {
   ACESFilmicToneMapping, Bone, Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, DirectionalLight, Float32BufferAttribute, Group, Matrix4,
-  HemisphereLight, Mesh, Skeleton, SkinnedMesh, Uint16BufferAttribute, type Object3D, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Quaternion,
+  HemisphereLight, Mesh, MeshPhysicalMaterial, Skeleton, SkinnedMesh, Uint16BufferAttribute, type Object3D, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Quaternion,
   Scene as Stage3, ShadowMaterial, Sphere, SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer, type Material,
 } from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { Equipment, ExerciseDef, Muscle } from '../../domain/types';
 import { ANAT, DIM, sameLimb, solve, type Joints, type Pose, type V } from './rig';
-import { loadFigure, type Figure } from '../bodyModel';
+import { loadFigure, loadSkin, type Figure, type SkinSource } from '../bodyModel';
 import type { Prop, Scene } from './scenes';
 
 export type FigureEx = Pick<ExerciseDef, 'id' | 'primary' | 'secondary' | 'type' | 'equipment'>;
@@ -139,7 +139,7 @@ const R = { S: v3(REST.S), E: v3(REST.E), W: v3(REST.W), F: v3(REST.F), H: v3(RE
 const ARMG = new Set(['biceps', 'triceps', 'forearms']), LEGG = new Set(['quads', 'hamstrings', 'adductors', 'calves', 'tibialis']);
 
 /** A qué huesos sigue un vértice del modelo y cuánto. */
-function weightsOf(group: string, x: number, y: number, z: number, out: number[]): void {
+export function weightsOf(group: string, x: number, y: number, z: number, out: number[]): void {
   const sd = x >= 0 ? 0 : 1, ax = Math.abs(x), p = new Vector3(ax, y, z), o = sd * B.per;
   const w = new Map<number, number>(); let torso = 1;
   const [tu, du] = seg(p, R.S, R.E), [tf, df] = seg(p, R.E, R.W), [, dh] = seg(p, R.W, R.F.clone().lerp(R.W, -0.4));
@@ -175,10 +175,47 @@ function weightsOf(group: string, x: number, y: number, z: number, out: number[]
   for (let i = 0; i < 4; i++) { out[i] = top[i]?.[0] ?? 0; out[4 + i] = top[i] ? top[i][1] / sum : 0; }
 }
 
+// ---------- piel ----------
+// Con la piel puesta la figura deja de ser un atlas de anatomía: un atleta de una sola pieza, con pantalón corto y
+// zapatillas, y el calor del músculo que trabaja asomando a través de la piel.
+export type Look = 'anatomia' | 'piel';
+let look: Look = 'anatomia';
+/** Cambia el aspecto de las figuras. Hay que volver a llamar a `prepare` antes de dibujar. */
+export function setLook(l: Look): void { look = l; }
+const SKIN = { tone: new Color('#b9b1aa'), cloth: new Color('#161d21'), hot: new Color('#ff3410'), warm: new Color('#ff9440') };
+function skinMaterial(figure: Figure): Material {
+  const m = new MeshPhysicalMaterial({ color: SKIN.tone, roughness: 0.56, metalness: 0, sheen: 0.4, sheenRoughness: 0.55, sheenColor: new Color('#ffd2b8') });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uCloth = { value: SKIN.cloth }; sh.uniforms.uHot = { value: SKIN.hot }; sh.uniforms.uWarm = { value: SKIN.warm }; sh.uniforms.uTop = { value: figure === 'female' ? 1 : 0 };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float heat;\nattribute float part;\nattribute float ao;\nvarying float vHeat;\nvarying float vPart;\nvarying float vAo;\nvarying vec3 vRest;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHeat = heat; vPart = part; vAo = ao; vRest = position;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vHeat;\nvarying float vPart;\nvarying float vAo;\nvarying vec3 vRest;\nuniform vec3 uCloth;\nuniform vec3 uHot;\nuniform vec3 uWarm;\nuniform float uTop;\nfloat clothMask;\nvec3 heatColor;\nfloat heatK;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float lower = step(vPart, 0.5) + step(3.5, vPart);
+        float shorts = smoothstep(0.698, 0.702, vRest.y) * (1.0 - smoothstep(0.978, 0.982, vRest.y));
+        float shoes = (1.0 - smoothstep(0.108, 0.112, vRest.y)) * step(3.5, vPart);
+        float top = uTop * step(vPart, 0.5) * smoothstep(1.213, 1.217, vRest.y) * (1.0 - smoothstep(1.338, 1.342, vRest.y)) * (1.0 - smoothstep(0.158, 0.162, abs(vRest.x)));
+        clothMask = clamp(lower * shorts + shoes + top, 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uCloth, clothMask);
+        // El calor sube de ámbar (músculo que acompaña) a brasa (músculo principal); bajo la tela se ve atenuado.
+        heatColor = mix(uWarm, uHot, smoothstep(0.5, 0.95, vHeat));
+        heatK = smoothstep(0.0, 0.5, vHeat) * (1.0 - 0.45 * clothMask);
+        diffuseColor.rgb = mix(diffuseColor.rgb, heatColor, heatK * 0.88);
+        // Sombra propia de los surcos entre músculos, calculada al construir la piel.
+        diffuseColor.rgb *= mix(0.42, 1.0, smoothstep(0.45, 1.0, vAo));`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.93, clothMask);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += heatColor * heatK * (0.22 + 0.3 * smoothstep(0.5, 0.95, vHeat));');
+  };
+  return m;
+}
+
 class Anatomy {
   group = new Group();
   private bones: Bone[] = []; private meshes: SkinnedMesh[] = [];
-  private constructor(model: Object3D) {
+  private skin: { map: ArrayLike<number>; groups: string[]; heat: Float32BufferAttribute; key: string } | null = null;
+  private constructor(model: Object3D | null, skin: SkinSource | null, figure: Figure) {
     const sides = [1, -1], rest: Matrix4[] = [], front = new Vector3(0, 0, 1), up = new Vector3(0, 1, 0);
     rest[B.torso] = frame(v3(REST.hip), v3(REST.sh).sub(v3(REST.hip)), front);
     rest[B.head] = frame(v3(REST.sh), v3(REST.head).sub(v3(REST.sh)), front);
@@ -190,28 +227,55 @@ class Anatomy {
     });
     for (let i = 0; i < rest.length; i++) { const b = new Bone(); b.matrixAutoUpdate = false; this.bones.push(b); }
     const skeleton = new Skeleton(this.bones, rest.map((m) => m.clone().invert()));
+    const hang = (g: BufferGeometry, material: Material, name: string) => {
+      const m = new SkinnedMesh(g, material); m.name = name; m.bind(skeleton, new Matrix4()); m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true; m.matrixAutoUpdate = false;
+      this.meshes.push(m); this.group.add(m);
+    };
+    if (skin) {
+      const g = skin.geometry.clone(), map = g.getAttribute('_musculo').array as ArrayLike<number>, n = g.getAttribute('position').count;
+      const part = new Float32Array(n); for (let i = 0; i < n; i++) part[i] = map[i * 4] >> 5;
+      const oc = g.getAttribute('_oclusion'), ao = new Float32Array(n); for (let i = 0; i < n; i++) ao[i] = oc ? oc.getX(i) : 1;
+      g.setAttribute('ao', new Float32BufferAttribute(ao, 1));
+      const heat = new Float32BufferAttribute(new Float32Array(n), 1);
+      g.setAttribute('part', new Float32BufferAttribute(part, 1)); g.setAttribute('heat', heat); g.computeVertexNormals();
+      this.skin = { map, groups: skin.groups, heat, key: '' };
+      hang(g, skinMaterial(figure), 'piel');
+      return;
+    }
     const tmp: number[] = [];
-    model.traverse((src) => {
+    model!.traverse((src) => {
       if (!(src instanceof Mesh)) return;
       const g = (src.geometry as BufferGeometry).clone(), pos = g.getAttribute('position');
       const si = new Uint16Array(pos.count * 4), sw = new Float32Array(pos.count * 4);
       for (let i = 0; i < pos.count; i++) { weightsOf(src.name, pos.getX(i), pos.getY(i), pos.getZ(i), tmp); for (let k = 0; k < 4; k++) { si[i * 4 + k] = tmp[k]; sw[i * 4 + k] = tmp[4 + k]; } }
       g.setAttribute('skinIndex', new Uint16BufferAttribute(si, 4)); g.setAttribute('skinWeight', new Float32BufferAttribute(sw, 4));
-      const m = new SkinnedMesh(g, M.clay); m.name = src.name; m.bind(skeleton, new Matrix4()); m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true; m.matrixAutoUpdate = false;
-      this.meshes.push(m); this.group.add(m);
+      hang(g, M.clay, src.name);
     });
   }
-  private static cache = new Map<Figure, Promise<Anatomy>>();
-  private static ready = new Map<Figure, Anatomy>();
+  private static cache = new Map<string, Promise<Anatomy>>();
+  private static ready = new Map<string, Anatomy>();
   static load(figure: Figure): Promise<Anatomy> {
-    let p = Anatomy.cache.get(figure);
-    if (!p) { p = loadFigure(figure).then((m) => { const a = new Anatomy(m); Anatomy.ready.set(figure, a); return a; }); p.catch(() => Anatomy.cache.delete(figure)); Anatomy.cache.set(figure, p); }
+    const key = `${figure}/${look}`;
+    let p = Anatomy.cache.get(key);
+    if (!p) {
+      p = (look === 'piel' ? loadSkin(figure).then((sk) => new Anatomy(null, sk, figure)) : loadFigure(figure).then((m) => new Anatomy(m, null, figure))).then((a) => { Anatomy.ready.set(key, a); return a; });
+      p.catch(() => Anatomy.cache.delete(key)); Anatomy.cache.set(key, p);
+    }
     return p;
   }
-  static get(figure: Figure): Anatomy { const a = Anatomy.ready.get(figure); if (!a) throw new Error('El modelo anatómico no está cargado'); return a; }
+  static get(figure: Figure): Anatomy { const a = Anatomy.ready.get(`${figure}/${look}`); if (!a) throw new Error('El modelo anatómico no está cargado'); return a; }
 
   /** Enciende el músculo principal y los secundarios del ejercicio. */
   roles(ex: FigureEx): void {
+    if (this.skin) {
+      const sk = this.skin, key = `${ex.primary}|${ex.secondary.join(',')}`;
+      if (key === sk.key) return;
+      sk.key = key;
+      const role = sk.groups.map((g) => (g === ex.primary ? 1 : ex.secondary.includes(g as Muscle) ? 0.5 : 0)), out = sk.heat.array as Float32Array, m = sk.map;
+      for (let i = 0; i < out.length; i++) { const b = m[i * 4 + 2] / 255; out[i] = (role[m[i * 4] & 31] * (1 - b) + role[m[i * 4 + 1]] * b) * (m[i * 4 + 3] / 255); }
+      sk.heat.needsUpdate = true;
+      return;
+    }
     for (const m of this.meshes) m.material = m.name === ex.primary ? M.hot : ex.secondary.includes(m.name as Muscle) ? M.warm : m.name === 'bone' ? M.bone : M.clay;
   }
   private set(i: number, o: Vector3, to: Vector3 | null, dirv: Vector3, xHint: Vector3, restLen: number, thick = 1.13) {
@@ -478,16 +542,17 @@ export class Figure3D {
   private set(t: number): Pose3 { this.gear.farZ = BACK.includes(this.ex.primary) ? 3.2 : -2.8; const fist = (this.sc.load ?? 'hand') === 'hand' && !(this.ex.equipment === 'bodyweight' && !this.sc.props?.length); const p = lift(this.sc, solve(this.sc.view, this.a, this.b, t, ANAT), t, fist); p.fist = fist; this.body.roles(this.ex); this.body.pose(p); this.gear.build(this.sc, p, this.ex.equipment); return p; }
 
   /** Dibuja el instante `t` (0 inicio, 1 final) y devuelve el lienzo WebGL, del tamaño pedido. */
-  draw(t: number, px: number): HTMLCanvasElement {
+  draw(t: number, px: number, cam: { az?: number; el?: number; zoom?: number; lift?: number } = {}): HTMLCanvasElement {
     const r = stage();
     if (r.size !== px) { r.renderer.setSize(px, px, false); r.size = px; }
     this.set(t);
     // Si el músculo principal está en la cara posterior, la cámara rodea la figura para mostrarlo.
     const side = this.sc.view === 'side', back = BACK.includes(this.ex.primary);
-    const az = side ? (back ? -0.66 : 0.56) : (back ? Math.PI + 0.34 : -0.34), el = side ? 0.22 : 0.16;
+    const az = cam.az ?? (side ? (back ? -0.66 : 0.56) : (back ? Math.PI + 0.34 : -0.34)), el = cam.el ?? (side ? 0.22 : 0.16);
     const dir = new Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
-    const dist = (this.radius * 0.9) / Math.sin((r.camera.fov * Math.PI) / 360);
-    r.camera.position.copy(this.center).addScaledVector(dir, dist); r.camera.lookAt(this.center); r.camera.near = Math.max(1, dist - this.radius * 3); r.camera.far = dist + this.radius * 3; r.camera.updateProjectionMatrix();
+    const dist = (this.radius * 0.9) / Math.sin((r.camera.fov * Math.PI) / 360) / (cam.zoom ?? 1);
+    const eye = this.center.clone(); eye.y += (cam.lift ?? 0) * this.radius;
+    r.camera.position.copy(eye).addScaledVector(dir, dist); r.camera.lookAt(eye); r.camera.near = Math.max(1, dist - this.radius * 3); r.camera.far = dist + this.radius * 3; r.camera.updateProjectionMatrix();
     const left = new Vector3().crossVectors(UP, dir).normalize();
     r.key.position.copy(this.center).addScaledVector(dir, 60).addScaledVector(left, 46).addScaledVector(UP, 95); r.key.target.position.copy(this.center);
     const sc = r.key.shadow.camera; sc.left = sc.bottom = -this.radius * 1.5; sc.right = sc.top = this.radius * 1.5; sc.near = 10; sc.far = 400; sc.updateProjectionMatrix();
