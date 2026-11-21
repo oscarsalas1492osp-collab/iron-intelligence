@@ -5,6 +5,8 @@ import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { onLocalChange } from './data/repo';
 import { cloudEnabled, initAuth, scheduleSync, syncNow, takeReturnError } from './data/sync';
 import { useUserId } from './hooks';
+import { refreshPlan } from './data/plan';
+import { PlanSheet, ProGate } from './ui/plan';
 import Assistant from './pages/Assistant';
 import Auth, { NewPassword, useRecovering } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -43,6 +45,14 @@ export default function App() {
 
   useEffect(() => initAuth(), []);
 
+  // Plan del usuario: al abrir, al cambiar de cuenta y al volver a la app.
+  useEffect(() => {
+    void refreshPlan(uid, true);
+    const vis = () => document.visibilityState === 'visible' && void refreshPlan(uid);
+    document.addEventListener('visibilitychange', vis);
+    return () => document.removeEventListener('visibilitychange', vis);
+  }, [uid]);
+
   // Sincroniza al abrir, al recuperar conexión, al volver a la app y tras cada cambio local.
   useEffect(() => {
     if (!cloudEnabled || uid === 'local') return;
@@ -75,8 +85,8 @@ export default function App() {
                 <Route path="/historial" element={<History />} />
                 <Route path="/analisis" element={<Analysis />} />
                 <Route path="/discos" element={<Plates />} />
-                <Route path="/recuperacion" element={<Recovery />} />
-                <Route path="/asistente" element={<Assistant />} />
+                <Route path="/recuperacion" element={<ProGate title="Recuperación" text="Registra sueño y fatiga, y mira cuánto se ha recuperado cada músculo antes de volver a entrenarlo."><Recovery /></ProGate>} />
+                <Route path="/asistente" element={<ProGate title="Asistente" text="Pregunta qué subir, qué te falta entrenar o cómo vas, y recibe respuestas armadas solo con tu historial."><Assistant /></ProGate>} />
                 <Route path="/perfil" element={<Profile />} />
                 <Route path="/fundamento" element={<Science />} />
                 <Route path="/mas" element={<More />} />
@@ -86,6 +96,7 @@ export default function App() {
               </Route>
             </Routes>
             </Suspense>
+            <PlanSheet />
           </Router>
         )}
       </UiProvider>

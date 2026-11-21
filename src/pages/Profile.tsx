@@ -11,6 +11,7 @@ import { EQUIPMENT, EQUIPMENT_LABEL, MUSCLES, MUSCLE_LABEL } from '../domain/mus
 import type { Experience, Goal, Profile as P } from '../domain/types';
 import { useProfile, useSyncState, useUserId } from '../hooks';
 import { Btn, Card, Chip, Field, H2, Seg, Sheet, Title, useAction, useUi } from '../ui/components';
+import { PlanCard } from '../ui/plan';
 import { setFigureChoice, setFigureLook, useFigureChoice, useFigureLook } from '../ui/figurePref';
 import { AuthForm } from './Auth';
 
@@ -52,6 +53,7 @@ export default function Profile() {
   return (
     <div>
       <Title sub="Personaliza la experiencia y gestiona tus datos">Perfil y datos</Title>
+      <PlanCard />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <H2>Datos personales</H2>

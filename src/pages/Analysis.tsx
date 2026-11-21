@@ -1,6 +1,7 @@
 import { InsightCards } from '../ui/extras';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { openPlans, usePlan } from '../ui/plan';
 import { DAY, e1rm, weekStart } from '../domain/calc';
 import { hotTone, type Tones } from '../domain/heat';
 import { MAIN_MUSCLES, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
@@ -16,7 +17,12 @@ import { Btn, Card, Chip, Empty, H2, Icon, Stat, Title } from '../ui/components'
 const RIR_COLORS = ['#ffe2a8', '#ffa63d', '#ff6a1a', '#c2412d', '#8a4a3a', '#4a505a'];
 
 export default function Analysis() {
-  const sets = useDoneSets(); const ex = useExMap(); const profile = useProfile();
+  const done = useDoneSets(); const ex = useExMap(); const profile = useProfile();
+  // Plan gratis: el análisis mira los últimos días que incluye el plan; con Pro, todo el historial.
+  const plan = usePlan(); const since = Date.now() - plan.freeHistoryDays * DAY;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sets = useMemo(() => (plan.pro || !done ? done : done.filter((s) => s.date >= since)), [done, plan.pro, plan.freeHistoryDays]);
+  const capped = !plan.pro && !!done && done.length > (sets?.length ?? 0);
   const [offset, setOffset] = useState(0);
   const [muscle, setMuscle] = useState<Muscle>('chest');
   const coef = profile.indirectCoef;
@@ -47,6 +53,12 @@ export default function Analysis() {
   return (
     <div>
       <Title sub="Volumen, frecuencia y proximidad al fallo">Análisis</Title>
+      {capped && (
+        <button onClick={openPlans} className="mb-4 flex w-full items-center justify-between gap-3 rounded-xl bg-card px-3 py-2.5 text-left text-sm">
+          <span>Estás viendo los últimos {plan.freeHistoryDays} días. Con Pro, todo tu historial.</span>
+          <span className="shrink-0 font-semibold text-fire">Ver Pro</span>
+        </button>
+      )}
       <div className="mb-4 flex items-center justify-between gap-2">
         <Btn size="sm" icon="left" aria-label="Semana anterior" onClick={() => setOffset(offset + 1)} />
         <div className="text-center"><div className="font-bold">{offset === 0 ? 'Esta semana' : offset === 1 ? 'Semana pasada' : `Hace ${offset} semanas`}</div><div className="text-xs text-mute">{label}</div></div>
