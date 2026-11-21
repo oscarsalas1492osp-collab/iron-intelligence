@@ -8,7 +8,7 @@ function precacheManifest(): Plugin {
     name: 'precache-manifest',
     apply: 'build',
     generateBundle(_options, bundle) {
-      const files = [...Object.keys(bundle).filter((f) => !f.endsWith('.map')), 'models/musculos.glb'];
+      const files = [...Object.keys(bundle).filter((f) => !f.endsWith('.map')), 'models/musculos.glb', 'models/piel.glb'];
       this.emitFile({ type: 'asset', fileName: 'precache.json', source: JSON.stringify(files) });
     },
   };

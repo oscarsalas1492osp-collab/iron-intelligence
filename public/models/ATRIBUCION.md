@@ -23,7 +23,7 @@ El mismo modelo, articulado por sus articulaciones, se usa también en las figur
 
 # piel.glb
 
-Piel continua para la figura «Atleta» de los ejercicios. Es una obra derivada del mismo modelo: se obtiene envolviendo
+Piel continua para la figura «Atleta» de los ejercicios (la figura por defecto). Es una obra derivada del mismo modelo: se obtiene envolviendo
 los músculos y huesos de `musculos.glb` (voxelización, cierre de surcos y extracción de superficie), y lleva por vértice
 los pesos de articulación, el grupo muscular que cubre y una sombra propia. No es un cuerpo escaneado ni una fotografía.
 

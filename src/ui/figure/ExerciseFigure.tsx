@@ -273,12 +273,12 @@ const hash = (t: string) => { let h = 2166136261; for (let i = 0; i < t.length; 
 let pumping = false;
 const keyOf = (ex: FigureEx, sc: Scene) => {
   let id = sceneIds.get(sc); if (!id) { id = hash(JSON.stringify(sc)); sceneIds.set(sc, id); }
-  return `${figNow()}${getFigureLook() === 'piel' ? '+piel' : ''}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
+  return `${figNow()}${getFigureLook() === 'anatomia' ? '+anatomia' : ''}|${id}|${ex.equipment}|${ex.primary}|${ex.secondary.join(',')}`;
 };
 
 // Las figuras ya dibujadas se guardan en el dispositivo: al volver a abrir la app aparecen al instante, sin redibujarlas.
 // El número de versión se sube cuando cambia el dibujo, para descartar las guardadas.
-const STORE = 'thumb:7:';
+const STORE = 'thumb:8:';
 let hydrated: Promise<void> | null = null;
 const hydrate = () => (hydrated ??= (async () => {
   try {

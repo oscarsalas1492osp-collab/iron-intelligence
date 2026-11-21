@@ -69,8 +69,8 @@ export default function Profile() {
             </div>
             <div role="group" aria-label="Figura de los ejercicios">
               <span className="label mb-1.5 block">Figura de los ejercicios</span>
-              <Seg value={look} onChange={setFigureLook} options={[{ value: 'anatomia', label: 'Anatomía' }, { value: 'piel', label: 'Atleta (en prueba)' }]} />
-              <span className="mt-1 block text-xs text-mute">Anatomía muestra cada músculo sin piel. Atleta es la misma figura con piel y ropa, todavía en ajuste. Se guarda en este dispositivo.</span>
+              <Seg value={look} onChange={setFigureLook} options={[{ value: 'piel', label: 'Atleta' }, { value: 'anatomia', label: 'Anatomía' }]} />
+              <span className="mt-1 block text-xs text-mute">Atleta es la figura con piel y ropa. Anatomía muestra cada músculo por separado, sin piel. Se guarda en este dispositivo.</span>
             </div>
             <p className="text-xs text-mute">El peso corporal se registra en <Link to="/recuperacion" className="text-data underline">Recuperación</Link>.</p>
           </Card>

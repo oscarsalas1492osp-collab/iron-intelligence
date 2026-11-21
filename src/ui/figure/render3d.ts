@@ -48,7 +48,7 @@ const UP = new Vector3(0, 1, 0);
 // ---------- postura en 3D ----------
 /** `g`: punto de agarre (centro del puño) cuando la mano sujeta algo; el implemento se dibuja ahí. */
 interface Limb3 { a: Vector3; b: Vector3; c: Vector3; d?: Vector3; g?: Vector3 }
-interface Pose3 { hip: Vector3; sh: Vector3; head: Vector3; arms: Limb3[]; legs: Limb3[]; right: Vector3; fwd: Vector3; side: boolean; j: Joints; w: (p: V, z?: number) => Vector3; fist?: boolean }
+interface Pose3 { hip: Vector3; sh: Vector3; head: Vector3; arms: Limb3[]; legs: Limb3[]; right: Vector3; fwd: Vector3; side: boolean; j: Joints; w: (p: V, z?: number) => Vector3; fist?: boolean; grip?: Vector3; supine?: boolean }
 const ZS = ANAT.SW, ZH = ANAT.HW, K3 = ANAT.SW / 6.5;   // K3: las pistas de profundidad se escribieron para hombros de 6,5
 
 /** Articulación intermedia en 3D: conserva el largo de los huesos y se abre hacia donde apunta `pole`. */
@@ -135,6 +135,18 @@ const seg = (p: Vector3, a: Vector3, b: Vector3): [number, number] => {
   const ab = b.clone().sub(a), t = p.clone().sub(a).dot(ab) / ab.lengthSq(), c = a.clone().addScaledVector(ab, Math.min(1, Math.max(0, t)));
   return [t, p.distanceTo(c)];
 };
+// Dedos (solo en la figura con piel): dos huesos por mano que giran sobre los nudillos. Medidas en el marco de la
+// mano en reposo (metros): x hacia la palma, y hacia la punta de los dedos.
+const FING = {
+  first: 14,                                             // 14 y 15: mano +x; 16 y 17: mano −x
+  k1: new Vector3(0.004, 0.086, 0), k2: new Vector3(0.012, 0.124, 0),   // nudillo y primera articulación del dedo
+  curl1: 1.4, curl2: 1.5,                                // cuánto se cierran al empuñar (radianes)
+  bar: new Vector3(0.026, 0.063, 0),                     // dónde queda el centro del agarre dentro de la palma
+  wrist: 0.39,                                           // la muñeca se extiende un poco para dejar la palma detrás de la barra
+};
+// Hombro (solo con piel): un segundo hueso de brazo que sigue su dirección pero no su giro. La piel del hombro, el
+// pecho y la espalda se apoya en él, y el giro del brazo se reparte a lo largo del brazo en vez de retorcer el pecho.
+const SWING = 18;                                        // 18: brazo +x, 19: brazo −x
 const R = { S: v3(REST.S), E: v3(REST.E), W: v3(REST.W), F: v3(REST.F), H: v3(REST.H), K: v3(REST.K), A: v3(REST.A) };
 const ARMG = new Set(['biceps', 'triceps', 'forearms']), LEGG = new Set(['quads', 'hamstrings', 'adductors', 'calves', 'tibialis']);
 
@@ -177,9 +189,10 @@ export function weightsOf(group: string, x: number, y: number, z: number, out: n
 
 // ---------- piel ----------
 // Con la piel puesta la figura deja de ser un atlas de anatomía: un atleta de una sola pieza, con pantalón corto y
-// zapatillas, y el calor del músculo que trabaja asomando a través de la piel.
+// zapatillas, y el calor del músculo que trabaja asomando a través de la piel. Es el aspecto por defecto; el
+// anatómico (músculo por músculo) se puede elegir en Perfil.
 export type Look = 'anatomia' | 'piel';
-let look: Look = 'anatomia';
+let look: Look = 'piel';
 /** Cambia el aspecto de las figuras. Hay que volver a llamar a `prepare` antes de dibujar. */
 export function setLook(l: Look): void { look = l; }
 const SKIN = { tone: new Color('#b9b1aa'), cloth: new Color('#161d21'), hot: new Color('#ff3410'), warm: new Color('#ff9440') };
@@ -193,11 +206,12 @@ function skinMaterial(figure: Figure): Material {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vHeat;\nvarying float vPart;\nvarying float vAo;\nvarying vec3 vRest;\nuniform vec3 uCloth;\nuniform vec3 uHot;\nuniform vec3 uWarm;\nuniform float uTop;\nfloat clothMask;\nvec3 heatColor;\nfloat heatK;')
       .replace('#include <color_fragment>', `#include <color_fragment>
-        float lower = step(vPart, 0.5) + step(3.5, vPart);
-        float shorts = smoothstep(0.698, 0.702, vRest.y) * (1.0 - smoothstep(0.978, 0.982, vRest.y));
-        float shoes = (1.0 - smoothstep(0.108, 0.112, vRest.y)) * step(3.5, vPart);
-        float top = uTop * step(vPart, 0.5) * smoothstep(1.213, 1.217, vRest.y) * (1.0 - smoothstep(1.338, 1.342, vRest.y)) * (1.0 - smoothstep(0.158, 0.162, abs(vRest.x)));
-        clothMask = clamp(lower * shorts + shoes + top, 0.0, 1.0);
+        // La ropa se corta en la postura de reposo: pantalón corto (sin teñir las manos, que cuelgan a esa altura),
+        // zapatillas y, en la figura femenina, un top.
+        float shorts = (1.0 - step(0.5, vPart)) * smoothstep(0.698, 0.702, vRest.y) * (1.0 - smoothstep(0.978, 0.982, vRest.y));
+        float shoes = 1.0 - smoothstep(0.108, 0.112, vRest.y);
+        float top = uTop * smoothstep(1.213, 1.217, vRest.y) * (1.0 - smoothstep(1.338, 1.342, vRest.y)) * (1.0 - smoothstep(0.158, 0.162, abs(vRest.x)));
+        clothMask = clamp(shorts + shoes + top, 0.0, 1.0);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCloth, clothMask);
         // El calor sube de ámbar (músculo que acompaña) a brasa (músculo principal); bajo la tela se ve atenuado.
         heatColor = mix(uWarm, uHot, smoothstep(0.5, 0.95, vHeat));
@@ -211,6 +225,7 @@ function skinMaterial(figure: Figure): Material {
   return m;
 }
 
+const TMP = new Matrix4(), QT = new Quaternion();
 class Anatomy {
   group = new Group();
   private bones: Bone[] = []; private meshes: SkinnedMesh[] = [];
@@ -224,6 +239,9 @@ class Anatomy {
       rest[B.hand + o] = frame(v3(REST.W, sg), v3(REST.F, sg).sub(v3(REST.W, sg)), front);
       rest[B.thigh + o] = frame(v3(REST.H, sg), v3(REST.K, sg).sub(v3(REST.H, sg)), front); rest[B.shin + o] = frame(v3(REST.K, sg), v3(REST.A, sg).sub(v3(REST.K, sg)), front);
       rest[B.foot + o] = frame(v3(REST.A, sg), v3(REST.T, sg).sub(v3(REST.A, sg)), up);
+      rest[SWING + i] = rest[B.arm + o].clone();
+      rest[FING.first + i * 2] = rest[B.hand + o].clone().multiply(new Matrix4().makeTranslation(FING.k1.x, FING.k1.y, FING.k1.z));
+      rest[FING.first + i * 2 + 1] = rest[B.hand + o].clone().multiply(new Matrix4().makeTranslation(FING.k2.x, FING.k2.y, FING.k2.z));
     });
     for (let i = 0; i < rest.length; i++) { const b = new Bone(); b.matrixAutoUpdate = false; this.bones.push(b); }
     const skeleton = new Skeleton(this.bones, rest.map((m) => m.clone().invert()));
@@ -233,7 +251,7 @@ class Anatomy {
     };
     if (skin) {
       const g = skin.geometry.clone(), map = g.getAttribute('_musculo').array as ArrayLike<number>, n = g.getAttribute('position').count;
-      const part = new Float32Array(n); for (let i = 0; i < n; i++) part[i] = map[i * 4] >> 5;
+      const part = new Float32Array(n); for (let i = 0; i < n; i++) part[i] = (map[i * 4] >> 5) & 1;     // 1: vértice de un brazo
       const oc = g.getAttribute('_oclusion'), ao = new Float32Array(n); for (let i = 0; i < n; i++) ao[i] = oc ? oc.getX(i) : 1;
       g.setAttribute('ao', new Float32BufferAttribute(ao, 1));
       const heat = new Float32BufferAttribute(new Float32Array(n), 1);
@@ -284,7 +302,7 @@ class Anatomy {
     this.bones[i].matrixWorld.copy(frame(o, dirv, xHint, S_M * thick, S_M * (len / (restLen * S_M))));
   }
   pose(p: Pose3): void {
-    const y = p.sh.clone().sub(p.hip).normalize(), x = new Vector3().crossVectors(y, p.right).normalize();
+    const y = p.sh.clone().sub(p.hip).normalize(), x = new Vector3().crossVectors(y, p.right).normalize(), zt = new Vector3().crossVectors(x, y);
     const L = (a: P3, b: P3) => v3(a).distanceTo(v3(b));
     this.set(B.torso, p.hip, p.sh, y, x, L(REST.hip, REST.sh), 1.07);
     this.set(B.head, p.sh, p.head, p.head.clone().sub(p.sh), x, L(REST.sh, REST.head), 1.02);
@@ -293,14 +311,34 @@ class Anatomy {
       const ax = l.b.clone().sub(l.a), f = l.c.clone().sub(l.b);
       const fr = frontOf(ax.clone().normalize(), f, 1, x, p.fwd);
       this.set(B.arm + o, l.a, l.b, ax, fr, L(REST.S, REST.E)); this.set(B.fore + o, l.b, l.c, f, fr, L(REST.E, REST.W));
-      // Mano cerrada sobre el agarre: más corta que la mano abierta.
-      const hl = L(REST.W, REST.F);
-      this.set(B.hand + o, l.c, p.fist ? l.c.clone().addScaledVector(f.clone().normalize(), hl * S_M * 0.6) : null, f, fr, hl);
+      {
+        // El mismo brazo sin giro: el frente del tronco llevado hasta la dirección del brazo por el camino más corto.
+        const sd = o / B.per, d = v3(REST.E, sd ? -1 : 1).sub(v3(REST.S, sd ? -1 : 1)).normalize();
+        const dr = zt.clone().multiplyScalar(-d.x).addScaledVector(y, d.y).addScaledVector(x, d.z).normalize();
+        const f0 = perp(x, dr).normalize().applyQuaternion(QT.setFromUnitVectors(dr, ax.clone().normalize()));
+        this.set(SWING + sd, l.a, l.b, ax, f0, L(REST.S, REST.E));
+      }
+      const hl = L(REST.W, REST.F), fi = FING.first + (o / B.per) * 2;
+      let c1 = 0, c2 = 0;
+      if (this.skin && p.fist) {
+        // Con piel la mano empuña de verdad: la palma queda detrás del agarre y los dedos lo rodean.
+        const Yf = f.clone().normalize(), a = perp(p.grip ?? p.right, Yf);
+        const Xp = a.length() > 0.35 ? new Vector3().crossVectors(a.normalize(), Yf).multiplyScalar(p.supine ? -1 : 1) : perp(fr, Yf).normalize();
+        const cs = Math.cos(FING.wrist), sn = Math.sin(FING.wrist);
+        const Yh = Yf.clone().multiplyScalar(cs).addScaledVector(Xp, -sn), Xh = Xp.clone().multiplyScalar(cs).addScaledVector(Yf, sn);
+        const at = (l.g ?? l.c).clone().addScaledVector(Xh, -FING.bar.x * S_M * 1.13).addScaledVector(Yh, -FING.bar.y * S_M);
+        this.set(B.hand + o, at, null, Yh, Xh, hl); c1 = FING.curl1; c2 = FING.curl2;
+      } else {
+        // Sin piel, la mano cerrada sobre el agarre es solo más corta que la abierta.
+        this.set(B.hand + o, l.c, p.fist ? l.c.clone().addScaledVector(f.clone().normalize(), hl * S_M * 0.6) : null, f, fr, hl);
+      }
+      const m1 = this.bones[fi].matrixWorld.copy(this.bones[B.hand + o].matrixWorld).multiply(TMP.makeTranslation(FING.k1.x, FING.k1.y, FING.k1.z)).multiply(TMP.makeRotationZ(-c1));
+      this.bones[fi + 1].matrixWorld.copy(m1).multiply(TMP.makeTranslation(FING.k2.x - FING.k1.x, FING.k2.y - FING.k1.y, 0)).multiply(TMP.makeRotationZ(-c2));
     });
     p.legs.forEach((l, i) => {
       const o = ((i === 0) === p.side ? 1 : 0) * B.per;
       const ax = l.b.clone().sub(l.a), bx = l.c.clone().sub(l.b);
-      const f1 = frontOf(ax.clone().normalize(), bx, -1, p.side ? x.clone().lerp(p.fwd, 0.5) : p.fwd, x), f2 = frontOf(bx.clone().normalize(), l.a.clone().sub(l.b), -1, p.fwd, x);
+      const f1 = frontOf(ax.clone().normalize(), bx, -1, p.side ? x.clone().lerp(p.fwd, 0.5) : p.fwd, x), f2 = frontOf(bx.clone().normalize(), l.a.clone().sub(l.b), -1, f1, x);      // pierna recta: el mismo frente que el muslo, sin torcer la rodilla
       this.set(B.thigh + o, l.a, l.b, ax, f1, L(REST.H, REST.K)); this.set(B.shin + o, l.b, l.c, bx, f2, L(REST.K, REST.A));
       const fx = l.d!.clone().sub(l.c); if (fx.lengthSq() < 0.01) fx.copy(p.fwd);
       // El pie en reposo baja del tobillo a la punta: se conserva esa caída respecto de la planta.
@@ -539,7 +577,7 @@ export class Figure3D {
     }
     const s = box.getBoundingSphere(new Sphere()); this.center.copy(s.center); this.radius = s.radius;
   }
-  private set(t: number): Pose3 { this.gear.farZ = BACK.includes(this.ex.primary) ? 3.2 : -2.8; const fist = (this.sc.load ?? 'hand') === 'hand' && !(this.ex.equipment === 'bodyweight' && !this.sc.props?.length); const p = lift(this.sc, solve(this.sc.view, this.a, this.b, t, ANAT), t, fist); p.fist = fist; this.body.roles(this.ex); this.body.pose(p); this.gear.build(this.sc, p, this.ex.equipment); return p; }
+  private set(t: number): Pose3 { this.gear.farZ = BACK.includes(this.ex.primary) ? 3.2 : -2.8; const fist = (this.sc.load ?? 'hand') === 'hand' && !(this.ex.equipment === 'bodyweight' && !this.sc.props?.length); const p = lift(this.sc, solve(this.sc.view, this.a, this.b, t, ANAT), t, fist); p.fist = fist; p.grip = this.sc.handle === 'v' ? UP : p.right; p.supine = this.ex.primary === 'biceps'; this.body.roles(this.ex); this.body.pose(p); this.gear.build(this.sc, p, this.ex.equipment); return p; }
 
   /** Dibuja el instante `t` (0 inicio, 1 final) y devuelve el lienzo WebGL, del tamaño pedido. */
   draw(t: number, px: number, cam: { az?: number; el?: number; zoom?: number; lift?: number } = {}): HTMLCanvasElement {
