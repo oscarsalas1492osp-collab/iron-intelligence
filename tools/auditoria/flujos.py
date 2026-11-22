@@ -1,5 +1,6 @@
 import json, traceback
 from playwright.sync_api import sync_playwright, expect
+import abierta   # la app en pruebas abre sin invitación (tools/auditoria/abierta.py)
 B='http://localhost:4173/'
 errors=[]; results=[]
 def step(name, fn):

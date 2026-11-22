@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+import abierta   # la app en pruebas abre sin invitación (tools/auditoria/abierta.py)
 B='http://localhost:4173/'
 with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'])

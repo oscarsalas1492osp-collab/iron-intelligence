@@ -9,7 +9,11 @@ const APP = 'https://app.ironintelligence.app', WEB = 'https://ironintelligence.
 const TEL: Record<string, string> = { android: 'Android', iphone: 'iPhone' };
 const DIAS: Record<string, string> = { '1-2': '1 a 2 días', '3-4': '3 a 4 días', '5+': '5 días o más' };
 const ANOTA: Record<string, string> = { notas: 'notas del teléfono', papel: 'papel', otra_app: 'otra app', ninguna: 'en ninguna parte' };
-const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados' };
+const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados', modo_de_acceso: 'Entrada a la app' };
+const TIPO: Record<api.Kind, string> = { tester: 'Tester', guest: 'Invitado' };
+const MODO: Record<string, string> = { invite: 'solo invitados', open: 'abierta para todos' };
+const dado = (tieneCuenta: boolean) => (tieneCuenta ? 'Acceso dado. Ya puede entrar con su cuenta.' : 'Acceso dado. Ya puede crear su cuenta con ese correo.');
+type Mail = { status: api.MailStatus | null; reload: () => void };
 
 const fDia = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short' });
 const fHora = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -32,10 +36,10 @@ function descargar(nombre: string, filas: (string | null)[][]): void {
   a.href = url; a.download = nombre; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const mensajeTester = (email: string) => [
-  'Hola. Ya tienes acceso a IRON INTELLIGENCE como tester.',
+const mensajeAcceso = (email: string, kind: api.Kind = 'tester') => [
+  kind === 'tester' ? 'Hola. Ya tienes acceso a IRON INTELLIGENCE como tester.' : 'Hola. Ya tienes acceso a IRON INTELLIGENCE antes del lanzamiento.',
   `Entra desde tu teléfono: ${APP}`,
-  `Crea tu cuenta con este mismo correo (${email}) para que se active tu acceso.`,
+  `Por ahora se entra solo con invitación, así que crea tu cuenta con este mismo correo (${email}).`,
   'En Android: ábrela en Chrome, toca el menú de los tres puntos y elige Instalar app.',
   'En iPhone: ábrela en Safari, toca Compartir y elige Añadir a pantalla de inicio.',
   'Si algo falla o te confunde, cuéntamelo por aquí.',
@@ -92,20 +96,58 @@ function Buscar({ value, onChange, label }: { value: string; onChange: (v: strin
   return <input type="search" inputMode="email" autoComplete="off" aria-label={label} placeholder={label} value={value} onChange={(e) => onChange(e.target.value)} />;
 }
 
+/** Muestra el asunto y el texto de un correo de la app, tal como saldría. */
+function VerCorreo({ which, email, kind, onClose }: { which: 'invitacion' | 'lanzamiento' | null; email?: string; kind?: api.Kind; onClose: () => void }) {
+  const [c, setC] = useState<api.MailPreview | null>(null), [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!which) return;
+    let on = true; setC(null); setError(null);
+    api.mailPreview(which, { email, kind }).then((r) => { if (on) setC(r); }, (e: unknown) => { if (on) setError(e instanceof Error ? e.message : 'No se pudo cargar.'); });
+    return () => { on = false; };
+  }, [which, email, kind]);
+  return (
+    <Sheet open={!!which} onClose={onClose} title={which === 'lanzamiento' ? 'Aviso de lanzamiento' : 'Correo de invitación'} wide>
+      {error ? <p className="text-sm text-mute">{error}</p> : !c ? <p className="text-sm text-mute">Cargando…</p> : (
+        <>
+          <Dato k="De">{c.from}</Dato>
+          <Dato k="Asunto">{c.subject}</Dato>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{c.text}</p>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 // ───────────────────────── Resumen ─────────────────────────
-function Resumen() {
+function Resumen({ mail }: { mail: Mail }) {
   const { data, error, loading, reload } = useLoad(api.overview, []);
-  const { toast } = useUi();
+  const { toast, confirm } = useUi(), run = useAction();
+  const [ver, setVer] = useState<'invitacion' | 'lanzamiento' | null>(null);
   if (!data) return <Estado loading={loading} error={error} reload={reload} />;
   const l = data.launch, max = Math.max(1, ...data.by_day.map((x) => x.n)), top = Math.max(1, ...data.by_source.map((x) => x.n));
   const links = [{ red: 'TikTok', url: `${WEB}/?o=tiktok` }, { red: 'Instagram', url: `${WEB}/?o=instagram` }];
+  const modo = data.mode ?? 'open', m = mail.status;
+  const cambiar = async (nuevo: api.Mode) => {
+    if (nuevo === modo) return;
+    const texto = nuevo === 'invite'
+      ? 'La app queda solo para invitados: entra quien tenga acceso de tester o de invitado. Nadie más puede crear una cuenta.'
+      : 'La app queda abierta: cualquiera puede crear una cuenta y entrar. Úsalo el día del lanzamiento.';
+    if (!(await confirm(texto, { confirmLabel: nuevo === 'invite' ? 'Dejar solo invitados' : 'Abrir para todos' }))) return;
+    await run(async () => { await api.setAccessMode(nuevo); reload(); }, nuevo === 'invite' ? 'Listo. Ahora entra solo quien tenga invitación.' : 'Listo. La app quedó abierta para todos.');
+  };
+  const probar = () => run(async () => { const r = await api.mailTest(); toast(`Prueba enviada a ${r.to}`); mail.reload(); });
   return (
     <div>
+      <Card className="mb-3">
+        <div className="mb-3 flex items-baseline justify-between gap-3"><span className="font-bold">Quién puede entrar a la app</span><span className="wd-c text-sm text-mute">{MODO[modo]}</span></div>
+        <Seg<api.Mode> options={[{ value: 'invite', label: 'Solo invitados' }, { value: 'open', label: 'Todos' }]} value={modo} onChange={(v) => void cambiar(v)} />
+        <p className="mt-3 text-sm text-mute">{modo === 'invite' ? 'Entran los correos con acceso de tester o de invitado, y tú. Al resto la app le muestra cómo inscribirse para el lanzamiento.' : 'Cualquiera puede crear una cuenta y usar la app.'}</p>
+      </Card>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card><Stat label="Inscritos al aviso" value={l.total} sub={`${l.today} hoy, ${l.week} en 7 días`} color="#ff6a1a" /></Card>
         <Card><Stat label="Cuentas creadas" value={data.users.total} sub={`${data.users.active_week} entraron esta semana`} /></Card>
         <Card><Stat label="Con entrenamientos" value={data.training} sub="ya guardaron sesiones" /></Card>
-        <Card><Stat label="Testers con acceso" value={data.testers.access} sub={`${data.testers.with_account} ya tienen cuenta`} /></Card>
+        <Card><Stat label="Con acceso" value={data.testers.access + (data.testers.guests ?? 0)} sub={`${plural(data.testers.access, 'tester', 'testers')}, ${plural(data.testers.guests ?? 0, 'invitado', 'invitados')}`} /></Card>
       </div>
 
       <H2 right={<span className="wd-c text-sm text-mute">últimos 14 días</span>}>Inscritos por día</H2>
@@ -151,24 +193,55 @@ function Resumen() {
           </div>
         ))}
       </Lista>
+
+      <H2>Correo de la app</H2>
+      <Card>
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="min-w-0 truncate font-semibold">{m?.from.replace(/^.*<|>$/g, '') ?? 'hola@ironintelligence.app'}</span>
+          <Marca tono={m?.configured ? 'go' : 'mute'}>{m?.configured ? 'Conectado' : 'Sin conectar'}</Marca>
+        </div>
+        <p className="mt-2 text-sm text-mute">
+          {m?.configured
+            ? `Hoy van ${m.today} de ${m.cap} correos. Las invitaciones se envían desde Accesos y el aviso de lanzamiento desde Aviso.`
+            : 'Desde aquí salen las invitaciones y el aviso de lanzamiento. Todavía falta conectar el servicio de envío; mientras tanto puedes copiar los mensajes y mandarlos tú.'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Btn size="sm" onClick={() => setVer('invitacion')}>Ver la invitación</Btn>
+          <Btn size="sm" onClick={() => setVer('lanzamiento')}>Ver el aviso de lanzamiento</Btn>
+          {m?.configured && <Btn size="sm" variant="primary" onClick={() => void probar()}>Enviarme una prueba</Btn>}
+        </div>
+      </Card>
+      <VerCorreo which={ver} onClose={() => setVer(null)} />
     </div>
   );
 }
 
 // ───────────────────────── Aviso de lanzamiento ─────────────────────────
-function Aviso() {
+function Aviso({ mail }: { mail: Mail }) {
   const [q, setQ] = useState(''), [limit, setLimit] = useState(200), [sel, setSel] = useState<api.LaunchRow | null>(null);
+  const [link, setLink] = useState(''), [enviando, setEnviando] = useState(false);
   const lento = useLento(q);
   const { data, error, loading, reload } = useLoad(() => api.launchList(lento, limit), [lento, limit]);
   const { toast, confirm } = useUi(), run = useAction();
   const rows = data?.rows ?? [], pendientes = rows.filter((r) => !r.notified_at);
 
   const cerrar = () => { setSel(null); reload(); };
-  const dar = (r: api.LaunchRow) => run(async () => {
-    const x = await api.grantAccess(r.email, 'desde la lista de aviso');
-    toast(x.has_account ? 'Acceso dado. Su cuenta ya quedó como tester.' : 'Acceso dado. Se activa cuando cree su cuenta con ese correo.');
+  const dar = (r: api.LaunchRow, kind: api.Kind) => run(async () => {
+    const x = await api.grantAccess(r.email, 'desde la lista de aviso', kind);
+    toast(dado(x.has_account));
     cerrar();
   });
+  const porAvisar = mail.status?.pending ?? pendientes.length;
+  const lanzar = async () => {
+    if (!(await confirm(`Vas a enviar el aviso de lanzamiento a ${plural(porAvisar, 'persona', 'personas')}, con este link: ${link.trim()}. No se puede deshacer.`, { confirmLabel: 'Enviar aviso' }))) return;
+    setEnviando(true);
+    await run(async () => {
+      const r = await api.mailLaunch(link.trim());
+      toast(r.remaining ? `Enviados ${r.sent}. Quedan ${r.remaining}: vuelve a tocar Enviar.` : `Aviso enviado a ${plural(r.sent, 'persona', 'personas')}.`);
+      reload(); mail.reload();
+    });
+    setEnviando(false);
+  };
   const borrar = async (r: api.LaunchRow) => {
     if (!(await confirm(`Vas a borrar a ${r.email} de la lista de aviso. No va a recibir el correo de lanzamiento.`, { confirmLabel: 'Borrar', danger: true }))) return;
     await run(async () => { await api.removeLaunch(r.email); cerrar(); }, 'Borrado de la lista');
@@ -197,7 +270,7 @@ function Aviso() {
             {rows.map((r) => (
               <Fila key={r.email} titulo={r.email} onClick={() => setSel(r)}
                 linea={<>{hace(r.created_at)}{r.phone_os ? `, ${TEL[r.phone_os]}` : ''}{r.source ? `, desde ${r.source}` : ', entró directo'}</>}
-                marcas={<>{r.notified_at && <Marca tono="go">Avisado</Marca>}{r.access === 'active' && <Marca tono="amber">Tester</Marca>}{r.has_account && <Marca tono="data">Con cuenta</Marca>}</>} />
+                marcas={<>{r.notified_at && <Marca tono="go">Avisado</Marca>}{r.access === 'active' && <Marca tono="amber">Con acceso</Marca>}{r.has_account && <Marca tono="data">Con cuenta</Marca>}</>} />
             ))}
           </Lista>
         )}
@@ -205,8 +278,20 @@ function Aviso() {
       </div>
 
       <H2>El día del lanzamiento</H2>
-      <p className="mb-3 text-sm text-mute">El envío del correo con el link todavía no está conectado a este panel. Ese día puedes copiar los correos pendientes, escribirles desde tu correo y dejarlos marcados aquí.</p>
-      <Btn disabled={!pendientes.length} onClick={() => void marcar()}>Marcar pendientes como avisados</Btn>
+      {mail.status?.configured ? (
+        <>
+          <p className="mb-3 text-sm text-mute">Pega el link de descarga y envía el aviso. Sale por tandas de hasta 100 correos y cada persona queda marcada al enviarse, así que nadie lo recibe dos veces.</p>
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <Field label="Link de descarga"><input type="url" inputMode="url" autoComplete="off" placeholder="https://play.google.com/store/apps/…" value={link} onChange={(e) => setLink(e.target.value)} /></Field>
+            <Btn variant="primary" disabled={enviando || !porAvisar || !/^https:\/\/\S+$/.test(link.trim())} onClick={() => void lanzar()}>{enviando ? 'Enviando…' : `Enviar aviso a ${porAvisar}`}</Btn>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-mute">El correo de la app todavía no está conectado. Si llega el día y sigue así, copia los correos pendientes, escríbeles desde tu correo y déjalos marcados aquí.</p>
+          <Btn disabled={!pendientes.length} onClick={() => void marcar()}>Marcar pendientes como avisados</Btn>
+        </>
+      )}
 
       <Sheet open={!!sel} onClose={() => setSel(null)} title={sel?.email}>
         {sel && (
@@ -217,10 +302,11 @@ function Aviso() {
               <Dato k="Llegó desde">{sel.source ?? 'entró directo a la página'}</Dato>
               <Dato k="Aviso de lanzamiento">{sel.notified_at ? `enviado el ${cuando(sel.notified_at)}` : 'pendiente'}</Dato>
               <Dato k="Cuenta en la app">{sel.has_account ? 'sí' : 'todavía no'}</Dato>
-              <Dato k="Acceso de tester">{sel.access === 'active' ? 'sí' : sel.access === 'revoked' ? 'se lo quitaste' : 'no'}</Dato>
+              <Dato k="Acceso a la app">{sel.access === 'active' ? 'sí' : sel.access === 'revoked' ? 'se lo quitaste' : 'no'}</Dato>
             </div>
             <div className="grid gap-2">
-              {sel.access !== 'active' && <Btn variant="primary" onClick={() => void dar(sel)}>Dar acceso de tester</Btn>}
+              {sel.access !== 'active' && <Btn variant="primary" onClick={() => void dar(sel, 'tester')}>Dar acceso como tester</Btn>}
+              {sel.access !== 'active' && <Btn onClick={() => void dar(sel, 'guest')}>Dar acceso como invitado</Btn>}
               <Btn icon="copy" onClick={() => void copiar(sel.email).then(() => toast('Correo copiado'))}>Copiar correo</Btn>
               <Btn variant="danger" icon="trash" onClick={() => void borrar(sel)}>Borrar de la lista</Btn>
             </div>
@@ -231,37 +317,40 @@ function Aviso() {
   );
 }
 
-// ───────────────────────── Testers y accesos ─────────────────────────
-function Testers() {
+// ───────────────────────── Accesos: testers e invitados ─────────────────────────
+function Accesos({ mail }: { mail: Mail }) {
   const { data, error, loading, reload } = useLoad(api.testers, []);
   const log = useLoad(api.activity, []);
-  const [email, setEmail] = useState(''), [nota, setNota] = useState('');
+  const [email, setEmail] = useState(''), [nota, setNota] = useState(''), [tipo, setTipo] = useState<api.Kind>('tester');
+  const [ver, setVer] = useState(false);
   const [sel, setSel] = useState<api.GrantRow | null>(null), [post, setPost] = useState<api.SignupRow | null>(null);
   const { toast, confirm } = useUi(), run = useAction();
   const grants = data?.grants ?? [], signups = data?.signups ?? [];
-  const activos = grants.filter((g) => g.status === 'active'), paraPlay = activos.filter((g) => g.phone_os !== 'iphone');
+  const activos = grants.filter((g) => g.status === 'active'), paraPlay = activos.filter((g) => g.kind === 'tester' && g.phone_os !== 'iphone');
 
   const refrescar = () => { setSel(null); setPost(null); reload(); log.reload(); };
-  const dar = (correo: string, n?: string) => run(async () => {
-    const x = await api.grantAccess(correo, n);
-    toast(x.has_account ? 'Acceso dado. Su cuenta ya quedó como tester.' : 'Acceso dado. Se activa cuando cree su cuenta con ese correo.');
+  const dar = (correo: string, n?: string, kind: api.Kind = 'tester') => run(async () => {
+    const x = await api.grantAccess(correo, n, kind);
+    toast(dado(x.has_account));
     setEmail(''); setNota(''); refrescar();
   });
-  const enviar = (e: FormEvent) => { e.preventDefault(); if (email.trim()) void dar(email.trim(), nota.trim()); };
+  const enviar = (e: FormEvent) => { e.preventDefault(); if (email.trim()) void dar(email.trim(), nota.trim(), tipo); };
+  const invitar = (g: api.GrantRow) => run(async () => { const r = await api.mailInvite(g.email); toast(`Invitación enviada a ${r.to}`); refrescar(); mail.reload(); });
   const quitar = async (g: api.GrantRow) => {
-    if (!(await confirm(`Vas a quitarle el acceso de tester a ${g.email}. Su cuenta y sus entrenamientos no se tocan.`, { confirmLabel: 'Quitar acceso', danger: true }))) return;
+    if (!(await confirm(`Vas a quitarle el acceso a ${g.email}. Su cuenta y sus entrenamientos no se tocan, pero con la app en solo invitados ya no va a poder entrar.`, { confirmLabel: 'Quitar acceso', danger: true }))) return;
     await run(async () => { await api.revokeAccess(g.email); refrescar(); }, 'Acceso quitado');
   };
 
   return (
     <div>
       <Card>
-        <form onSubmit={enviar} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+        <form onSubmit={enviar} className="grid gap-3 md:grid-cols-2 md:items-end">
           <Field label="Correo de la persona"><input type="email" required inputMode="email" autoComplete="off" placeholder="nombre@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
           <Field label="Nota (opcional)"><input type="text" maxLength={200} placeholder="de dónde la conoces" value={nota} onChange={(e) => setNota(e.target.value)} /></Field>
+          <Seg<api.Kind> options={[{ value: 'tester', label: 'Tester' }, { value: 'guest', label: 'Invitado' }]} value={tipo} onChange={setTipo} />
           <Btn type="submit" variant="primary" disabled={!email.trim()}>Dar acceso</Btn>
         </form>
-        <p className="mt-3 text-sm text-mute">Queda como tester y con el plan Pro sin costo. Si todavía no tiene cuenta, el acceso espera y se activa cuando la cree con ese correo.</p>
+        <p className="mt-3 text-sm text-mute">El tester prueba la app y recibe el plan Pro sin costo. El invitado solo entra antes del lanzamiento. Mientras la app esté en solo invitados, únicamente estos correos pueden crear una cuenta.</p>
       </Card>
 
       <H2 right={<span className="wd-c text-sm text-mute">{plural(activos.length, 'persona', 'personas')}</span>}>Con acceso</H2>
@@ -272,7 +361,7 @@ function Testers() {
           <Lista>
             {grants.map((g) => (
               <Fila key={g.email} titulo={g.email} onClick={() => setSel(g)}
-                linea={g.status === 'revoked' ? `le quitaste el acceso ${hace(g.revoked_at)}` : g.has_account ? `con cuenta, acceso ${hace(g.granted_at)}` : 'esperando que cree su cuenta'}
+                linea={`${TIPO[g.kind]}, ${g.status === 'revoked' ? `le quitaste el acceso ${hace(g.revoked_at)}` : g.has_account ? `con cuenta, acceso ${hace(g.granted_at)}` : g.invited_at ? `invitación enviada ${hace(g.invited_at)}` : 'esperando que cree su cuenta'}`}
                 marcas={g.status === 'revoked' ? <Marca tono="ember">Sin acceso</Marca> : g.has_account ? <Marca tono="go">Activo</Marca> : <Marca tono="mute">En espera</Marca>} />
             ))}
           </Lista>
@@ -310,7 +399,9 @@ function Testers() {
           <>
             <div className="mb-5">
               {sel.name && <Dato k="Nombre">{sel.name}</Dato>}
+              <Dato k="Tipo">{TIPO[sel.kind]}</Dato>
               <Dato k="Acceso">{sel.status === 'active' ? `dado el ${cuando(sel.granted_at)}` : `quitado el ${cuando(sel.revoked_at)}`}</Dato>
+              <Dato k="Invitación por correo">{sel.invited_at ? `enviada el ${cuando(sel.invited_at)}` : 'sin enviar'}</Dato>
               <Dato k="Cuenta en la app">{sel.has_account ? 'sí' : 'todavía no'}</Dato>
               <Dato k="Teléfono">{sel.phone_os ? TEL[sel.phone_os] : 'no se sabe'}</Dato>
               {sel.note && <Dato k="Nota">{sel.note}</Dato>}
@@ -318,14 +409,19 @@ function Testers() {
             <div className="grid gap-2">
               {sel.status === 'active' ? (
                 <>
-                  <Btn variant="primary" icon="copy" onClick={() => void copiar(mensajeTester(sel.email)).then(() => toast('Mensaje copiado. Pégalo donde le escribas.'))}>Copiar mensaje con el link</Btn>
+                  {mail.status?.configured && <Btn variant="primary" onClick={() => void invitar(sel)}>{sel.invited_at ? 'Volver a enviar la invitación' : 'Enviar invitación por correo'}</Btn>}
+                  <Btn variant={mail.status?.configured ? 'soft' : 'primary'} icon="copy" onClick={() => void copiar(mensajeAcceso(sel.email, sel.kind)).then(() => toast('Mensaje copiado. Pégalo donde le escribas.'))}>Copiar mensaje con el link</Btn>
+                  <Btn onClick={() => setVer(true)}>Ver el correo de invitación</Btn>
                   <Btn variant="danger" onClick={() => void quitar(sel)}>Quitar acceso</Btn>
                 </>
-              ) : <Btn variant="primary" onClick={() => void dar(sel.email)}>Volver a dar acceso</Btn>}
+              ) : <Btn variant="primary" onClick={() => void dar(sel.email, undefined, sel.kind)}>Volver a dar acceso</Btn>}
             </div>
+            {sel.status === 'active' && !mail.status?.configured && <p className="mt-4 text-xs text-mute">El correo de la app todavía no está conectado. Por ahora copia el mensaje y envíaselo tú.</p>}
           </>
         )}
       </Sheet>
+
+      <VerCorreo which={ver && sel ? 'invitacion' : null} email={sel?.email} kind={sel?.kind} onClose={() => setVer(false)} />
 
       <Sheet open={!!post} onClose={() => setPost(null)} title={post?.name}>
         {post && (
@@ -340,8 +436,8 @@ function Testers() {
               <Dato k="Cuenta en la app">{post.has_account ? 'sí' : 'todavía no'}</Dato>
             </div>
             <div className="grid gap-2">
-              {post.access !== 'active' && <Btn variant="primary" onClick={() => void dar(post.email, `postuló como ${post.name}`)}>Dar acceso de tester</Btn>}
-              <Btn icon="copy" onClick={() => void copiar(mensajeTester(post.email)).then(() => toast('Mensaje copiado. Pégalo donde le escribas.'))}>Copiar mensaje con el link</Btn>
+              {post.access !== 'active' && <Btn variant="primary" onClick={() => void dar(post.email, `postuló como ${post.name}`, 'tester')}>Dar acceso como tester</Btn>}
+              <Btn icon="copy" onClick={() => void copiar(mensajeAcceso(post.email)).then(() => toast('Mensaje copiado. Pégalo donde le escribas.'))}>Copiar mensaje con el link</Btn>
             </div>
           </>
         )}
@@ -362,9 +458,9 @@ function Cuentas() {
   const rows = data?.rows ?? [];
 
   const cerrar = () => { setSel(null); reload(); };
-  const dar = (u: api.UserRow) => run(async () => { if (!u.email) return; await api.grantAccess(u.email, 'desde las cuentas'); toast('Acceso dado. Su cuenta ya quedó como tester.'); cerrar(); });
+  const dar = (u: api.UserRow, kind: api.Kind) => run(async () => { if (!u.email) return; await api.grantAccess(u.email, 'desde las cuentas', kind); toast(dado(true)); cerrar(); });
   const quitar = async (u: api.UserRow) => {
-    if (!u.email || !(await confirm(`Vas a quitarle el acceso de tester a ${u.email}. Su cuenta y sus entrenamientos no se tocan.`, { confirmLabel: 'Quitar acceso', danger: true }))) return;
+    if (!u.email || !(await confirm(`Vas a quitarle el acceso a ${u.email}. Su cuenta y sus entrenamientos no se tocan, pero con la app en solo invitados ya no va a poder entrar.`, { confirmLabel: 'Quitar acceso', danger: true }))) return;
     await run(async () => { await api.revokeAccess(u.email!); cerrar(); }, 'Acceso quitado');
   };
 
@@ -380,7 +476,7 @@ function Cuentas() {
             {rows.map((u) => (
               <Fila key={u.id} titulo={u.email ?? 'sin correo'} onClick={() => setSel(u)}
                 linea={`${plural(u.sessions, 'entrenamiento', 'entrenamientos')}, ${u.last_sign_in_at ? `entró ${hace(u.last_sign_in_at)}` : 'nunca entró'}`}
-                marcas={<>{u.admin && <Marca tono="amber">Tú</Marca>}{u.access === 'active' && <Marca tono="go">Tester</Marca>}{!u.confirmed && <Marca tono="mute">Sin confirmar</Marca>}</>} />
+                marcas={<>{u.admin && <Marca tono="amber">Tú</Marca>}{u.access === 'active' && <Marca tono="go">Con acceso</Marca>}{!u.confirmed && <Marca tono="mute">Sin confirmar</Marca>}</>} />
             ))}
           </Lista>
         )}
@@ -398,11 +494,12 @@ function Cuentas() {
               <Dato k="Entrenamientos terminados">{sel.sessions}</Dato>
               <Dato k="Último entrenamiento">{sel.last_session ? hace(sel.last_session) : 'ninguno'}</Dato>
               <Dato k="Plan">{sel.plan_status ? `${PLAN[sel.plan_status] ?? sel.plan_status} (${ORIGEN_PLAN[sel.plan_source ?? ''] ?? sel.plan_source})` : 'gratis'}</Dato>
-              <Dato k="Acceso de tester">{sel.access === 'active' ? 'sí' : sel.access === 'revoked' ? 'se lo quitaste' : 'no'}</Dato>
+              <Dato k="Acceso a la app">{sel.admin ? 'sí, administras' : sel.access === 'active' ? 'sí' : sel.access === 'revoked' ? 'se lo quitaste' : 'no'}</Dato>
             </div>
             <div className="grid gap-2">
-              {sel.email && sel.access !== 'active' && <Btn variant="primary" onClick={() => void dar(sel)}>Dar acceso de tester</Btn>}
-              {sel.email && sel.access === 'active' && <Btn variant="danger" onClick={() => void quitar(sel)}>Quitar acceso de tester</Btn>}
+              {sel.email && !sel.admin && sel.access !== 'active' && <Btn variant="primary" onClick={() => void dar(sel, 'tester')}>Dar acceso como tester</Btn>}
+              {sel.email && !sel.admin && sel.access !== 'active' && <Btn onClick={() => void dar(sel, 'guest')}>Dar acceso como invitado</Btn>}
+              {sel.email && sel.access === 'active' && <Btn variant="danger" onClick={() => void quitar(sel)}>Quitar acceso</Btn>}
               {sel.email && <Btn icon="copy" onClick={() => void copiar(sel.email!).then(() => toast('Correo copiado'))}>Copiar correo</Btn>}
             </div>
             <p className="mt-4 text-xs text-mute">Aquí se ve cuánto usa la app cada cuenta, no lo que entrena. Borrar una cuenta lo hace cada persona desde su perfil.</p>
@@ -414,8 +511,8 @@ function Cuentas() {
 }
 
 // ───────────────────────── Pantalla ─────────────────────────
-type Tab = 'resumen' | 'aviso' | 'testers' | 'cuentas';
-const TABS: { value: Tab; label: string }[] = [{ value: 'resumen', label: 'Resumen' }, { value: 'aviso', label: 'Aviso' }, { value: 'testers', label: 'Testers' }, { value: 'cuentas', label: 'Cuentas' }];
+type Tab = 'resumen' | 'aviso' | 'accesos' | 'cuentas';
+const TABS: { value: Tab; label: string }[] = [{ value: 'resumen', label: 'Resumen' }, { value: 'aviso', label: 'Aviso' }, { value: 'accesos', label: 'Accesos' }, { value: 'cuentas', label: 'Cuentas' }];
 
 export default function Panel() {
   const uid = useUserId();
@@ -423,13 +520,18 @@ export default function Panel() {
   const [tab, setTab] = useState<Tab>('resumen');
   useEffect(() => { let on = true; void api.isAdmin(uid).then((v) => { if (on) setOk(v); }); return () => { on = false; }; }, [uid]);
 
+  // Estado del correo de la app. Si la función del servidor no responde, se trata como sin conectar.
+  const [estado, setEstado] = useState<api.MailStatus | null>(null), [vez, setVez] = useState(0);
+  useEffect(() => { if (!ok) return; let on = true; api.mailStatus().then((s) => { if (on) setEstado(s); }, () => { if (on) setEstado(null); }); return () => { on = false; }; }, [ok, vez]);
+  const mail: Mail = { status: estado, reload: () => setVez((v) => v + 1) };
+
   if (ok === null) return <p className="py-8 text-center text-sm text-mute">Cargando…</p>;
   if (!ok) return <div data-notr><Empty icon="info" title="Esta pantalla es de administración" text="Solo la ve la cuenta que administra la app. Si eres tú, inicia sesión con esa cuenta." /></div>;
   return (
     <div data-notr>
       <Title sub="Solo tú ves esta pantalla.">Panel</Title>
       <div className="mb-5"><Seg options={TABS} value={tab} onChange={setTab} /></div>
-      {tab === 'resumen' ? <Resumen /> : tab === 'aviso' ? <Aviso /> : tab === 'testers' ? <Testers /> : <Cuentas />}
+      {tab === 'resumen' ? <Resumen mail={mail} /> : tab === 'aviso' ? <Aviso mail={mail} /> : tab === 'accesos' ? <Accesos mail={mail} /> : <Cuentas />}
     </div>
   );
 }

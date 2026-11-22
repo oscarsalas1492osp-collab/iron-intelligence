@@ -1,5 +1,6 @@
 import json, base64, time, re
 from playwright.sync_api import sync_playwright
+import abierta   # la app en pruebas abre sin invitación (tools/auditoria/abierta.py)
 B='http://localhost:4173/'
 SB='https://flwbkclkebkmebtfljcg.supabase.co'
 res=[]

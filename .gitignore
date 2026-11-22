@@ -12,3 +12,6 @@ android/app/
 # Traducciones: los lotes y la lista de pendientes son de trabajo; lo que vale son src/i18n/*.json y tools/i18n/extras.txt
 tools/i18n/lotes/
 tools/i18n/pendiente*
+
+# Python
+__pycache__/

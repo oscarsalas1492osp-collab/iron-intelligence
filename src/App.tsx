@@ -4,12 +4,13 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { onLocalChange } from './data/repo';
 import { cloudEnabled, initAuth, scheduleSync, syncNow, takeReturnError } from './data/sync';
-import { useUserId } from './hooks';
+import { useGate, useUserId } from './hooks';
 import { confirmPayment, paymentReturn, refreshPlan } from './data/plan';
 import { PlanSheet, ProGate } from './ui/plan';
 import Assistant from './pages/Assistant';
 import Auth, { NewPassword, useRecovering } from './pages/Auth';
 import Dashboard from './pages/Dashboard';
+import { AccessChecking, AccessUnknown, NoAccess } from './pages/Gate';
 import Library from './pages/Library';
 import More from './pages/More';
 import Plates from './pages/Plates';
@@ -55,6 +56,7 @@ function PaymentReturn({ uid }: { uid: string }) {
 export default function App() {
   const uid = useUserId();
   const recovering = useRecovering();
+  const gate = useGate(uid);                       // entrada con invitación: quién ve la app y quién la pantalla de acceso
   const [skipped, setSkipped] = useState(() => { try { return localStorage.getItem(SKIP_KEY) === '1'; } catch { return false; } });
 
   useEffect(() => initAuth(), []);
@@ -85,8 +87,8 @@ export default function App() {
       <UiProvider>
         <ReturnNotice />
         <PaymentReturn uid={uid} />
-        {recovering ? <NewPassword /> : cloudEnabled && uid === 'local' && !skipped ? (
-          <Auth onSkip={() => { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* sin almacenamiento */ } setSkipped(true); }} />
+        {recovering ? <NewPassword /> : gate === 'checking' ? <AccessChecking /> : gate === 'denied' ? <NoAccess /> : gate === 'unknown' ? <AccessUnknown /> : cloudEnabled && uid === 'local' && (gate === 'guest' || !skipped) ? (
+          <Auth invite={gate === 'guest'} onSkip={() => { try { localStorage.setItem(SKIP_KEY, '1'); } catch { /* sin almacenamiento */ } setSkipped(true); }} />
         ) : (
           <Router>
             <Suspense fallback={<div className="grid h-full place-items-center text-sm text-mute">Cargando…</div>}>

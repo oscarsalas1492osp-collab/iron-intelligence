@@ -2,13 +2,27 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { db, getUserId, subscribeUser } from './data/db';
 import { defaultProfile, getDoneSets, mine } from './data/repo';
-import { getSyncState, subscribeSync } from './data/sync';
+import { getAccessSnapshot, getSettledFor, gateOf, refreshAccess, subscribeAccess, type Gate } from './data/access';
+import { cloudEnabled, getSyncState, subscribeSync } from './data/sync';
 import { mergeExercises } from './domain/exerciseLibrary';
 import type { ExerciseDef, Profile, RoutineItem, Session } from './domain/types';
 import type { ASet } from './domain/volume';
 
 export const useUserId = () => useSyncExternalStore(subscribeUser, getUserId, getUserId);
 export const useSyncState = () => useSyncExternalStore(subscribeSync, getSyncState, getSyncState);
+
+/** Qué pantalla corresponde según la entrada con invitación. Pregunta al servidor al abrir, al cambiar de cuenta y al volver a la app. */
+export function useGate(uid: string): Gate {
+  const snap = useSyncExternalStore(subscribeAccess, getAccessSnapshot, getAccessSnapshot);
+  const settled = useSyncExternalStore(subscribeAccess, getSettledFor, getSettledFor);
+  useEffect(() => {
+    void refreshAccess(uid);
+    const vis = () => { if (document.visibilityState === 'visible') void refreshAccess(uid); };
+    document.addEventListener('visibilitychange', vis);
+    return () => document.removeEventListener('visibilitychange', vis);
+  }, [uid]);
+  return gateOf(snap, uid, cloudEnabled, settled === uid);
+}
 
 export function useExercises(): ExerciseDef[] {
   const uid = useUserId();

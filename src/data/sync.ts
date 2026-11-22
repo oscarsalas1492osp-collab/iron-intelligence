@@ -149,6 +149,8 @@ function readReturnError(): string | null {
     return oauthMessage(code, detail);
   } catch { return null; }
 }
+/** En modo solo invitados el servidor no crea la cuenta de un correo sin invitación, y responde con un error genérico. */
+const NO_INVITE = 'Ese correo todavía no tiene invitación. Por ahora se entra solo con invitación.';
 export function oauthMessage(code: string, detail: string): string {
   const m = `${code} ${detail}`.toLowerCase();
   // Enlace de correo (confirmación o recuperación) vencido o ya usado.
@@ -156,6 +158,7 @@ export function oauthMessage(code: string, detail: string): string {
   if (m.includes('access_denied')) return 'No se completó el inicio de sesión con Google. Puedes intentarlo de nuevo.';
   if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return 'El inicio de sesión con Google aún no está activado en el servidor.';
   if (m.includes('signup') && m.includes('disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor.';
+  if (m.includes('database error saving new user')) return NO_INVITE;
   return `No se pudo iniciar sesión con Google${detail ? `: ${detail}` : ''}`;
 }
 // ---------- Recuperación de contraseña ----------
@@ -257,6 +260,7 @@ export function authMessage(e: unknown): string {
   if (m.includes('session missing') || m.includes('not authenticated') || m.includes('jwt')) return 'El enlace venció. Pide uno nuevo desde «¿Olvidaste tu contraseña?»';
   if (m.includes('invalid') && m.includes('email')) return 'El correo no es válido';
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'El registro de cuentas nuevas está desactivado en el servidor';
+  if (m.includes('database error saving new user')) return NO_INVITE;
   if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('fetch')) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo';
   return e instanceof Error && e.message ? e.message : 'No se pudo completar la operación';
 }

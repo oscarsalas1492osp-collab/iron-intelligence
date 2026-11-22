@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+import abierta   # la app en pruebas abre sin invitación (tools/auditoria/abierta.py)
 B='http://localhost:4173/'
 R=[]
 def ok(name, cond, extra=''): R.append(('OK ' if cond else 'FALLA')+' '+name+(' :: '+str(extra) if extra and not cond else ''))

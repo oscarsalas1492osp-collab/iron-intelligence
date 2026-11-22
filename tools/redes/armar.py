@@ -3,6 +3,7 @@
 # Uso: python3 tools/redes/armar.py   ->  tienda/redes-aviso-post.png, tienda/redes-aviso-historia.png y public/web/og.png (imagen al compartir la página)
 import datetime, os, shutil
 from playwright.sync_api import sync_playwright
+import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'auditoria')); import abierta   # la app en pruebas abre sin invitación
 B = 'http://localhost:4173/'; TMP = 'dist/_piezas/'; AQUI = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(TMP, exist_ok=True)
 for f in ('aviso-post.html', 'aviso-historia.html', 'og.html'): shutil.copy(os.path.join(AQUI, f), TMP + f)

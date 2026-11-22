@@ -1,6 +1,7 @@
 # Captura estados reales de la app (datos de demostración) para el video 1. Cada estado: JPEG 1080 px de ancho + cajas de los controles.
 import datetime, json
 from playwright.sync_api import sync_playwright
+import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'auditoria')); import abierta   # la app en pruebas abre sin invitación
 B='http://localhost:4173/'; OUT='dist/_video/'
 import os; os.makedirs(OUT, exist_ok=True)
 meta={}
