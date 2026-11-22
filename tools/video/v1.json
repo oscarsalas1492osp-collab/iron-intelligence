@@ -1,0 +1,125 @@
+{
+ "gancho": {
+  "lineas": [
+   "¿Cuánto",
+   "levantaste",
+   "la semana",
+   "pasada?"
+  ],
+  "bajada": "Si no lo anotas, no lo sabes.",
+  "bajadaEn": 1.3,
+  "fin": 3.0
+ },
+ "escenas": [
+  {
+   "de": 3.0,
+   "a": 8.0,
+   "rotulo": "Tu última sesión y el peso que toca hoy",
+   "estados": [
+    {
+     "img": "a1-arriba.jpg",
+     "en": 0
+    },
+    {
+     "img": "a2-motivo.jpg",
+     "en": 2.4
+    }
+   ],
+   "toques": [
+    {
+     "en": 2.4,
+     "caja": [
+      32,
+      398.5,
+      296,
+      74.75
+     ]
+    }
+   ]
+  },
+  {
+   "de": 8.0,
+   "a": 13.8,
+   "rotulo": "Anota la serie en tres toques",
+   "estados": [
+    {
+     "img": "b1-serie.jpg",
+     "en": 0
+    },
+    {
+     "img": "b2-reps.jpg",
+     "en": 1.0
+    },
+    {
+     "img": "b3-rir.jpg",
+     "en": 2.0
+    },
+    {
+     "img": "b4-hecha.jpg",
+     "en": 3.0
+    },
+    {
+     "img": "b5-descanso.jpg",
+     "en": 4.6
+    }
+   ],
+   "toques": [
+    {
+     "en": 1.0,
+     "caja": [
+      235,
+      175.75,
+      32,
+      48
+     ]
+    },
+    {
+     "en": 2.0,
+     "caja": [
+      130,
+      337.75,
+      49.5,
+      48
+     ]
+    },
+    {
+     "en": 3.0,
+     "caja": [
+      275,
+      175.75,
+      56,
+      48
+     ]
+    }
+   ]
+  },
+  {
+   "de": 13.8,
+   "a": 17.8,
+   "rotulo": "Y ves si de verdad progresas",
+   "estados": [
+    {
+     "img": "c1-progresion.jpg",
+     "en": 0
+    }
+   ],
+   "toques": [],
+   "zoom": {
+    "hasta": 1.06,
+    "x": 50,
+    "y": 70
+   }
+  }
+ ],
+ "fin": {
+  "de": 17.8
+ },
+ "cortes": [
+  0,
+  3.0,
+  8.0,
+  13.8,
+  17.8,
+  20.8
+ ]
+}
