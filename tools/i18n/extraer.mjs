@@ -7,7 +7,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const files = [];
-const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) { if (!/tests|figure$/.test(p)) walk(p); } else if (/\.(ts|tsx)$/.test(f) && !/\.d\.ts$/.test(f)) files.push(p); } };
+const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) { if (!/tests|figure$|panel$/.test(p)) walk(p);   // el panel interno es solo para administración y va solo en español } else if (/\.(ts|tsx)$/.test(f) && !/\.d\.ts$/.test(f)) files.push(p); } };
 walk('src');
 
 const norm = (s) => s.replace(/\s+/g, ' ').trim();

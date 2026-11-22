@@ -48,6 +48,8 @@ export function refreshPlan(uid: string, force = false): Promise<void> {
       const f = await sb.from('app_flags').select('value').eq('key', 'billing').maybeSingle();
       if (f.error) return;                                    // sin conexión o sin la tabla: se conserva lo último
       const billing = parseBilling(f.data?.value, uid);
+      // Acceso de tester dado desde el panel antes de que existiera la cuenta: se aplica al abrir la app.
+      if (force && uid !== 'local') await sb.rpc('claim_access');
       let ent: Entitlement | null = null;
       if (billing?.enabled && uid !== 'local') {
         const read = async () => {

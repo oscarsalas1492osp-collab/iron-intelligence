@@ -25,6 +25,8 @@ import Layout from './ui/Layout';
 const Analysis = lazy(() => import('./pages/Analysis'));
 const History = lazy(() => import('./pages/History'));
 const Recovery = lazy(() => import('./pages/Recovery'));
+// Panel interno: solo lo descarga quien entra a esa ruta, y el servidor solo le responde a la cuenta que administra.
+const Panel = lazy(() => import('./panel/Panel'));
 
 // Vista previa incrustada (VITE_PREVIEW=1): navegación en memoria, porque el visor no admite rutas en el hash.
 const Router = import.meta.env.VITE_PREVIEW ? MemoryRouter : HashRouter;
@@ -105,6 +107,7 @@ export default function App() {
                 <Route path="/mas" element={<More />} />
                 <Route path="/importar" element={<ImportRoutinePage />} />
                 <Route path="/entrenador" element={<Coach />} />
+                <Route path="/panel" element={<Panel />} />
                 <Route path="*" element={<Dashboard />} />
               </Route>
             </Routes>

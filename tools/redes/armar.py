@@ -1,11 +1,11 @@
 # Arma las piezas del aviso de lanzamiento (publicación 1080x1350 e historia 1080x1920) con pantallas reales de la app.
 # Requiere `npx vite preview --port 4173 --strictPort` corriendo sobre un `npm run build` reciente.
-# Uso: python3 tools/redes/armar.py   ->  tienda/redes-aviso-post.png y tienda/redes-aviso-historia.png
+# Uso: python3 tools/redes/armar.py   ->  tienda/redes-aviso-post.png, tienda/redes-aviso-historia.png y public/web/og.png (imagen al compartir la página)
 import datetime, os, shutil
 from playwright.sync_api import sync_playwright
 B = 'http://localhost:4173/'; TMP = 'dist/_piezas/'; AQUI = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(TMP, exist_ok=True)
-for f in ('aviso-post.html', 'aviso-historia.html'): shutil.copy(os.path.join(AQUI, f), TMP + f)
+for f in ('aviso-post.html', 'aviso-historia.html', 'og.html'): shutil.copy(os.path.join(AQUI, f), TMP + f)
 GPU = ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=GPU)
@@ -29,7 +29,7 @@ with sync_playwright() as p:
     pg.screenshot(path=TMP + 'sesion.jpg', type='jpeg', quality=93)
     b.close()
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
-    for html, w, h, out in (('aviso-post.html', 1080, 1350, 'tienda/redes-aviso-post.png'), ('aviso-historia.html', 1080, 1920, 'tienda/redes-aviso-historia.png')):
+    for html, w, h, out in (('aviso-post.html', 1080, 1350, 'tienda/redes-aviso-post.png'), ('aviso-historia.html', 1080, 1920, 'tienda/redes-aviso-historia.png'), ('og.html', 1200, 630, 'public/web/og.png')):
         pg = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1).new_page()
         pg.goto(B + '_piezas/' + html); pg.evaluate('document.fonts.ready'); pg.wait_for_timeout(700)
         pg.screenshot(path=out); print(out)

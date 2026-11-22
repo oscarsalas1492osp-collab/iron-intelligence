@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { coachAvailable, coachKnown } from '../data/coach';
+import { PanelLink } from '../panel/Entrada';
 import { Card, Icon, Title } from '../ui/components';
 import { MORE } from '../ui/Layout';
 
@@ -40,6 +41,7 @@ export default function More() {
             </Card>
           </Link>
         )}
+        <PanelLink />
       </div>
     </div>
   );
