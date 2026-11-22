@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>IRON INTELLIGENCE: la app de fuerza que te dice cuándo subir el peso</title>
-<meta name="description" content="Registra tus series en segundos, analiza tu progreso y entra a la próxima sesión sabiendo qué cargar. Está en prueba: se buscan 25 personas que entrenen con pesas.">
+<meta name="description" content="Registra tus series en segundos, analiza tu progreso y entra a la próxima sesión sabiendo qué cargar. Sale pronto: deja tu correo y te aviso el día del lanzamiento.">
 <meta name="theme-color" content="#070d10">
 <link rel="canonical" href="https://ironintelligence.app/">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -13,7 +13,7 @@
 <meta property="og:locale" content="es_CL">
 <meta property="og:site_name" content="IRON INTELLIGENCE">
 <meta property="og:title" content="La app de fuerza que te dice cuándo subir el peso">
-<meta property="og:description" content="Está en prueba. Se buscan 25 personas que entrenen con pesas para usarla antes del lanzamiento.">
+<meta property="og:description" content="Sale pronto. Deja tu correo y te aviso el día del lanzamiento.">
 <meta property="og:url" content="https://ironintelligence.app/">
 <meta property="og:image" content="https://ironintelligence.app/web/og.png">
 <meta property="og:image:width" content="1200">
@@ -293,6 +293,15 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .done ol li { counter-increment: paso; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; color: var(--mute); }
 .done ol li::before { content: counter(paso); color: var(--amber); font-weight: 800; font-stretch: 118%; }
 
+/* ---------- Aviso de lanzamiento ---------- */
+.aviso-form fieldset { border: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
+.aviso-form legend { font-weight: 700; font-size: 1rem; padding: 0; margin-bottom: 10px; }
+.aviso-form .btn { width: 100%; }
+.textbtn { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--mute); font: inherit; font-size: .9375rem; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.textbtn:active { color: var(--chalk); }
+.ok { color: var(--go); font-size: .9375rem; font-weight: 600; }
+.ok:empty { display: none; }
+
 /* ---------- Preguntas ---------- */
 .faq { display: grid; gap: 44px; }
 @media (min-width: 900px) { .faq { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; } }
@@ -357,8 +366,8 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
       <a class="link" href="#recorrido">Recorrido</a>
       <a class="link" href="#demo">Pruébala</a>
       <a class="link" href="#funciones">Funciones</a>
-      <a class="link" href="#prueba">La prueba</a>
-      <a class="btn btn-fire btn-small" href="#inscripcion">Quiero probarla</a>
+      <a class="link" href="#prueba" data-testers hidden>La prueba</a>
+      <a class="btn btn-fire btn-small" href="#aviso" aria-label="Avísame cuando salga">Avísame</a>
     </nav>
   </div>
 </header>
@@ -369,9 +378,9 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   <div class="wrap">
     <div class="hero-copy">
       <h1 class="display">La app de fuerza que te dice cuándo subir el peso.</h1>
-      <p class="lead">Registra cada serie en segundos, mira cómo progresas y entra a la próxima sesión sabiendo qué cargar. Está en prueba y busco 25 personas que entrenen con pesas.</p>
+      <p class="lead">Registra cada serie en segundos, mira cómo progresas y entra a la próxima sesión sabiendo qué cargar. Sale pronto: deja tu correo y te aviso ese día.</p>
       <div class="actions">
-        <a class="btn btn-fire" href="#inscripcion">Quiero probarla</a>
+        <a class="btn btn-fire" href="#aviso">Avísame cuando salga</a>
         <a class="btn btn-ghost" href="#demo">Tocar la demostración</a>
       </div>
       <div class="seg" role="tablist" aria-label="Pantalla que muestra el teléfono" id="hero-tabs">
@@ -545,7 +554,48 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   </div>
 </section>
 
-<section class="section" id="prueba">
+<section class="section" id="aviso">
+  <div class="wrap join">
+    <div class="section-head rv">
+      <h2 class="display">Te aviso el día que salga.</h2>
+      <p class="lead">Deja tu correo y te escribo una sola vez: cuando la app esté lista para descargar.</p>
+      <p class="note">Uso tu correo solo para ese aviso. No lo comparto, y lo quitas de la lista cuando quieras desde esta misma página. Más detalle en la <a href="/privacidad.html">política de privacidad</a>.</p>
+      <p class="note" data-redes hidden>Mientras tanto, la app se muestra en <span></span>.</p>
+    </div>
+
+    <div class="rv">
+      <form class="form aviso-form" id="aviso-form" novalidate>
+        <div class="field">
+          <label for="a-correo">Tu correo</label>
+          <input class="input" id="a-correo" name="correo" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="nombre@gmail.com" aria-describedby="a-e-correo">
+          <p class="error" id="a-e-correo" role="alert"></p>
+        </div>
+        <fieldset>
+          <legend>¿Qué teléfono usas? <span class="hint">(opcional)</span></legend>
+          <div class="pills">
+            <label class="pill"><input type="radio" name="telefono" value="android"><span>Android</span></label>
+            <label class="pill"><input type="radio" name="telefono" value="iphone"><span>iPhone</span></label>
+          </div>
+        </fieldset>
+        <div class="trap" aria-hidden="true"><label>No completar <input type="text" name="sitio" tabindex="-1" autocomplete="off"></label></div>
+        <p class="error" id="a-e-envio" role="alert"></p>
+        <p class="ok" id="a-ok" role="status"></p>
+        <button class="btn btn-fire" type="submit" id="a-enviar">Avísame cuando salga</button>
+        <button class="textbtn" type="button" id="a-quitar">Quitar mi correo de la lista</button>
+      </form>
+
+      <div class="form done" id="aviso-listo" hidden tabindex="-1">
+        <h3 class="display" style="font-size: 1.75rem">Listo. Te aviso cuando salga.</h3>
+        <p class="lead">Te escribiré una vez, al correo que dejaste.</p>
+        <p class="note" data-redes hidden>Mientras tanto, la app se muestra en <span></span>.</p>
+        <button class="btn btn-ghost" type="button" id="a-otro">Anotar otro correo</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Búsqueda de testers: queda oculta. Se muestra entrando con ?testers en la dirección (ironintelligence.app/?testers). -->
+<section class="section" id="prueba" data-testers hidden>
   <div class="wrap trial">
     <div class="rv">
       <div class="section-head">
@@ -569,7 +619,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   </div>
 </section>
 
-<section class="section" id="inscripcion">
+<section class="section" id="inscripcion" data-testers hidden>
   <div class="wrap join">
     <div class="section-head rv">
       <h2 class="display">Inscríbete en la prueba.</h2>
@@ -667,20 +717,20 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 <section class="section" id="preguntas">
   <div class="wrap faq">
     <div class="section-head rv">
-      <h2 class="display">Preguntas antes de inscribirte.</h2>
+      <h2 class="display">Preguntas frecuentes.</h2>
     </div>
     <div class="rv">
       <details class="qa">
         <summary>¿Cuánto cuesta?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Probarla no cuesta nada. El precio final todavía no está definido.</p>
+        <p>Tendrá un plan gratis y un plan Pro de pago mensual. El precio se anuncia junto con el lanzamiento.</p>
       </details>
       <details class="qa">
         <summary>¿Cuándo se lanza?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Todavía no hay fecha. Depende de lo que salga en la prueba.</p>
+        <p>Todavía no hay fecha. Sale primero en Google Play, para Android. Si dejas tu correo, te aviso ese día.</p>
       </details>
       <details class="qa">
         <summary>¿Funciona en iPhone?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Sí. Se instala desde Safari: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app.</p>
+        <p>Sí. En iPhone se abre en Safari y se agrega a la pantalla de inicio: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app. Todavía no está en la App Store.</p>
       </details>
       <details class="qa">
         <summary>¿Necesito internet en el gimnasio?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
@@ -691,6 +741,10 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
         <p>Tus entrenamientos, lo que decidas completar de tu perfil y, si creas una cuenta, tu correo. El peso corporal, las medidas y el registro de recuperación (sueño, fatiga) son opcionales. No pide fotos tuyas.</p>
       </details>
       <details class="qa">
+        <summary>¿Para qué usas mi correo?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Solo para avisarte del lanzamiento. No lo comparto ni lo uso para publicidad. Si quieres salir de la lista, escribe el mismo correo en el formulario y toca «Quitar mi correo de la lista».</p>
+      </details>
+      <details class="qa" data-testers hidden>
         <summary>¿Tengo que saber de programación para ser tester?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
         <p>No. Basta con entrenar y contar lo que te pasó: en qué pantalla estabas y qué esperabas que ocurriera. Una captura de pantalla ayuda mucho.</p>
       </details>
@@ -709,8 +763,10 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 
 <footer class="foot">
   <div class="wrap foot-row">
-    <span>IRON INTELLIGENCE, app de entrenamiento de fuerza en prueba.</span>
+    <span>IRON INTELLIGENCE, app de entrenamiento de fuerza. Sale pronto.</span>
     <nav aria-label="Legal">
+      <a class="link" id="pie-ig" hidden rel="noopener">Instagram</a>
+      <a class="link" id="pie-tt" hidden rel="noopener">TikTok</a>
       <a class="link" href="/privacidad.html">Política de privacidad</a>
       <a class="link" href="/terminos.html">Términos de uso</a>
     </nav>
@@ -728,6 +784,11 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   var OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
   var kg = function (n) { return String(n).replace('.', ','); };
   var safe = function (fn) { try { fn(); } catch (err) { if (window.console) console.error(err); } };
+  // La búsqueda de testers está oculta. Se muestra entrando con ?testers en la dirección.
+  var TESTERS = /(^|&)testers(=|&|$)/.test(location.search.slice(1));
+  if (TESTERS) [].forEach.call(document.querySelectorAll('[data-testers]'), function (el) { el.hidden = false; });
+  // Redes de la app: nombre de usuario de cada una. Vacío = el enlace no se muestra.
+  var REDES = { instagram: '', tiktok: '' };
   var PAUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>';
   var PLAY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
   function setMotion(on) {
@@ -1117,7 +1178,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
   function slots(n) { slotsN = n; if (slotsSeen) paint(n); }
   if ('IntersectionObserver' in window) new IntersectionObserver(function (l, io) { if (l[0].isIntersecting) { slotsSeen = true; io.disconnect(); if (slotsN != null) paint(slotsN); } }, { threshold: 0.4 }).observe(discs);
   else slotsSeen = true;
-  rpc('tester_count').then(function (n) { if (typeof n === 'number') slots(n); }).catch(function () {});
+  if (TESTERS) rpc('tester_count').then(function (n) { if (typeof n === 'number') slots(n); }).catch(function () {});
 
   var form = $('form'), steps = [].slice.call(form.querySelectorAll('.wz-step')), step = 0, lastTap = 0;
   var MSG = {
@@ -1198,6 +1259,55 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
         btn.disabled = false; btn.textContent = 'Inscribirme';
       });
   });
+  /* ---- Aviso de lanzamiento ---- */
+  var aform = $('aviso-form');
+  var correoOk = function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); };
+  function avisoError(msg) { $('a-e-correo').textContent = msg; aform.elements.correo.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
+  function avisoListo() { aform.hidden = true; var box = $('aviso-listo'); box.hidden = false; return box; }
+  aform.addEventListener('input', function (e) { if (e.target.name === 'correo') { avisoError(''); $('a-e-envio').textContent = ''; $('a-ok').textContent = ''; } });
+  aform.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var correo = aform.elements.correo.value.trim(), tel = aform.elements.telefono.value || null, btn = $('a-enviar');
+    $('a-e-envio').textContent = ''; $('a-ok').textContent = '';
+    if (!correoOk(correo)) { avisoError('Escribe un correo válido, por ejemplo nombre@gmail.com.'); aform.elements.correo.focus(); return; }
+    if (aform.elements.sitio.value) { avisoListo(); return; } // trampa para envíos automáticos
+    btn.disabled = true; btn.textContent = 'Guardando';
+    var origen = null;
+    try { origen = new URLSearchParams(location.search).get('o'); } catch (err) {}
+    rpc('join_launch_list', { p_email: correo, p_phone_os: tel, p_lang: (navigator.language || '').slice(0, 12) || null, p_source: origen })
+      .then(function () {
+        try { localStorage.setItem('ii_aviso', '1'); } catch (err) {}
+        var box = avisoListo(); box.focus({ preventScroll: true });
+        box.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+      }, function (err) {
+        var m = String(err && err.message || '');
+        $('a-e-envio').textContent = m.indexOf('bad_email') >= 0 ? 'Revisa el correo: no parece válido.'
+          : m.indexOf('too_many') >= 0 ? 'Hoy llegaron muchos correos desde esta conexión. Inténtalo mañana.'
+          : 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.';
+      })
+      .then(function () { btn.disabled = false; btn.textContent = 'Avísame cuando salga'; });
+  });
+  $('a-quitar').addEventListener('click', function () {
+    var correo = aform.elements.correo.value.trim();
+    $('a-e-envio').textContent = ''; $('a-ok').textContent = '';
+    if (!correoOk(correo)) { avisoError('Escribe el correo que quieres quitar de la lista.'); aform.elements.correo.focus(); return; }
+    rpc('leave_launch_list', { p_email: correo }).then(function () {
+      try { localStorage.removeItem('ii_aviso'); } catch (err) {}
+      aform.elements.correo.value = ''; $('a-ok').textContent = 'Listo: ese correo ya no está en la lista.';
+    }, function () { $('a-e-envio').textContent = 'No se pudo quitar. Revisa tu conexión e inténtalo de nuevo.'; });
+  });
+  $('a-otro').addEventListener('click', function () { $('aviso-listo').hidden = true; aform.hidden = false; aform.elements.correo.value = ''; aform.elements.correo.focus(); });
+  try { if (localStorage.getItem('ii_aviso')) avisoListo(); } catch (err) {}
+
+  /* ---- Enlaces a redes (solo si hay nombre de usuario) ---- */
+  safe(function () {
+    var ig = REDES.instagram ? 'https://www.instagram.com/' + REDES.instagram + '/' : '', tt = REDES.tiktok ? 'https://www.tiktok.com/@' + REDES.tiktok : '';
+    if (ig) { $('pie-ig').href = ig; $('pie-ig').hidden = false; }
+    if (tt) { $('pie-tt').href = tt; $('pie-tt').hidden = false; }
+    var html = [ig ? '<a href="' + ig + '" rel="noopener">Instagram</a>' : '', tt ? '<a href="' + tt + '" rel="noopener">TikTok</a>' : ''].filter(Boolean).join(' y ');
+    if (html) [].forEach.call(document.querySelectorAll('[data-redes]'), function (el) { el.querySelector('span').innerHTML = html; el.hidden = false; });
+  });
+
   try {
     var saved = localStorage.getItem('ii_tester');
     if (saved) { form.hidden = true; $('pasos-android').hidden = saved === 'iphone'; $('pasos-iphone').hidden = saved !== 'iphone'; $('listo').hidden = false; }
