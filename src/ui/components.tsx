@@ -69,11 +69,11 @@ export function Btn({ variant = 'soft', size = 'md', icon, className, children, 
   const s = {
     sm: 'hit h-9 px-3.5 text-sm rounded-full font-semibold',
     md: 'h-11 px-4 text-[15px] rounded-ctl font-semibold',
-    lg: 'h-14 px-5 text-[15px] rounded-[20px] font-extrabold wd-w tracking-wide whitespace-nowrap',
+    lg: 'h-14 px-4 text-[14px] min-[380px]:px-5 min-[380px]:text-[15px] rounded-[20px] font-extrabold wd-w tracking-wide whitespace-nowrap',   // en 360 px el rótulo más largo debe caber con su icono
   }[size];
   return (
     <button type="button" {...rest} className={cx('inline-flex items-center justify-center gap-2 transition active:scale-[.97] disabled:opacity-40 disabled:pointer-events-none', v, s, className)}>
-      {icon && <Icon name={icon} size={size === 'lg' ? 20 : 18} />}
+      {icon && <Icon name={icon} size={size === 'lg' ? 20 : 18} className="shrink-0" />}
       {children}
     </button>
   );
