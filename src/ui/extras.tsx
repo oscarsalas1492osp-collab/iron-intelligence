@@ -22,6 +22,7 @@ import { askNotify, canNotify, primeAudio } from './alerts';
 import { PlateCalc } from './plates';
 import { Bar, Btn, Card, Empty, Field, H2, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from './components';
 import { drawCard, shareBlob, shareLink, type CardData } from './shareCard';
+import { locale } from '../i18n';
 
 const PLATE_LOADED = ['barbell', 'ez_bar', 'trap_bar', 'smith', 'landmine', 'lever', 'plate', 'sled'];
 
@@ -129,7 +130,7 @@ export function ShareSessionButton({ session, sets }: { session: Session; sets: 
       const kg = Math.round(done.reduce((a, s) => a + s.weight * s.reps, 0));
       const card: CardData = {
         kicker: 'Entrenamiento completado', title: session.name, subtitle: `${fmtDate(session.startedAt)}, ${fmtDuration(elapsedMs(session))}`,
-        stats: [{ value: String(main.length), label: 'series' }, { value: kg >= 10000 ? `${(kg / 1000).toFixed(1).replace('.', ',')} t` : `${kg.toLocaleString('es-CL')}`, label: kg >= 10000 ? 'de volumen' : 'kg de volumen' }, { value: String(lines.length), label: 'ejercicios' }],
+        stats: [{ value: String(main.length), label: 'series' }, { value: kg >= 10000 ? `${(kg / 1000).toFixed(1).replace('.', ',')} t` : `${kg.toLocaleString(locale())}`, label: kg >= 10000 ? 'de volumen' : 'kg de volumen' }, { value: String(lines.length), label: 'ejercicios' }],
         lines,
       };
       const how = await shareBlob(await drawCard(card), 'entrenamiento-iron-intelligence.png', `${session.name} en Iron Intelligence`);

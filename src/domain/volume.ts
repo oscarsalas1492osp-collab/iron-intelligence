@@ -10,6 +10,7 @@ import { DAY, e1rm, weekStart, ymd } from './calc';
 import { MUSCLES } from './muscles';
 import type { PerfSession } from './progression';
 import type { EndReason, ExerciseDef, Muscle } from './types';
+import { locale } from '../i18n';
 
 /** Serie completada, enriquecida con la fecha de su sesión. */
 export interface ASet {
@@ -59,7 +60,7 @@ export function weeklySeries(sets: ASet[], ex: ExMap, coef: number, muscle: Musc
   return Array.from({ length: weeks }, (_, i) => {
     const start = cur - (weeks - 1 - i) * 7 * DAY;
     const v = muscleVolume(inWeek(sets, start), ex, coef).find((x) => x.muscle === muscle)!;
-    return { start, label: new Date(start).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }), direct: v.direct, indirect: Math.round(v.indirect * coef * 10) / 10, fractional: v.fractional };
+    return { start, label: new Date(start).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }), direct: v.direct, indirect: Math.round(v.indirect * coef * 10) / 10, fractional: v.fractional };
   });
 }
 
@@ -109,7 +110,7 @@ export function exerciseSeries(sets: ASet[], exerciseId: string): ExPoint[] {
     const est = s.sets.map((x) => e1rm(x.weight, x.reps, x.rir)).filter((x): x is number => x != null);
     return {
       date: s.date,
-      label: new Date(s.date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }),
+      label: new Date(s.date).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }),
       maxWeight: Math.max(...s.sets.map((x) => x.weight)),
       totalReps: s.sets.reduce((a, x) => a + x.reps, 0),
       volume: Math.round(s.sets.reduce((a, x) => a + x.weight * x.reps, 0)),

@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 // Avisos del descanso: sonido y notificación. La notificación aparece también en el reloj enlazado al teléfono.
 
 let ctx: AudioContext | null = null;
@@ -35,7 +36,7 @@ export async function notifyRestEnd(body: string): Promise<void> {
   if (!notifyGranted() || !document.hidden) return;
   try {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('Descanso terminado', { body, tag: 'descanso', icon: './icon-v2-192.png', badge: './icon-v2-192.png', renotify: true, vibrate: [250, 120, 250] } as NotificationOptions);
+    await reg.showNotification(tr('Descanso terminado'), { body: tr(body), tag: 'descanso', icon: './icon-v2-192.png', badge: './icon-v2-192.png', renotify: true, vibrate: [250, 120, 250] } as NotificationOptions);
   } catch { /* sin permiso o sin service worker */ }
 }
 export async function clearRestNotice(): Promise<void> {

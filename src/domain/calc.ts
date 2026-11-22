@@ -1,3 +1,4 @@
+import { locale } from '../i18n';
 // Cálculos puros y pequeños utilitarios de fechas.
 
 export const uid = (): string =>
@@ -83,4 +84,4 @@ export function ago(ts: number, now = Date.now()): string {
 
 export const fmtKg = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, '').replace(/\.$/, ''));
 export const fmtDate = (ts: number): string =>
-  new Date(ts).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
+  new Date(ts).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });

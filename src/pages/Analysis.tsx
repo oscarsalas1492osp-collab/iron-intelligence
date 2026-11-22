@@ -12,6 +12,7 @@ import { useDoneSets, useExMap, useProfile } from '../hooks';
 import { BarC } from '../ui/charts';
 import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Card, Chip, Empty, H2, Icon, Stat, Title } from '../ui/components';
+import { locale } from '../i18n';
 
 // Misma escala de incandescencia que el selector de RIR.
 const RIR_COLORS = ['#ffe2a8', '#ffa63d', '#ff6a1a', '#c2412d', '#8a4a3a', '#4a505a'];
@@ -45,7 +46,7 @@ export default function Analysis() {
 
   if (sets && !sets.length) return <div><Title>Análisis</Title><Empty icon="chart" title="Sin datos para analizar" text="El análisis de volumen y proximidad al fallo se construye con tus sesiones completadas."><Link to="/entrenar"><Btn variant="primary">Ir a entrenar</Btn></Link></Empty></div>;
 
-  const label = `${new Date(start).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })} – ${new Date(start + 6 * DAY).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}`;
+  const label = `${new Date(start).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })} – ${new Date(start + 6 * DAY).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })}`;
   const sessionsN = new Set(week.map((s) => s.sessionId)).size;
   const nWeek = mainSets(week).length, nPrev = mainSets(prev).length;
   const delta = nPrev ? Math.round(((nWeek - nPrev) / nPrev) * 100) : null;

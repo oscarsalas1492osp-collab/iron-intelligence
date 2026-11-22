@@ -1,9 +1,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
 import './index.css';
+import { initLang } from './i18n';
+import { translatePage } from './i18n/dom';
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+// El idioma se resuelve antes de cargar la app: así los textos, las fechas y los números salen ya en ese idioma.
+void initLang().then(async () => {
+  translatePage();
+  const { default: App } = await import('./App');
+  createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+});
 
 // ---- Funcionamiento sin conexión (solo en producción) ----
 const CACHE = 'iron-shell-v1'; // mismo nombre que usa public/sw.js

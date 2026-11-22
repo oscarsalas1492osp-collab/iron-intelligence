@@ -1,4 +1,5 @@
 import { PlanButton } from '../ui/extras';
+import { dayInitials } from '../i18n';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { needsPro } from '../domain/plan';
@@ -8,7 +9,7 @@ import { TEMPLATES } from '../data/templates';
 import { useAllItems, useRoutines } from '../hooks';
 import { Btn, Card, Empty, Field, Icon, Sheet, Title, useAction } from '../ui/components';
 
-export const DAY_LABEL = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+export const DAY_LABEL = dayInitials();   // la app se carga después de elegir el idioma
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export default function Routines() {

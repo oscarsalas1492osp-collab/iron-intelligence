@@ -15,6 +15,7 @@ import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Icon, Ring, Spark, useAction } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { Logo } from '../ui/Layout';
+import { locale } from '../i18n';
 
 const hello = () => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const pctDelta = (a: number, b: number) => (b > 0 ? Math.round(((a - b) / b) * 100) : null);
@@ -93,7 +94,7 @@ export default function Dashboard() {
       <header className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-5 md:hidden"><Logo /></div>
-          <p className="wd-c text-[15px] text-mute first-letter:uppercase">{new Date(now).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <p className="wd-c text-[15px] text-mute first-letter:uppercase">{new Date(now).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h1 className="wd-x text-[1.75rem] font-extrabold leading-[1.08] tracking-tight md:text-[2rem]" style={{ textWrap: 'balance' }}>{hello()}{profile.name ? `, ${profile.name}` : ''}</h1>
         </div>
         <Link to="/perfil" aria-label="Perfil" className="wd-x grid h-12 w-12 shrink-0 place-items-center rounded-full bg-card2 text-lg font-extrabold">{profile.name ? profile.name[0].toUpperCase() : <Icon name="user" />}</Link>

@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { cancelRecovery, googleEnabled, googleKnown, isRecovering, onRecovering, requestPasswordReset, setNewPassword, signIn, signInWithGoogle, signUp } from '../data/sync';
 import { Btn, Field, Seg, useAction, useUi } from '../ui/components';
 import { Logo } from '../ui/Layout';
+import { LangSwitch } from '../ui/lang';
 
 /** El botón de Google aparece solo cuando el servidor tiene activo ese proveedor. */
 function useGoogle(): boolean {
@@ -120,6 +121,7 @@ export default function Auth({ onSkip }: { onSkip: () => void }) {
       <p className="mb-6 mt-4 text-[15px] text-mute">Inicia sesión para respaldar y sincronizar tus entrenamientos entre dispositivos.</p>
       <div className="rounded-panel bg-card p-4"><AuthForm /></div>
       <button type="button" className="mt-5 text-sm text-mute underline" onClick={onSkip}>Continuar sin cuenta (los datos quedan solo en este dispositivo)</button>
+      <div className="mt-6"><LangSwitch compact /></div>
     </div>
   );
 }

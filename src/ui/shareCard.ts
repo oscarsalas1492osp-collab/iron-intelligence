@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 // Tarjeta de imagen para compartir en redes (1080 × 1350, formato vertical de Instagram).
 export interface CardData {
   kicker: string; title: string; subtitle: string;
@@ -50,11 +51,11 @@ export async function drawCard(d: CardData): Promise<Blob> {
   c.font = `500 24px ${FONT}`; c.fillStyle = '#93a4ab'; c.fillText('I N T E L L I G E N C E', P + 92, 140);
 
   // Título
-  c.fillStyle = '#ffb054'; c.font = `600 34px ${FONT}`; c.fillText(fit(c, d.kicker, W - 2 * P), P, 300);
+  c.fillStyle = '#ffb054'; c.font = `600 34px ${FONT}`; c.fillText(fit(c, tr(d.kicker), W - 2 * P), P, 300);
   c.fillStyle = '#f2f6f6'; c.font = `800 88px ${FONT}`;
   let y = 396;
-  for (const ln of wrap(c, d.title, W - 2 * P, 2)) { c.fillText(ln, P, y); y += 96; }
-  c.fillStyle = '#c3ccd0'; c.font = `500 36px ${FONT}`; c.fillText(fit(c, d.subtitle, W - 2 * P), P, y - 28);
+  for (const ln of wrap(c, tr(d.title), W - 2 * P, 2)) { c.fillText(ln, P, y); y += 96; }
+  c.fillStyle = '#c3ccd0'; c.font = `500 36px ${FONT}`; c.fillText(fit(c, tr(d.subtitle), W - 2 * P), P, y - 28);
   y += 30;
 
   // Cifras
@@ -62,22 +63,22 @@ export async function drawCard(d: CardData): Promise<Blob> {
   d.stats.forEach((s, i) => {
     const x = P + i * (bw + gap);
     round(c, x, y, bw, 190, 36); c.fillStyle = 'rgba(165,225,235,.09)'; c.fill(); c.strokeStyle = 'rgba(185,232,242,.18)'; c.lineWidth = 2; c.stroke();
-    c.fillStyle = ['#ff6a1a', '#ffb054', '#58c7ff', '#34e0a1'][i % 4]; c.font = `800 72px ${FONT}`; c.fillText(fit(c, s.value, bw - 48), x + 28, y + 102);
-    c.fillStyle = '#93a4ab'; c.font = `500 30px ${FONT}`; c.fillText(fit(c, s.label, bw - 48), x + 28, y + 152);
+    c.fillStyle = ['#ff6a1a', '#ffb054', '#58c7ff', '#34e0a1'][i % 4]; c.font = `800 72px ${FONT}`; c.fillText(fit(c, tr(s.value), bw - 48), x + 28, y + 102);
+    c.fillStyle = '#93a4ab'; c.font = `500 30px ${FONT}`; c.fillText(fit(c, tr(s.label), bw - 48), x + 28, y + 152);
   });
   y += 190 + 56;
 
   // Detalle
   const rows = d.lines.slice(0, Math.max(0, Math.floor((H - 150 - y) / 76)));
   rows.forEach((ln) => {
-    c.font = `700 36px ${FONT}`; c.fillStyle = '#f2f6f6'; c.textAlign = 'right'; c.fillText(ln.right, W - P, y + 40);
+    c.font = `700 36px ${FONT}`; c.fillStyle = '#f2f6f6'; c.textAlign = 'right'; c.fillText(tr(ln.right), W - P, y + 40);
     const rw = c.measureText(ln.right).width;
-    c.textAlign = 'left'; c.font = `500 36px ${FONT}`; c.fillStyle = '#c3ccd0'; c.fillText(fit(c, ln.left, W - 2 * P - rw - 36), P, y + 40);
+    c.textAlign = 'left'; c.font = `500 36px ${FONT}`; c.fillStyle = '#c3ccd0'; c.fillText(fit(c, tr(ln.left), W - 2 * P - rw - 36), P, y + 40);
     c.fillStyle = 'rgba(185,232,242,.14)'; c.fillRect(P, y + 64, W - 2 * P, 2);
     y += 76;
   });
 
-  c.fillStyle = '#93a4ab'; c.font = `600 28px ${FONT}`; c.fillText('REGISTRA. ANALIZA. PROGRESA.', P, H - 78);
+  c.fillStyle = '#93a4ab'; c.font = `600 28px ${FONT}`; c.fillText(tr('REGISTRA. ANALIZA. PROGRESA.'), P, H - 78);
   return new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error('No se pudo crear la imagen'))), 'image/png'));
 }
 

@@ -1,0 +1,63 @@
+# Textos que el extractor no recoge. Formato: español|inglés|portugués
+# Rótulos para lectores de pantalla (se arman por partes)
+{*}, {*} entrenamiento(s)|{*}, {*} workout(s)|{*}, {*} treino(s)
+Aumentar {*}|Increase {*}|Aumentar {*}
+Disminuir {*}|Decrease {*}|Diminuir {*}
+Peso serie {*}|Weight, set {*}|Peso, série {*}
+Peso serie {*} de {*}|Weight, set {*} of {*}|Peso, série {*} de {*}
+Repeticiones serie {*}|Reps, set {*}|Repetições, série {*}
+Repeticiones serie {*} de {*}|Reps, set {*} of {*}|Repetições, série {*} de {*}
+Peso bajada {*} de la serie {*}|Weight, drop {*} of set {*}|Peso, queda {*} da série {*}
+Repeticiones bajada {*} de la serie {*}|Reps, drop {*} of set {*}|Repetições, queda {*} da série {*}
+Completar serie {*} de {*}|Complete set {*} of {*}|Concluir série {*} de {*}
+Completar bajada {*} de la serie {*}|Complete drop {*} of set {*}|Concluir queda {*} da série {*}
+RIR {*} para la serie {*}|RIR {*} for set {*}|RIR {*} para a série {*}
+5 o más|5 or more|5 ou mais
+Bajada {*}|Drop {*}|Queda {*}
+Ilustración del movimiento|Movement illustration|Ilustração do movimento
+Ver técnica de {*}|See technique for {*}|Ver técnica de {*}
+RIR|RIR|RIR
+{*} ({*})|{*} ({*})|{*} ({*})
+0 (fallo)|0 (failure)|0 (falha)
+# Medidas corporales
+Brazo (cm)|Arm (cm)|Braço (cm)
+Cadera (cm)|Hips (cm)|Quadril (cm)
+Cintura (cm)|Waist (cm)|Cintura (cm)
+Gemelo (cm)|Calf (cm)|Panturrilha (cm)
+Grasa corporal (%)|Body fat (%)|Gordura corporal (%)
+Hombros (cm)|Shoulders (cm)|Ombros (cm)
+Muslo (cm)|Thigh (cm)|Coxa (cm)
+Pecho (cm)|Chest (cm)|Peito (cm)
+# Palabras sueltas en minúsculas
+Idioma|Language|Idioma
+semana|week|semana
+semanas|weeks|semanas
+toneladas|tonnes|toneladas
+series|sets|séries
+reps|reps|reps
+sesiones|sessions|sessões
+días|days|dias
+directas|direct|diretas
+indirectas|indirect|indiretas
+fatiga|fatigue|fadiga
+dolor|soreness|dor
+hecha|done|feita
+propio|custom|próprio
+ninguno|none|nenhum
+restantes)|remaining)|restantes)
+estancado|stalled|estagnado
+mejorando|improving|melhorando
+estable|stable|estável
+mejora|up|melhora
+baja|down|queda
+evidencia|evidence|evidência
+disponible|available|disponível
+no disponible|not available|indisponível
+siguiente serie|next set|próxima série
+racha semanal|weekly streak|sequência semanal
+ejercicio propio|custom exercise|exercício próprio
+ejercicios propios|custom exercises|exercícios próprios
+cada mes|every month|todo mês
+gratis|free|grátis
+deportista|athlete|atleta
+este deportista|this athlete|este atleta

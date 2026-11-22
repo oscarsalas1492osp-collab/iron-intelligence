@@ -11,13 +11,14 @@ import { Btn, Chip, Empty, Field, H2, Seg, Sheet, Stepper, Title, useAction, use
 import { openPlans, usePlan } from '../ui/plan';
 import { EquipmentArt, ExerciseThumb } from '../ui/EquipmentArt';
 import { ExerciseFigure } from '../ui/figure/ExerciseFigure';
+import { getLang, tr } from '../i18n';
 
 interface Filter { q: string; muscle: Muscle | null; eq: Equipment | null; cat: Category | null }
 const NO_FILTER: Filter = { q: '', muscle: null, eq: null, cat: null };
 const PAGE = 40;
 
 /** Texto sobre el que se busca: nombre, otros nombres, énfasis, máquina, músculo e implemento. */
-const haystack = (e: ExerciseDef) => norm(`${e.name} ${e.aka} ${e.focus} ${e.machine} ${MUSCLE_LABEL[e.primary]} ${EQUIPMENT_LABEL[e.equipment]}`);
+const haystack = (e: ExerciseDef) => norm(`${e.name} ${e.aka} ${e.focus} ${e.machine} ${MUSCLE_LABEL[e.primary]} ${EQUIPMENT_LABEL[e.equipment]} ${getLang() === 'es' ? '' : `${tr(e.name)} ${tr(e.focus)} ${tr(MUSCLE_LABEL[e.primary])} ${tr(EQUIPMENT_LABEL[e.equipment])}`}`);
 
 function useFiltered(list: ExerciseDef[], f: Filter) {
   const index = useMemo(() => new Map(list.map((e) => [e.id, haystack(e)])), [list]);

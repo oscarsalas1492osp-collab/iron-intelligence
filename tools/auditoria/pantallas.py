@@ -46,9 +46,23 @@ REACH = r'''async () => {
   const r=last.getBoundingClientRect(); window.scrollTo(0,0);
   return r.bottom>limit+2 ? 'INALCANZABLE: «'+(last.getAttribute('aria-label')||last.innerText).trim().slice(0,40)+'» queda bajo la barra ('+Math.round(r.bottom)+' > '+Math.round(limit)+')' : null;
 }'''
+import os
+IDIOMAS=[x for x in os.environ.get('IDIOMAS','').split(',') if x]      # p. ej. IDIOMAS=en,pt: repite cada revisión en esos idiomas
+TEXTOS=set()                                                             # textos vistos, para medir cuánto está traducido
+TXT = r'''() => { const out=new Set(); const w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT); let n;
+  while((n=w.nextNode())){ if(n.nodeType===3){ const p=n.parentElement; if(!p||['SCRIPT','STYLE','TEXTAREA'].includes(p.tagName)||p.closest('[data-notr]')) continue; const t=n.nodeValue.replace(/\s+/g,' ').trim(); if(t) out.add(t); }
+    else for(const a of ['placeholder','title','aria-label','alt']){ const v=n.getAttribute(a); if(v&&v.trim()) out.add(v.replace(/\s+/g,' ').trim()); } }
+  return [...out]; }'''
 res={}
 def check(pg, name, w, reach=True):
     pg.wait_for_timeout(250)
+    if w==360: TEXTOS.update(pg.evaluate(TXT))
+    for lang in IDIOMAS:
+        pg.evaluate("l => window.__iiLang(l)", lang); pg.wait_for_timeout(200)
+        pr=[x for x in pg.evaluate(JS) if not x.startswith('CHICO')]
+        res.setdefault(name+'@'+lang,{})[w]=pr
+        if w==360: pg.screenshot(path=f'/tmp/auditoria-out/{name}@{lang}.png')
+        pg.evaluate("window.__iiLang('es')"); pg.wait_for_timeout(120)
     probs=pg.evaluate(JS)
     if reach and not pg.locator('[role=dialog]').count():
         x=pg.evaluate(REACH)
@@ -212,3 +226,4 @@ for name in sorted(res):
         print('\n## '+name)
         for x in sorted(a|bb): print('  ['+('360' if x in a else '   ')+' '+('393' if x in bb else '   ')+'] '+x)
 print('\npantallas revisadas', len(res))
+json.dump(sorted(TEXTOS), open('/tmp/auditoria-out/textos.json','w'), ensure_ascii=False)

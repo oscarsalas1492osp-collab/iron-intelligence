@@ -11,6 +11,9 @@ import { useDoneSets, useExMap, useSessions } from '../hooks';
 import { LineC } from '../ui/charts';
 import { Btn, Card, Empty, Field, Icon, Seg, Sheet, Stat, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
+import { dayInitials, locale } from '../i18n';
+
+const DAY_INITIAL = dayInitials();   // domingo primero; la app se carga después de elegir el idioma
 
 function SetEditor({ s, onClose }: { s: SetLog; onClose: () => void }) {
   const run = useAction(); const { confirm } = useUi();
@@ -42,7 +45,7 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
         <Stat label="Fecha" value={<span className="text-base">{fmtDate(session.startedAt)}</span>} />
         <Stat label="Duración" value={<span className="text-base">{fmtDuration(elapsedMs(session))}</span>} />
         <Stat label="Series" value={<span className="text-base">{sets.filter((x) => !x.sub).length}</span>} />
-        <Stat label="Volumen" value={<span className="text-base">{Math.round(sets.reduce((a, s) => a + s.weight * s.reps, 0)).toLocaleString('es-CL')} kg</span>} />
+        <Stat label="Volumen" value={<span className="text-base">{Math.round(sets.reduce((a, s) => a + s.weight * s.reps, 0)).toLocaleString(locale())} kg</span>} />
       </div>
       <div className="space-y-3">
         {ids.map((id) => {
@@ -92,10 +95,10 @@ function Calendar({ sessions, month, setMonth, onPick }: { sessions: Session[]; 
     <Card>
       <div className="mb-3 flex items-center justify-between">
         <Btn size="sm" icon="left" aria-label="Mes anterior" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} />
-        <div className="wd-w font-bold first-letter:uppercase">{month.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}</div>
+        <div className="wd-w font-bold first-letter:uppercase">{month.toLocaleDateString(locale(), { month: 'long', year: 'numeric' })}</div>
         <Btn size="sm" icon="right" aria-label="Mes siguiente" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} />
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-mute mb-1">{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <div key={d}>{d}</div>)}</div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-mute mb-1">{[1, 2, 3, 4, 5, 6, 0].map((d) => <div key={d}>{DAY_INITIAL[d]}</div>)}</div>
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: offset }).map((_, i) => <div key={`o${i}`} />)}
         {Array.from({ length: days }, (_, i) => {
@@ -157,7 +160,7 @@ export default function History() {
                 <Card key={s.id} onClick={() => setOpen(s)}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0"><div className="font-bold truncate">{s.name}</div><div className="text-xs text-mute">{fmtDate(s.startedAt)}, {fmtDuration(elapsedMs(s))}</div></div>
-                    <div className="shrink-0 text-right text-xs text-mute tnum"><div className="text-sm font-bold text-chalk">{ss.length} series</div>{Math.round(ss.reduce((a, x) => a + x.weight * x.reps, 0)).toLocaleString('es-CL')} kg</div>
+                    <div className="shrink-0 text-right text-xs text-mute tnum"><div className="text-sm font-bold text-chalk">{ss.length} series</div>{Math.round(ss.reduce((a, x) => a + x.weight * x.reps, 0)).toLocaleString(locale())} kg</div>
                   </div>
                 </Card>
               );

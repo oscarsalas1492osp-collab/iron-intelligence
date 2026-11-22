@@ -15,6 +15,8 @@ import { Btn, Card, Chip, Field, H2, Seg, Sheet, Title, useAction, useUi } from 
 import { PlanCard } from '../ui/plan';
 import { setFigureChoice, setFigureLook, useFigureChoice, useFigureLook } from '../ui/figurePref';
 import { AuthForm } from './Auth';
+import { LangSwitch } from '../ui/lang';
+import { locale } from '../i18n';
 
 const GOALS: { value: Goal; label: string }[] = [{ value: 'hypertrophy', label: 'Hipertrofia' }, { value: 'strength', label: 'Fuerza' }, { value: 'recomposition', label: 'Recomposición' }, { value: 'maintenance', label: 'Mantenimiento' }];
 const EXP: { value: Experience; label: string }[] = [{ value: 'beginner', label: 'Principiante' }, { value: 'intermediate', label: 'Intermedio' }, { value: 'advanced', label: 'Avanzado' }];
@@ -70,6 +72,10 @@ export default function Profile() {
               <Seg value={figure} onChange={setFigureChoice} options={[{ value: 'auto', label: 'Automática' }, { value: 'male', label: 'Masculina' }, { value: 'female', label: 'Femenina' }]} />
               <span className="mt-1 block text-xs text-mute">En automático sigue al sexo indicado arriba. Se guarda en este dispositivo.</span>
             </div>
+            <div>
+              <span className="label mb-1.5 block">Idioma</span>
+              <LangSwitch />
+            </div>
             <div role="group" aria-label="Figura de los ejercicios">
               <span className="label mb-1.5 block">Figura de los ejercicios</span>
               <Seg value={look} onChange={setFigureLook} options={[{ value: 'piel', label: 'Atleta' }, { value: 'anatomia', label: 'Anatomía' }]} />
@@ -118,7 +124,7 @@ export default function Profile() {
 
           <H2>Copias de seguridad y exportación</H2>
           <Card className="space-y-2">
-            <p className="text-xs text-mute">{lastBackup ? `Última copia descargada: ${new Date(lastBackup).toLocaleDateString('es-CL')}.` : 'Aún no has descargado una copia.'} La copia incluye perfil, rutinas, ejercicios propios, sesiones, series, recuperación y peso corporal.</p>
+            <p className="text-xs text-mute">{lastBackup ? `Última copia descargada: ${new Date(lastBackup).toLocaleDateString(locale())}.` : 'Aún no has descargado una copia.'} La copia incluye perfil, rutinas, ejercicios propios, sesiones, series, recuperación y peso corporal.</p>
             <Btn className="w-full" onClick={() => run(async () => download(`iron-intelligence-${ymd(Date.now())}.json`, JSON.stringify(await exportBackup(), null, 2), 'application/json'), 'Copia descargada')}>Descargar copia completa (JSON)</Btn>
             <Btn className="w-full" onClick={() => run(async () => download(`iron-intelligence-series-${ymd(Date.now())}.csv`, '﻿' + (await exportCsv()), 'text/csv'), 'CSV descargado')}>Exportar series a CSV (Excel)</Btn>
             <Btn className="w-full" onClick={() => file.current?.click()}>Restaurar desde una copia</Btn>
