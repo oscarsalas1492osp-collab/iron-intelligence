@@ -112,7 +112,9 @@
   }
  ],
  "fin": {
-  "de": 17.8
+  "de": 17.8,
+  "cta": "Deja tu correo y te aviso cuando salga",
+  "pie": "Enlace en el perfil"
  },
  "cortes": [
   0,
