@@ -91,6 +91,16 @@ describe('asistente', () => {
     const c = ctx(sets);
     expect(answer('¿En qué grupo muscular tengo menos volumen?', c).lines.length).toBeGreaterThan(2);
     expect(answer('¿Estoy entrenando demasiado cerca del fallo?', c).lines.join(' ')).toMatch(/100 %/);
+    // Las mismas preguntas escritas en inglés y en portugués llegan a la misma respuesta.
+    const same = (es: string, en: string, pt: string) => { const t = answer(es, c).title; expect([en, answer(en, c).title]).toEqual([en, t]); expect([pt, answer(pt, c).title]).toEqual([pt, t]); };
+    same('¿Qué peso debería utilizar hoy?', 'What weight should I use today?', 'Que peso devo usar hoje?');
+    same('¿Qué ejercicios están estancados?', 'Which exercises are stalled?', 'Quais exercícios estão estagnados?');
+    same('¿Qué ejercicios están mejorando?', 'Which exercises are improving?', 'Quais exercícios estão melhorando?');
+    same('¿En qué grupo muscular tengo menos volumen?', 'Which muscle group has my lowest volume?', 'Em que grupo muscular tenho menos volume?');
+    same('¿Estoy entrenando demasiado cerca del fallo?', 'Am I training too close to failure?', 'Estou treinando perto demais da falha?');
+    same('¿Cuándo debería aumentar la carga?', 'When should I increase the load?', 'Quando devo aumentar a carga?');
+    same('¿Cómo ha evolucionado mi fuerza durante el último mes?', 'How has my strength changed over the last month?', 'Como minha força evoluiu no último mês?');
+    same('¿Estoy progresando en pecho?', 'Am I progressing on chest?', 'Estou progredindo no peito?');
     expect(answer('¿Qué peso debería utilizar hoy?', c).lines.join(' ')).toMatch(/Press de banca con barra: 80 kg/);
     expect(answer('¿Cuándo debería aumentar la carga?', c).lines[0]).toMatch(/doble progresión/);
     expect(weekStart(NOW)).toBeLessThanOrEqual(NOW);

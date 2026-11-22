@@ -4,6 +4,7 @@
 // EXCLUSIVAMENTE con cálculos sobre el historial real del usuario. No es un modelo generativo:
 // no inventa datos y, cuando no hay información suficiente, lo dice.
 import { DAY, e1rm, fmtKg, mean, weekStart } from './calc';
+import { tr as translate } from '../i18n';
 import { MUSCLE_LABEL, findMuscle, norm } from './muscles';
 import { ACTION_LABEL, recommend, trendOf, type Trend } from './progression';
 import { recentReadiness } from './recovery';
@@ -65,8 +66,8 @@ export function answer(question: string, ctx: AssistantCtx): Answer {
   const tr = trends(ctx);
 
   // ¿Qué peso debería utilizar hoy? / peso para un ejercicio concreto
-  if (/(que|cuanto) peso|peso (deberia|uso|usar|hoy)|carga (hoy|uso)/.test(q)) {
-    const named = ctx.exercises.find((e) => q.includes(norm(e.name)));
+  if (/(que|cuanto|qual|quanto) peso|peso (deberia|uso|usar|hoy|devo|hoje)|carga (hoy|uso|hoje)|(what|which|how much) (weight|load)|(weight|load) (should|today|do i)/.test(q)) {
+    const named = ctx.exercises.find((e) => q.includes(norm(e.name)) || q.includes(norm(translate(e.name))));
     let list: ExerciseDef[] = [];
     let title = 'Pesos sugeridos';
     if (named) list = [named];
@@ -86,21 +87,21 @@ export function answer(question: string, ctx: AssistantCtx): Answer {
   }
 
   // ¿Qué ejercicios están estancados?
-  if (/estancad|no progres|no avanz/.test(q)) {
+  if (/estancad|no progres|no avanz|stall|stuck|plateau|not progress|estagnad|nao progrid|nao avanc|travad/.test(q)) {
     const st = tr.filter((t) => t.trend === 'stalled' || t.trend === 'declining');
     if (!st.length) return { title: 'Sin estancamientos detectados', lines: [tr.some((t) => t.trend !== 'insufficient') ? 'Ningún ejercicio con 3 o más sesiones muestra estancamiento en su rendimiento estimado.' : 'Se necesitan al menos 3 sesiones por ejercicio para evaluar estancamiento.'], basis };
     return { title: 'Ejercicios estancados o a la baja', lines: st.map((t) => `${t.ex.name}: ${t.trend === 'declining' ? 'a la baja' : 'estancado'} (${pct(t.pct)} en 1RM estimado, ${t.sessions} sesiones). ${recFor(ctx, t.ex).reason}`), basis };
   }
 
   // ¿Qué ejercicios están mejorando?
-  if (/mejorando|mejoran|progresando en que|mejor(es)? ejercicio/.test(q) && !muscle) {
+  if (/mejorando|mejoran|progresando en que|mejor(es)? ejercicio|improving|getting better|best exercise|melhorando|melhoram|melhor(es)? exercicio/.test(q) && !muscle) {
     const up = tr.filter((t) => t.trend === 'improving').sort((a, b) => b.pct - a.pct);
     if (!up.length) return { title: 'Sin mejoras claras todavía', lines: ['Ningún ejercicio con 3 o más sesiones muestra una mejora superior al 2 % en su 1RM estimado.'], basis };
     return { title: 'Ejercicios que están mejorando', lines: up.map((t) => `${t.ex.name}: ${pct(t.pct)} en 1RM estimado (últimas 2 sesiones frente a las anteriores).`), basis };
   }
 
   // ¿En qué grupo muscular tengo menos volumen?
-  if (/menos volumen|poco volumen|menos series|descuidad/.test(q)) {
+  if (/menos volumen|poco volumen|menos series|descuidad|(least|less|lowest|low) volume|fewest sets|neglect|menos volume|pouco volume|negligenciad/.test(q)) {
     const cur = weekStart(ctx.now);
     const weeks = [0, 1, 2, 3].map((i) => muscleVolume(inWeek(ctx.sets, cur - i * 7 * DAY), ctx.exMap, ctx.indirectCoef));
     const avg = weeks[0].map((m, i) => ({ muscle: m.muscle, avg: mean(weeks.map((w) => w[i].fractional)), now: m.fractional }));
@@ -117,7 +118,7 @@ export function answer(question: string, ctx: AssistantCtx): Answer {
   }
 
   // ¿Estoy entrenando demasiado cerca del fallo?
-  if (/fallo|rir|demasiado cerca|muy cerca/.test(q)) {
+  if (/fallo|\brir\b|demasiado cerca|muy cerca|failure|too close|falha|perto demais|muito perto/.test(q)) {
     const recent = ctx.sets.filter((s) => ctx.now - s.date < 28 * DAY && s.rir != null);
     if (recent.length < 6) return { title: 'Faltan registros de RIR', lines: ['Hay menos de 6 series con RIR en las últimas 4 semanas. Registra el RIR de cada serie para poder evaluarlo.'], basis };
     const share = (xs: ASet[]) => (xs.length ? Math.round((xs.filter((s) => (s.rir as number) < 0.75).length / xs.length) * 100) : 0);
@@ -139,7 +140,7 @@ export function answer(question: string, ctx: AssistantCtx): Answer {
   }
 
   // ¿Cuándo debería aumentar la carga?
-  if (/cuando.*(aument|sub)|subir (la )?carga|aumentar (la )?carga|subir peso/.test(q)) {
+  if (/cuando.*(aument|sub)|subir (la )?carga|aumentar (la )?carga|subir peso|when.*(increase|raise|add|go up)|(increase|raise) (the )?(load|weight)|quando.*(aument|sub)|(subir|aumentar) (a )?carga|subir (o )?peso/.test(q)) {
     const ready = tr.map((t) => ({ t, r: recFor(ctx, t.ex) })).filter((x) => x.r.action === 'increase');
     return {
       title: 'Cuándo subir la carga',
@@ -153,7 +154,7 @@ export function answer(question: string, ctx: AssistantCtx): Answer {
   }
 
   // ¿Cómo ha evolucionado mi fuerza durante el último mes?
-  if (/fuerza|ultimo mes|evolucion/.test(q) && !muscle) {
+  if (/fuerza|ultimo mes|evolucion|strength|(last|past) month|forca|evolucao/.test(q) && !muscle) {
     const rows = [...new Set(ctx.sets.map((s) => s.exerciseId))].flatMap((id) => {
       const ex = ctx.exercises.find((e) => e.id === id);
       const ss = sessionsOf(ctx.sets, id).filter((s) => ctx.now - s.date < 60 * DAY);

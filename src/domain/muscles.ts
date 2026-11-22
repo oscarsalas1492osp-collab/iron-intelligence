@@ -46,15 +46,17 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 /** Reconoce un grupo muscular mencionado en texto libre (para el asistente). */
 export function findMuscle(text: string): Muscle | null {
   const t = norm(text);
+  // Alias en español, inglés y portugués, ya sin tildes: el asistente recibe preguntas en los tres idiomas.
   const alias: [Muscle, string[]][] = [
-    ['traps', ['trapecio']], ['lowerback', ['lumbar', 'espalda baja', 'erector']], ['obliques', ['oblicuo']],
-    ['abductors', ['abductor', 'gluteo medio']], ['adductors', ['aductor']], ['tibialis', ['tibial']], ['neck', ['cuello']],
-    ['chest', ['pecho', 'pectoral']], ['back', ['espalda', 'dorsal']], ['shoulders', ['hombro', 'deltoides']],
-    ['biceps', ['biceps']], ['triceps', ['triceps']], ['forearms', ['antebrazo']],
-    ['quads', ['cuadriceps', 'cuadri']], ['hamstrings', ['isquio', 'femoral']], ['glutes', ['gluteo']],
-    ['calves', ['gemelo', 'pantorrilla']], ['abs', ['abdominal', 'abdomen', 'core']],
+    ['traps', ['trapecio', 'trapezio', 'trap']], ['lowerback', ['lumbar', 'espalda baja', 'erector', 'lower back', 'lombar']], ['obliques', ['oblicuo', 'oblique', 'obliquo']],
+    ['abductors', ['abductor', 'gluteo medio', 'abdutor']], ['adductors', ['aductor', 'adductor', 'adutor']], ['tibialis', ['tibial']], ['neck', ['cuello', 'neck', 'pescoco']],
+    ['chest', ['pecho', 'pectoral', 'chest', 'peito']], ['back', ['espalda', 'dorsal', 'back', 'costas', 'lats']], ['shoulders', ['hombro', 'deltoides', 'shoulder', 'delt', 'ombro']],
+    ['biceps', ['bicep']], ['triceps', ['tricep']], ['forearms', ['antebrazo', 'forearm', 'antebraco']],
+    ['quads', ['cuadriceps', 'cuadri', 'quad']], ['hamstrings', ['isquio', 'femoral', 'hamstring', 'posterior de coxa']], ['glutes', ['gluteo', 'glute']],
+    ['calves', ['gemelo', 'pantorrilla', 'calf', 'calves', 'panturrilha']], ['abs', ['abdomin', 'abdomen', 'core', 'abs']],
   ];
-  for (const [m, words] of alias) if (words.some((w) => t.includes(w))) return m;
+  // Los alias cortos deben empezar palabra, para que «abs» no aparezca dentro de otra.
+  for (const [m, words] of alias) if (words.some((w) => (w.length <= 4 ? new RegExp(`\\b${w}`).test(t) : t.includes(w)))) return m;
   return null;
 }
 
