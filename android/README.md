@@ -23,6 +23,9 @@ como referencia si el paquete se genera con otra herramienta.
 - `public/.well-known/assetlinks.json` publica la huella de la clave de subida: sirve para probar el `.apk`
   instalado directo en un teléfono. Falta agregar la huella de la clave con la que firma Google Play.
 
+- 23-11-2026: `.aab` 1 (1.0.0.0) subido a la prueba cerrada (canal Alpha) como borrador, y huella de la clave de
+  firma de Google Play agregada a `public/.well-known/assetlinks.json`.
+
 ## Lo que falta, en orden
 
 1. En Play Console: crear la app, subir el `.aab` a la prueba cerrada y copiar la huella SHA-256 de

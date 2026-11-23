@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.ironintelligence",
-        "sha256_cert_fingerprints": ["C3:0B:15:56:22:BF:F5:60:FE:85:3E:D0:07:32:5E:6E:F5:AE:08:BE:DF:6C:7C:35:3C:CD:1D:B2:98:D6:7B:5F"]
-      }
-    }]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.ironintelligence",
+      "sha256_cert_fingerprints": [
+        "C3:0B:15:56:22:BF:F5:60:FE:85:3E:D0:07:32:5E:6E:F5:AE:08:BE:DF:6C:7C:35:3C:CD:1D:B2:98:D6:7B:5F",
+        "32:1D:38:A5:F1:9F:92:20:F7:CE:90:95:EF:B4:68:BE:89:9E:2F:2D:5C:73:7A:5A:1F:E8:A9:D2:9B:4C:17:7F"
+      ]
+    }
+  }
+]
