@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES, GRACE, money, needsPro, parseBilling, planState, priceFor, type Entitlement } from '../domain/plan';
-import { manifest, paidUntil, PROVISIONAL, RETRY, signatureParts, type PreLike } from '../../supabase/functions/pagos/periodo';
+import { freeDays, manifest, paidUntil, PROVISIONAL, RETRY, signatureParts, type PreLike } from '../../supabase/functions/pagos/periodo';
 
 const DAY = 86400000, NOW = 1_800_000_000_000;
 const raw = { enabled: true, trial_days: 21, free_routines: 2, free_history_days: 30, free_custom_exercises: 3, prices: { CLP: { monthly: 4990, yearly: 39990 }, USD: { monthly: 4.99, yearly: 39.99 } }, checkout: { monthly: null, yearly: 'https://pago.example/anual' } };
@@ -31,6 +31,19 @@ describe('cobro por Mercado Pago', () => {
     expect(paidUntil(pre({ next_payment_date: '2027-02-10T12:00:00Z' }), T)).toBe(Date.parse('2027-02-10T12:00:00Z'));
     expect(paidUntil(pre({ next_payment_date: '2027-01-01T00:00:00Z' }), T)).toBe(T + PROVISIONAL);
   });
+  it('con días gratis al suscribirse, Pro vale hasta que terminan aunque aún no haya cobros', () => {
+    const p = pre({ auto_recurring: { frequency: 1, frequency_type: 'months', free_trial: { frequency: 14, frequency_type: 'days' } }, summarized: { charged_quantity: 0 } });
+    expect(paidUntil(p, T + 2 * DAY)).toBe(T + 14 * DAY);
+    expect(paidUntil(pre({ auto_recurring: { frequency: 1, frequency_type: 'months', free_trial: { frequency: 900, frequency_type: 'days' } }, summarized: { charged_quantity: 0 } }), T)).toBe(T + 60 * DAY);   // con tope
+  });
+  it('días gratis al suscribirse: 21 menos los usados sin tarjeta, y nada para quien ya tuvo suscripción', () => {
+    const iso = (ms: number) => new Date(ms).toISOString();
+    expect(freeDays(21, null, T)).toBe(21);                                                                   // nunca probó
+    expect(freeDays(21, { source: 'trial', created_at: iso(T - 3 * DAY), period_end: iso(T + 4 * DAY) }, T)).toBe(18);   // va en el día 3 de 7
+    expect(freeDays(21, { source: 'trial', created_at: iso(T - 30 * DAY), period_end: iso(T - 23 * DAY) }, T)).toBe(14); // usó los 7 completos
+    expect(freeDays(21, { source: 'web', created_at: iso(T - 90 * DAY), period_end: iso(T - 60 * DAY) }, T)).toBe(0);
+    expect(freeDays(21, { source: 'manual', created_at: iso(T - 5 * DAY), period_end: null }, T)).toBe(21);               // un regalo no descuenta
+  });
   it('arma el texto que Mercado Pago firma en sus avisos', () => {
     expect(manifest('2C9380848D', 'req-1', '1700000000')).toBe('id:2c9380848d;request-id:req-1;ts:1700000000;');
     expect(signatureParts('ts=1700000000, v1=abc123')).toEqual({ ts: '1700000000', v1: 'abc123' });
@@ -57,6 +70,15 @@ describe('planes', () => {
     expect(planState(on, null, NOW, true)).toMatchObject({ billing: true, pro: false, kind: 'free', canTrial: true, freeRoutines: 2, freeHistoryDays: 30, freeCustomExercises: 3 });
     expect(planState(on, null, NOW, false).canTrial).toBe(false);
     expect(planState(on, ent({ status: 'expired', source: 'trial', periodEnd: NOW - DAY }), NOW, true)).toMatchObject({ pro: false, canTrial: false });
+  });
+  it('al suscribirse se ofrecen los días gratis que quedan: 21, o 14 tras la prueba de 7', () => {
+    const b = parseBilling({ ...raw, trial_days: 7, card_trial_days: 21 })!;
+    expect(b.trialDays).toBe(7);
+    expect(planState(b, null, NOW, true).cardTrialLeft).toBe(21);
+    expect(planState(b, ent({ source: 'trial', status: 'trialing', periodEnd: NOW + 4 * DAY }), NOW, true).cardTrialLeft).toBe(18);
+    expect(planState(b, ent({ source: 'trial', status: 'trialing', periodEnd: NOW - DAY }), NOW, true).cardTrialLeft).toBe(14);
+    expect(planState(b, ent({ source: 'web', status: 'canceled', periodEnd: NOW - DAY }), NOW, true).cardTrialLeft).toBe(0);
+    expect(parseBilling({ ...raw, trial_days: undefined })!.trialDays).toBe(7);
   });
   it('la prueba gratis vale hasta su último día, sin gracia', () => {
     const t = ent({ status: 'trialing', source: 'trial', periodEnd: NOW + 2.2 * DAY });

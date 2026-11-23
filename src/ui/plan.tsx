@@ -109,6 +109,9 @@ export function PlanSheet() {
     catch (e) { toast(e instanceof Error ? e.message : 'No se pudo cancelar la suscripción.', 'error'); }
     finally { setBusy(false); }
   };
+  // Al suscribirse con medio de pago hay días gratis antes del primer cobro (se descuentan los de la prueba sin tarjeta).
+  const freeNote = mp && plan.cardTrialLeft > 0 && !(plan.pro && plan.kind === 'paid')
+    ? <p className="rounded-xl bg-card2 px-3 py-2 text-sm">{`Si te suscribes ahora, tus primeros ${days(plan.cardTrialLeft)} son gratis. El primer cobro llega al terminar, y puedes cancelar antes.`}</p> : null;
   const checkout = mp ? <PayForm period={period} uid={uid} onDone={() => setSheet(false)} />
     : link ? <a href={link} target="_blank" rel="noopener noreferrer" className="btn-fire hit block w-full rounded-xl px-4 py-3 text-center font-semibold text-ink">Suscribirme a Pro</a>
     : null;
@@ -126,6 +129,7 @@ export function PlanSheet() {
               : 'Se renueva cada mes. Puedes cancelar cuando quieras.'}</p>
           </div>
         )}
+        {freeNote}
         {plan.kind === 'trial' && <p className="rounded-xl bg-card2 px-3 py-2 text-sm">Estás probando Pro. {plan.daysLeft !== null && `Te quedan ${days(plan.daysLeft)}.`}</p>}
         {plan.pro && plan.kind !== 'trial' ? (
           <div className="space-y-3">

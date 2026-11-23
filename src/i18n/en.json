@@ -2223,6 +2223,7 @@
 "shrink-0 rounded-full wd-c px-2.5 py-0.5 text-xs font-semibold {*}":"shrink-0 rounded-full wd-c px-2.5 py-0.5 text-xs font-semibold {*}",
 "sí":"yes",
 "Si ese correo tiene una cuenta, llegará un enlace para elegir una contraseña nueva. Revisa también el correo no deseado.":"If that email has an account, a link to choose a new password is on its way. Check your spam folder too.",
+"Si te suscribes ahora, tus primeros {*} son gratis. El primer cobro llega al terminar, y puedes cancelar antes.":"If you subscribe now, your first {*} are free. The first charge comes when they end, and you can cancel before then.",
 "Sí, anular":"Yes, discard",
 "Sigue: {*}, {*} kg × {*}":"Next: {*}, {*} kg × {*}",
 "Siguiente ejercicio":"Next exercise",

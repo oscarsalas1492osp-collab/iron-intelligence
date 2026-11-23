@@ -12,7 +12,10 @@ export type Feature = (typeof FEATURES)[number];
 export interface Prices { monthly: number; yearly: number }
 export interface Billing {
   enabled: boolean;
+  /** Prueba sin medio de pago. */
   trialDays: number;
+  /** Días gratis al suscribirse con medio de pago por primera vez. Se descuentan los ya usados en la prueba sin tarjeta. */
+  cardTrialDays: number;
   /** Rutinas propias que permite el plan gratis. */
   freeRoutines: number;
   /** Días de historial que el plan gratis incluye en el análisis. */
@@ -42,6 +45,8 @@ export interface PlanState {
   daysLeft: number | null;
   canTrial: boolean;
   trialDays: number;
+  /** Días gratis que tendría esta persona si se suscribe hoy con medio de pago (0 si ya tuvo una suscripción). */
+  cardTrialLeft: number;
   freeRoutines: number;
   freeHistoryDays: number;
   freeCustomExercises: number;
@@ -69,7 +74,8 @@ export function parseBilling(v: unknown, uid?: string): Billing | null {
   const c = (o.checkout as Record<string, unknown>) ?? {};
   return {
     enabled: (o.enabled === true || (!!uid && Array.isArray(o.preview) && o.preview.includes(uid))) && Object.keys(prices).length > 0,
-    trialDays: Math.min(60, Math.max(1, Math.round(num(o.trial_days, 21)))),
+    trialDays: Math.min(60, Math.max(1, Math.round(num(o.trial_days, 7)))),
+    cardTrialDays: Math.min(60, Math.max(0, Math.round(num(o.card_trial_days, 21)))),
     freeRoutines: Math.max(1, Math.round(num(o.free_routines, 2))),
     freeHistoryDays: Math.max(7, Math.round(num(o.free_history_days, 30))),
     freeCustomExercises: Math.max(0, Math.round(num(o.free_custom_exercises, 3))),
@@ -79,8 +85,19 @@ export function parseBilling(v: unknown, uid?: string): Billing | null {
   };
 }
 
+/**
+ * Días gratis al suscribirse con medio de pago: los de la prueba larga menos los ya usados en la prueba sin tarjeta.
+ * Quien ya tuvo una suscripción no vuelve a tenerlos. La misma regla corre en el servidor (pagos/periodo.ts).
+ */
+export function cardTrialLeft(cardTrialDays: number, trialDays: number, ent: Pick<Entitlement, 'source' | 'periodEnd'> | null, now: number): number {
+  if (!ent || ent.source === 'founder' || ent.source === 'manual') return cardTrialDays;
+  if (ent.source !== 'trial' || ent.periodEnd === null) return 0;
+  const start = ent.periodEnd - trialDays * DAY, used = Math.ceil((Math.min(now, ent.periodEnd) - start) / DAY);
+  return Math.max(0, cardTrialDays - Math.max(0, used));
+}
+
 export function planState(billing: Billing | null, ent: Entitlement | null, now: number, signedIn: boolean): PlanState {
-  const base = { trialDays: billing?.trialDays ?? 21, freeRoutines: billing?.freeRoutines ?? 2, freeHistoryDays: billing?.freeHistoryDays ?? 30, freeCustomExercises: billing?.freeCustomExercises ?? 3, locked: [] as Feature[] };
+  const base = { trialDays: billing?.trialDays ?? 7, cardTrialLeft: billing ? cardTrialLeft(billing.cardTrialDays, billing.trialDays, ent, now) : 0, freeRoutines: billing?.freeRoutines ?? 2, freeHistoryDays: billing?.freeHistoryDays ?? 30, freeCustomExercises: billing?.freeCustomExercises ?? 3, locked: [] as Feature[] };
   if (!billing || !billing.enabled) return { billing: false, pro: true, kind: 'open', daysLeft: null, canTrial: false, ...base };
   if (ent) {
     const live = ent.status === 'trialing' || ent.status === 'active' || ent.status === 'grace' || ent.status === 'canceled';   // cancelado: sigue hasta el fin de lo pagado

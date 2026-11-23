@@ -113,7 +113,8 @@ check('pendiente de pago: el plan no cambia', r.body.results?.[0] === 'pendiente
 
 p1.status = 'authorized';
 r = await call(h, { jwt: 'jwt-1', body: { action: 'sync', id: 'pre1' } });
-check('autorizada sin cobro confirmado: acceso provisional de un día', ent(U1)?.status === 'active' && ent(U1).source === 'web' && days(ent(U1).period_end) > 0.9 && days(ent(U1).period_end) < 1.01, JSON.stringify(ent(U1)));
+check('primera suscripción: lleva 21 días gratis antes del primer cobro', p1.auto_recurring?.free_trial?.frequency === 21 && p1.auto_recurring.free_trial.frequency_type === 'days', JSON.stringify(p1.auto_recurring));
+check('autorizada con días gratis: Pro hasta que terminan, aunque aún no haya cobros', ent(U1)?.status === 'active' && ent(U1).source === 'web' && days(ent(U1).period_end) > 20.9 && days(ent(U1).period_end) < 21.01, JSON.stringify(ent(U1)));
 
 // cobro confirmado: llega el aviso del pago
 p1.summarized = { charged_quantity: 1, last_charged_date: new Date().toISOString() };
@@ -165,7 +166,7 @@ check('un regalo sin vencimiento no se reemplaza por un pago', r.body.results[0]
 Object.assign(ent(U2), { source: 'trial', status: 'trialing', period_end: new Date(Date.now() + 10 * DAY).toISOString() });
 p3.summarized = { charged_quantity: 0 };
 r = await call(h, { jwt: 'jwt-2', body: { action: 'sync' } });
-check('pagar durante la prueba no la acorta mientras el cobro no se confirma', r.body.results[0] === 'se_conserva' && ent(U2).source === 'trial');
+check('suscribirse durante la prueba suma los días gratis y nunca la acorta', r.body.results[0] === 'activo' && ent(U2).source === 'web' && days(ent(U2).period_end) > 10, JSON.stringify(ent(U2)));
 p3.summarized = { charged_quantity: 1, last_charged_date: new Date().toISOString() };
 r = await call(h, { jwt: 'jwt-2', body: { action: 'sync' } });
 check('con el cobro confirmado, la prueba pasa a suscripción', ent(U2).source === 'web' && ent(U2).status === 'active' && days(ent(U2).period_end) > 27);

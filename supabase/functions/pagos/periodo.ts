@@ -5,11 +5,29 @@ export const PROVISIONAL = 1 * DAY;
 /** Margen mientras Mercado Pago reintenta un cobro rechazado (su ventana de reintentos es de diez días). */
 export const RETRY = 10 * DAY;
 
+/** Tope de días gratis al suscribirse con medio de pago. */
+export const MAX_FREE = 60;
+
+/**
+ * Días gratis al suscribirse con medio de pago por primera vez: los de la prueba larga menos los que ya se usaron
+ * en la prueba sin tarjeta. Quien ya tuvo una suscripción (web o Google Play) no vuelve a tenerlos.
+ * `ent`: el plan actual de la cuenta, con las fechas tal como las guarda la base.
+ */
+export function freeDays(cardTrialDays: number, ent: { source?: string; created_at?: string | null; period_end?: string | null } | null, now: number): number {
+  const total = Math.min(MAX_FREE, Math.max(0, Math.round(cardTrialDays) || 0));
+  if (!ent || ent.source === 'founder' || ent.source === 'manual') return total;
+  if (ent.source !== 'trial') return 0;
+  const start = Date.parse(ent.created_at ?? ''), end = Date.parse(ent.period_end ?? '');
+  if (!Number.isFinite(start)) return 0;
+  const used = Math.ceil((Math.min(now, Number.isFinite(end) ? end : now) - start) / DAY);
+  return Math.max(0, total - Math.max(0, used));
+}
+
 export interface PreLike {
   status?: string;
   date_created?: string;
   next_payment_date?: string;
-  auto_recurring?: { frequency?: number; frequency_type?: string } | null;
+  auto_recurring?: { frequency?: number; frequency_type?: string; free_trial?: { frequency?: number; frequency_type?: string } | null } | null;
   summarized?: { charged_quantity?: number; last_charged_date?: string } | null;
 }
 
@@ -25,7 +43,11 @@ export function paidUntil(pre: PreLike, now: number): number {
   const next = time(pre.next_payment_date), provisional = (time(pre.date_created) ?? now) + PROVISIONAL;
   if (!pre.summarized) return next !== null && next > now ? next : provisional;      // sin resumen de cobros: vale la fecha del próximo cobro
   const last = time(pre.summarized.last_charged_date);
-  if ((Number(pre.summarized.charged_quantity) || 0) < 1 || last === null) return provisional;
+  if ((Number(pre.summarized.charged_quantity) || 0) < 1 || last === null) {
+    // Con días gratis al suscribirse, Pro vale hasta que terminan (ahí llega el primer cobro); sin ellos, solo el acceso provisional.
+    const ft = pre.auto_recurring?.free_trial, free = ft?.frequency_type === 'days' ? Math.min(MAX_FREE, Math.max(0, Math.round(Number(ft.frequency) || 0))) : 0;
+    return free > 0 ? Math.max(provisional, (time(pre.date_created) ?? now) + free * DAY) : provisional;
+  }
   const d = new Date(last);
   d.setUTCMonth(d.getUTCMonth() + months);
   const paid = d.getTime();

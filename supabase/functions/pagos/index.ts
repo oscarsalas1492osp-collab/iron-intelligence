@@ -9,7 +9,7 @@
 // Secretos (Supabase → Edge Functions → Secrets): MP_ACCESS_TOKEN (obligatorio), MP_WEBHOOK_SECRET (recomendado).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { manifest, paidUntil, signatureParts } from "./periodo.ts";
+import { freeDays, manifest, paidUntil, signatureParts } from "./periodo.ts";
 
 const MP = "https://api.mercadopago.com";
 const TOKEN = Deno.env.get("MP_ACCESS_TOKEN") ?? "";
@@ -138,6 +138,9 @@ Deno.serve(async (req: Request) => {
     if (!on || cfg?.checkout?.mp !== true || !(price > 0)) return json(req, 409, { error: "cobro_apagado" });
     const { count } = await admin.from("payment_intents").select("provider_ref", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", new Date(Date.now() - 3600000).toISOString());
     if ((count ?? 0) >= 5) return json(req, 429, { error: "demasiados_intentos" });
+    // Días gratis antes del primer cobro: 21 al suscribirse por primera vez, menos los usados en la prueba sin tarjeta.
+    const { data: ent } = await admin.from("entitlements").select("source,created_at,period_end").eq("user_id", user.id).maybeSingle();
+    const free = freeDays(Number(cfg.card_trial_days ?? 21), ent, Date.now());
     const r = await mp("/preapproval", {
       method: "POST",
       body: JSON.stringify({
@@ -146,7 +149,7 @@ Deno.serve(async (req: Request) => {
         payer_email: email,
         back_url: BACK,
         status: "pending",
-        auto_recurring: { frequency: period === "yearly" ? 12 : 1, frequency_type: "months", transaction_amount: Math.round(price), currency_id: "CLP" },
+        auto_recurring: { frequency: period === "yearly" ? 12 : 1, frequency_type: "months", transaction_amount: Math.round(price), currency_id: "CLP", ...(free > 0 ? { free_trial: { frequency: free, frequency_type: "days" } } : {}) },
       }),
     });
     if (!r.ok || typeof r.body?.init_point !== "string" || !isMpId(r.body?.id)) {
@@ -155,7 +158,7 @@ Deno.serve(async (req: Request) => {
     }
     const { error } = await admin.from("payment_intents").insert({ provider_ref: `mp:${r.body.id}`, user_id: user.id, period });
     if (error) console.error("payment_intents", error.message);
-    return json(req, 200, { url: r.body.init_point });
+    return json(req, 200, { url: r.body.init_point, free_days: free });
   }
 
   // ---------- avisos de Mercado Pago ----------
