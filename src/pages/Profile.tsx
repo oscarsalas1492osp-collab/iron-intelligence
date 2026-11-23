@@ -142,6 +142,13 @@ export default function Profile() {
             </div>
             <Btn variant="danger" className="w-full" onClick={onDelete}>{uid !== 'local' ? 'Eliminar cuenta y datos' : 'Borrar los datos de este dispositivo'}</Btn>
           </Card>
+          <H2>Redes de la app</H2>
+          <Card>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <a className="hit text-data underline" href="https://www.instagram.com/iron__intelligence/" target="_blank" rel="noopener noreferrer">Instagram</a>
+              <a className="hit text-data underline" href="https://www.tiktok.com/@iron.intelligence6" target="_blank" rel="noopener noreferrer">TikTok</a>
+            </div>
+          </Card>
           <Link to="/fundamento" className="mt-4 block text-center text-sm text-data underline">Ver el fundamento científico de las recomendaciones</Link>
         </div>
       </div>
