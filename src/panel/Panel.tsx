@@ -9,8 +9,18 @@ const APP = 'https://app.ironintelligence.app', WEB = 'https://ironintelligence.
 const TEL: Record<string, string> = { android: 'Android', iphone: 'iPhone' };
 const DIAS: Record<string, string> = { '1-2': '1 a 2 días', '3-4': '3 a 4 días', '5+': '5 días o más' };
 const ANOTA: Record<string, string> = { notas: 'notas del teléfono', papel: 'papel', otra_app: 'otra app', ninguna: 'en ninguna parte' };
-const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados', modo_de_acceso: 'Entrada a la app' };
+const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', plan_pro: 'Plan Pro de', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados', modo_de_acceso: 'Entrada a la app' };
 const TIPO: Record<api.Kind, string> = { tester: 'Tester', guest: 'Invitado' };
+// Plan Pro que se le da a una persona con acceso: 0 no lleva Pro, -1 no vence, N son días desde hoy.
+const PRO_OPC = [{ value: '0', label: 'Sin Pro' }, { value: '14', label: '14 días' }, { value: '30', label: '30 días' }, { value: '90', label: '90 días' }, { value: '-1', label: 'Sin vencimiento' }];
+const fVence = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+const proDe = (g: api.GrantRow): string => {
+  if (g.pro_forever) return 'Pro sin vencimiento';
+  if (!g.pro_until) return 'sin Pro';
+  const t = new Date(g.pro_until).getTime(), dias = Math.ceil((t - Date.now()) / 86400000);
+  return dias <= 0 ? `Pro vencido el ${fVence.format(t)}` : `Pro hasta el ${fVence.format(t)} (${plural(dias, 'día', 'días')})`;
+};
+const proVigente = (g: api.GrantRow) => !!g.pro_forever || (!!g.pro_until && new Date(g.pro_until).getTime() > Date.now());
 const MODO: Record<string, string> = { invite: 'solo invitados', open: 'abierta para todos' };
 const dado = (tieneCuenta: boolean) => (tieneCuenta ? 'Acceso dado. Ya puede entrar con su cuenta.' : 'Acceso dado. Ya puede crear su cuenta con ese correo.');
 type Mail = { status: api.MailStatus | null; reload: () => void };
@@ -322,6 +332,7 @@ function Accesos({ mail }: { mail: Mail }) {
   const { data, error, loading, reload } = useLoad(api.testers, []);
   const log = useLoad(api.activity, []);
   const [email, setEmail] = useState(''), [nota, setNota] = useState(''), [tipo, setTipo] = useState<api.Kind>('tester');
+  const [pro, setPro] = useState('30'), [proSel, setProSel] = useState('30');
   const [ver, setVer] = useState(false);
   const [sel, setSel] = useState<api.GrantRow | null>(null), [post, setPost] = useState<api.SignupRow | null>(null);
   const { toast, confirm } = useUi(), run = useAction();
@@ -329,12 +340,14 @@ function Accesos({ mail }: { mail: Mail }) {
   const activos = grants.filter((g) => g.status === 'active'), paraPlay = activos.filter((g) => g.kind === 'tester' && g.phone_os !== 'iphone');
 
   const refrescar = () => { setSel(null); setPost(null); reload(); log.reload(); };
-  const dar = (correo: string, n?: string, kind: api.Kind = 'tester') => run(async () => {
+  const dar = (correo: string, n?: string, kind: api.Kind = 'tester', dias = 0) => run(async () => {
     const x = await api.grantAccess(correo, n, kind);
+    if (dias !== 0) await api.setPro(correo, dias);
     toast(dado(x.has_account));
     setEmail(''); setNota(''); refrescar();
   });
-  const enviar = (e: FormEvent) => { e.preventDefault(); if (email.trim()) void dar(email.trim(), nota.trim(), tipo); };
+  const enviar = (e: FormEvent) => { e.preventDefault(); if (email.trim()) void dar(email.trim(), nota.trim(), tipo, Number(pro)); };
+  const darPro = (g: api.GrantRow, dias: number) => run(async () => { await api.setPro(g.email, dias); refrescar(); }, dias === 0 ? 'Plan Pro quitado' : 'Plan Pro actualizado');
   const invitar = (g: api.GrantRow) => run(async () => { const r = await api.mailInvite(g.email); toast(`Invitación enviada a ${r.to}`); refrescar(); mail.reload(); });
   const quitar = async (g: api.GrantRow) => {
     if (!(await confirm(`Vas a quitarle el acceso a ${g.email}. Su cuenta y sus entrenamientos no se tocan, pero con la app en solo invitados ya no va a poder entrar.`, { confirmLabel: 'Quitar acceso', danger: true }))) return;
@@ -348,9 +361,10 @@ function Accesos({ mail }: { mail: Mail }) {
           <Field label="Correo de la persona"><input type="email" required inputMode="email" autoComplete="off" placeholder="nombre@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
           <Field label="Nota (opcional)"><input type="text" maxLength={200} placeholder="de dónde la conoces" value={nota} onChange={(e) => setNota(e.target.value)} /></Field>
           <Seg<api.Kind> options={[{ value: 'tester', label: 'Tester' }, { value: 'guest', label: 'Invitado' }]} value={tipo} onChange={setTipo} />
+          <Field label="Plan Pro sin costo"><select value={pro} onChange={(e) => setPro(e.target.value)}>{PRO_OPC.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field>
           <Btn type="submit" variant="primary" disabled={!email.trim()}>Dar acceso</Btn>
         </form>
-        <p className="mt-3 text-sm text-mute">El tester prueba la app y recibe el plan Pro sin costo. El invitado solo entra antes del lanzamiento. Mientras la app esté en solo invitados, únicamente estos correos pueden crear una cuenta.</p>
+        <p className="mt-3 text-sm text-mute">Tester o invitado es solo cómo lo anotas: los dos entran antes del lanzamiento. El plan Pro lo decides aparte, y los días corren desde hoy. Mientras la app esté en solo invitados, únicamente estos correos pueden crear una cuenta.</p>
       </Card>
 
       <H2 right={<span className="wd-c text-sm text-mute">{plural(activos.length, 'persona', 'personas')}</span>}>Con acceso</H2>
@@ -361,7 +375,7 @@ function Accesos({ mail }: { mail: Mail }) {
           <Lista>
             {grants.map((g) => (
               <Fila key={g.email} titulo={g.email} onClick={() => setSel(g)}
-                linea={`${TIPO[g.kind]}, ${g.status === 'revoked' ? `le quitaste el acceso ${hace(g.revoked_at)}` : g.has_account ? `con cuenta, acceso ${hace(g.granted_at)}` : g.invited_at ? `invitación enviada ${hace(g.invited_at)}` : 'esperando que cree su cuenta'}`}
+                linea={`${TIPO[g.kind]}, ${g.status === 'revoked' ? '' : `${proDe(g)}, `}${g.status === 'revoked' ? `le quitaste el acceso ${hace(g.revoked_at)}` : g.has_account ? `con cuenta, acceso ${hace(g.granted_at)}` : g.invited_at ? `invitación enviada ${hace(g.invited_at)}` : 'esperando que cree su cuenta'}`}
                 marcas={g.status === 'revoked' ? <Marca tono="ember">Sin acceso</Marca> : g.has_account ? <Marca tono="go">Activo</Marca> : <Marca tono="mute">En espera</Marca>} />
             ))}
           </Lista>
@@ -400,12 +414,22 @@ function Accesos({ mail }: { mail: Mail }) {
             <div className="mb-5">
               {sel.name && <Dato k="Nombre">{sel.name}</Dato>}
               <Dato k="Tipo">{TIPO[sel.kind]}</Dato>
+              {sel.status === 'active' && <Dato k="Plan Pro">{proDe(sel)}</Dato>}
               <Dato k="Acceso">{sel.status === 'active' ? `dado el ${cuando(sel.granted_at)}` : `quitado el ${cuando(sel.revoked_at)}`}</Dato>
               <Dato k="Invitación por correo">{sel.invited_at ? `enviada el ${cuando(sel.invited_at)}` : 'sin enviar'}</Dato>
               <Dato k="Cuenta en la app">{sel.has_account ? 'sí' : 'todavía no'}</Dato>
               <Dato k="Teléfono">{sel.phone_os ? TEL[sel.phone_os] : 'no se sabe'}</Dato>
               {sel.note && <Dato k="Nota">{sel.note}</Dato>}
             </div>
+            {sel.status === 'active' && (
+              <div className="mb-5 rounded-xl bg-card2 p-3">
+                <Field label={proVigente(sel) ? 'Cambiar el plan Pro' : 'Darle el plan Pro'}><select value={proSel} onChange={(e) => setProSel(e.target.value)}>{PRO_OPC.filter((o) => o.value !== '0').map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Field>
+                <div className="mt-2 flex gap-2">
+                  <Btn className="flex-1" variant="go" onClick={() => void darPro(sel, Number(proSel))}>{proVigente(sel) ? 'Aplicar desde hoy' : 'Dar Pro'}</Btn>
+                  {proVigente(sel) && <Btn className="flex-1" variant="danger" onClick={() => void darPro(sel, 0)}>Quitar Pro</Btn>}
+                </div>
+              </div>
+            )}
             <div className="grid gap-2">
               {sel.status === 'active' ? (
                 <>
@@ -436,7 +460,7 @@ function Accesos({ mail }: { mail: Mail }) {
               <Dato k="Cuenta en la app">{post.has_account ? 'sí' : 'todavía no'}</Dato>
             </div>
             <div className="grid gap-2">
-              {post.access !== 'active' && <Btn variant="primary" onClick={() => void dar(post.email, `postuló como ${post.name}`, 'tester')}>Dar acceso como tester</Btn>}
+              {post.access !== 'active' && <Btn variant="primary" onClick={() => void dar(post.email, `postuló como ${post.name}`, 'tester', Number(pro))}>Dar acceso como tester</Btn>}
               <Btn icon="copy" onClick={() => void copiar(mensajeAcceso(post.email)).then(() => toast('Mensaje copiado. Pégalo donde le escribas.'))}>Copiar mensaje con el link</Btn>
             </div>
           </>

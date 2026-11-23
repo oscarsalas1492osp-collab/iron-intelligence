@@ -20,7 +20,7 @@ export interface UserRow {
   id: string; email: string | null; created_at: string; last_sign_in_at: string | null; confirmed: boolean; provider: string; name: string | null;
   sessions: number; last_session: number | null; plan_status: string | null; plan_source: string | null; plan_end: string | null; access: Access; admin: boolean;
 }
-export interface GrantRow { email: string; kind: Kind; invited_at: string | null; status: 'active' | 'revoked'; note: string | null; granted_at: string; applied_at: string | null; revoked_at: string | null; has_account: boolean; name: string | null; phone_os: Phone }
+export interface GrantRow { email: string; kind: Kind; pro_forever?: boolean; pro_until?: string | null; invited_at: string | null; status: 'active' | 'revoked'; note: string | null; granted_at: string; applied_at: string | null; revoked_at: string | null; has_account: boolean; name: string | null; phone_os: Phone }
 export interface SignupRow { name: string; email: string; phone_os: 'android' | 'iphone'; days_per_week: string; logs_in: string; contact: string | null; source: string | null; created_at: string; has_account: boolean; access: Access }
 export interface LogRow { at: string; action: string; target: string | null; detail: string | null }
 export interface Page<T> { total: number; rows: T[] }
@@ -73,6 +73,8 @@ export const users = (q: string, limit: number) => call<Page<UserRow>>('admin_us
 export const testers = () => call<{ grants: GrantRow[]; signups: SignupRow[] }>('admin_testers');
 export const activity = () => call<LogRow[]>('admin_activity');
 export const grantAccess = (email: string, note?: string, kind: Kind = 'tester') => call<{ email: string; has_account: boolean }>('admin_invite', { p_email: email, p_note: note || null, p_kind: kind });
+/** Plan Pro de una persona con acceso. `days`: 0 lo quita, -1 sin vencimiento, N días desde ahora. */
+export const setPro = (email: string, days: number) => call<{ email: string; pro_forever: boolean; pro_until: string | null }>('admin_set_pro', { p_email: email, p_days: days });
 export const setAccessMode = (mode: Mode) => call<Mode>('admin_set_access_mode', { p_mode: mode });
 export const revokeAccess = (email: string) => call<null>('admin_revoke_access', { p_email: email });
 export const removeLaunch = (email: string) => call<null>('admin_remove_launch', { p_email: email });

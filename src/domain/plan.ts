@@ -84,7 +84,7 @@ export function planState(billing: Billing | null, ent: Entitlement | null, now:
   if (!billing || !billing.enabled) return { billing: false, pro: true, kind: 'open', daysLeft: null, canTrial: false, ...base };
   if (ent) {
     const live = ent.status === 'trialing' || ent.status === 'active' || ent.status === 'grace' || ent.status === 'canceled';   // cancelado: sigue hasta el fin de lo pagado
-    const until = ent.periodEnd === null ? Infinity : ent.periodEnd + (ent.source === 'trial' || ent.status === 'canceled' ? 0 : GRACE);
+    const until = ent.periodEnd === null ? Infinity : ent.periodEnd + (ent.source === 'trial' || ent.source === 'manual' || ent.source === 'founder' || ent.status === 'canceled' ? 0 : GRACE);   // lo regalado termina el día que se fijó
     if (live && now < until && !(ent.status === 'canceled' && ent.periodEnd === null)) {
       const kind = ent.source === 'trial' ? 'trial' : ent.source === 'founder' || ent.source === 'manual' ? 'gift' : 'paid';
       return { billing: true, pro: true, kind, daysLeft: ent.periodEnd === null ? null : Math.max(0, Math.ceil((ent.periodEnd - now) / DAY)), canTrial: false, ...base };
