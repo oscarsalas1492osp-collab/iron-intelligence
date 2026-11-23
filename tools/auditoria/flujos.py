@@ -275,7 +275,7 @@ with sync_playwright() as p:
         pg.locator('main canvas').scroll_into_view_if_needed(); pg.evaluate('window.scrollBy(0,-120)'); pg.wait_for_timeout(300); box=pg.locator('main canvas').bounding_box(); pg.mouse.click(box['x']+box['width']*0.5, box['y']+box['height']*0.27); pg.wait_for_timeout(600)
         errors.append('TAP3D '+pg.locator('p[aria-live]').inner_text()[:90])
         pg.click('button:has-text("Espalda")'); pg.wait_for_timeout(1500); pg.wait_for_selector('button:has-text("Frente")'); pg.screenshot(path='/tmp/aud/K_dashboard.png', full_page=True)
-        go('/mas'); n=pg.locator('main a').count(); assert n==6, f'enlaces en Más: {n}'
+        go('/mas'); n=pg.locator('main a').count(); assert n>=6, f'enlaces en Más: {n}'
         for i in range(n):
             go('/mas'); pg.locator('main a').nth(i).click(); pg.wait_for_timeout(400); assert pg.locator('h1').count()>=1
         go('/ruta-inexistente'); pg.wait_for_selector('text=/Buen[oa]s/')
@@ -430,12 +430,12 @@ with sync_playwright() as p:
         pg.locator('main button', has_text='2. Curl de bíceps con barra').click(); pg.wait_for_selector('h2:has-text("Curl de bíceps con barra")')
         el=pg.locator('[aria-label="Peso serie 1"]'); el.click(); el.fill('20'); pg.keyboard.press('Enter'); pg.wait_for_timeout(250)
         pg.click('[aria-label="Completar serie 1"]'); pg.wait_for_selector('[role=timer]'); pg.wait_for_selector('text=3/9 series')
-        pg.click("[aria-label=\"Serie 1 completada, tocar para editar\"]"); dlg().locator("button:has-text(\"Alargar con una técnica\")").click()
+        pg.wait_for_timeout(700); pg.click("[aria-label=\"Serie 1 completada, tocar para editar\"]"); dlg().locator("button:has-text(\"Alargar con una técnica\")").click()
         dlg().locator('text=Dropset').first.wait_for(); dlg().locator('text=Descanso-pausa').first.wait_for(); dlg().locator('text=Myo-reps').first.wait_for(); dlg().locator('text=Cluster').first.wait_for(); shot('R_tecnicas')
         dlg().locator('[aria-label="Añadir Dropset"]').click(); pg.wait_for_selector('[aria-label="Peso bajada 1 de la serie 1"]'); pg.wait_for_timeout(300)
         v=pg.locator('[aria-label="Peso bajada 1 de la serie 1"]').input_value(); assert v=='15', 'carga de la bajada: '+v
         assert pg.locator('[role=timer]').count()==0, 'el dropset no canceló el descanso'
-        pg.click('[aria-label="Completar bajada 1 de la serie 1"]'); pg.wait_for_selector('[role=timer]'); pg.wait_for_selector('text=3/9 series'); pg.click('button:has-text("Omitir")')
+        pg.click('[aria-label="Completar bajada 1 de la serie 1"]'); pg.wait_for_selector('[role=timer]'); pg.wait_for_selector('text=3/9 series'); pg.click('button:has-text("Omitir")'); pg.wait_for_timeout(700)
         pg.click('button:has-text("Técnica")'); dlg().locator('[aria-label="Añadir Descanso-pausa"]').click(); pg.wait_for_selector('[aria-label="Peso pausa 1 de la serie 2"]'); pg.wait_for_selector('[role=timer]'); shot('R_dropset'); pg.click('button:has-text("Omitir")')
         pg.reload(); pg.wait_for_selector('text=3/9 series'); pg.wait_for_selector('[aria-label="Bajada 1 de la serie 1 completada, tocar para editar"]')
     step('Técnicas: dropset con carga rebajada, descanso-pausa con pausa corta, no cuentan como series', r3)

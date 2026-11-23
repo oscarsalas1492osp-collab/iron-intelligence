@@ -123,7 +123,9 @@ with sync_playwright() as p:
         except Exception as e:
             print('SALTO', w, 'historial Récords', str(e).split(chr(10))[0][:90])
         try:
-            go('/historial', 800); pg.locator('main button', has_text='kg').first.click(timeout=5000); pg.wait_for_timeout(700)
+            go('/historial', 800); pg.locator('main button', has_text='Calendario').first.click(); pg.wait_for_timeout(400)
+            if not pg.locator('main button[aria-label*="entrenamiento(s)"]').count(): pg.locator('[aria-label="Mes anterior"]').click(); pg.wait_for_timeout(400)   # a comienzos de mes los datos de prueba están en el mes pasado
+            pg.locator('main button[aria-label*="entrenamiento(s)"]').first.click(timeout=5000); pg.wait_for_timeout(700)
         except Exception as e:
             print('SALTO', w, 'go(\'/historial\', 800); pg.locator(\'main button[aria-label*="', str(e).split(chr(10))[0][:90]); pg.keyboard.press('Escape')
         try:
