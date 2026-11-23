@@ -128,7 +128,8 @@ describe('compartir e importar', () => {
 
 describe('indicadores', () => {
   it('racha, adherencia, balance, niveles y récords', async () => {
-    const now = Date.now(), wk = 7 * DAY;
+    // Un miércoles fijo: con la hora real, la última hora del domingo dejaba dos sesiones en semanas distintas.
+    const now = new Date(2026, 10, 18, 12).getTime(), wk = 7 * DAY;
     expect(weekStreak([now - wk, now - 2 * wk, now - 4 * wk], now)).toBe(2);
     expect(weekStreak([now, now - wk], now)).toBe(2);
     expect(weekStreak([], now)).toBe(0);
