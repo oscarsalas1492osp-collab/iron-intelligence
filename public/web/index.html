@@ -62,6 +62,7 @@ h2.display { font-size: clamp(2rem, 3.8vw, 3.25rem); }
 h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.2; letter-spacing: -0.005em; }
 .lead { font-size: clamp(1.0625rem, 1.5vw, 1.25rem); line-height: 1.5; color: var(--mute); max-width: 34em; }
 .note { color: var(--mute); font-size: 1rem; }
+.fine { color: var(--mute); font-size: .9375rem; line-height: 1.4; }
 .num { font-stretch: 118%; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* Botones */
@@ -155,7 +156,10 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 #recorrido { overflow: hidden; }
 .section-head { display: flex; flex-direction: column; gap: 18px; max-width: 42rem; }
 .head-row { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 24px 40px; }
-.arrows { display: flex; gap: 10px; }
+.arrows { display: flex; align-items: center; gap: 10px; }
+.arrows .fine { margin-right: 6px; }
+.pitch-shot { max-width: 360px; width: 100%; justify-self: center; }
+.pitch-shot img { object-position: 50% 22%; }
 
 /* ---------- Recorrido: pantallas en pestañas 3D ---------- */
 .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-top: 30px; padding: 4px var(--edge); margin-inline: calc(var(--edge) * -1); scroll-behavior: smooth; }
@@ -171,6 +175,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(7 13 16 / .5); opacity: var(--dim, 0); pointer-events: none; }
 .caption { display: grid; justify-items: center; text-align: center; gap: 8px; margin: 26px auto 0; max-width: 34rem; min-height: 6.4rem; align-content: start; }
 .caption p { color: var(--mute); }
+@media (max-width: 899px) { .caption { min-height: 8.6rem; } }
 .count { display: block; text-align: center; margin-top: 14px; font-size: .9375rem; color: var(--mute); }
 @media (min-width: 900px) { .flow { height: 560px; } .slide { width: 262px; } .slide .phone { border-radius: 40px; padding: 7px; } .slide .phone img { border-radius: 33px; } .slide::after { border-radius: 40px; } }
 
@@ -348,11 +353,12 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
   <div class="wrap">
     <div class="hero-copy">
       <h1 class="display">La app de fuerza que te dice cuándo subir el peso.</h1>
-      <p class="lead">Anotas cada serie en segundos y, la próxima vez, la app te dice si subes, mantienes o bajas el peso, y por qué. Sale pronto. Inscríbete y te llega el link el día del lanzamiento.</p>
+      <p class="lead">Anotas cada serie en segundos y llegas a tu próxima sesión sabiendo qué peso te toca. La app te indica si conviene subir, mantener o bajar, y te muestra el motivo.</p>
       <div class="actions">
         <a class="btn btn-fire" href="#aviso">Inscribirme</a>
         <a class="btn btn-ghost" href="#uso">Ver cómo se usa</a>
       </div>
+      <p class="fine">Sale pronto. Inscríbete y te llega el link el día del lanzamiento.</p>
       <div class="seg" role="tablist" aria-label="Pantalla que muestra el teléfono" id="hero-tabs">
         <button type="button" role="tab" aria-selected="true" data-img="/web/img/serie.webp" data-alt="Pantalla de entrenamiento: una serie hecha, la serie activa con la rueda de peso y el descanso corriendo.">Registra<i></i></button>
         <button type="button" role="tab" aria-selected="false" data-img="/web/img/analisis.webp" data-alt="Pantalla de análisis: sesiones, series y carga de la semana con un cuerpo en 3D.">Analiza<i></i></button>
@@ -405,14 +411,25 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
   </div>
 </section>
 
+<section class="section" id="recomendacion">
+  <div class="wrap trial">
+    <div class="section-head rv">
+      <h2 class="display">¿Subes el peso o repites?</h2>
+      <p class="lead">Con tus series anotadas y las repeticiones que te quedaban, la app te recomienda subir, mantener o bajar en la próxima sesión, y te muestra el motivo.</p>
+    </div>
+    <div class="shot pitch-shot rv"><img loading="lazy" decoding="async" draggable="false" width="540" height="1080" src="/web/img/s/ejercicio-en-curso.webp" alt="El ejercicio en curso: press inclinado con barra, con la recomendación de mantener el peso y aumentar las repeticiones, el peso sugerido de 80 kilos y el aviso «Toca para ver el motivo»."></div>
+  </div>
+</section>
+
 <section class="section" id="recorrido">
   <div class="wrap">
     <div class="head-row rv">
       <div class="section-head">
-        <h2 class="display">Mírala por dentro.</h2>
-        <p class="lead">Son trece pantallas reales de la app. Desliza, usa las flechas o toca una pestaña.</p>
+        <h2 class="display">Recorre la app por dentro.</h2>
+        <p class="lead">Trece pantallas reales, desde la rutina del día hasta el análisis de tu semana.</p>
       </div>
       <div class="arrows">
+        <p class="fine">Desliza o toca una pestaña.</p>
         <button class="icon-btn" type="button" id="flow-prev" aria-label="Pantalla anterior"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
         <button class="icon-btn" type="button" id="flow-next" aria-label="Pantalla siguiente"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
@@ -440,20 +457,20 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
         <p>Lo haces una vez y queda guardada para cada semana.</p>
       </div>
       <ol class="shots">
-        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/rutina-nombre.webp" alt="Hoja «Nueva rutina» con el nombre Pecho y tríceps y el botón «Crear y añadir ejercicios»."><div><h4>Le pones nombre</h4><p>Pecho y tríceps, pierna, lo que te toque ese día.</p></div></li>
+        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/rutina-nombre.webp" alt="Hoja «Nueva rutina» con el nombre Pecho y tríceps y el botón «Crear y añadir ejercicios»."><div><h4>Le pones nombre</h4><p>Por ejemplo, «Pecho y tríceps» o «Pierna».</p></div></li>
         <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/rutina-ejercicios.webp" alt="Buscador de ejercicios con la palabra «press», filtros por músculo, equipo y tipo, y 62 resultados."><div><h4>Eliges los ejercicios</h4><p>Buscas por nombre, músculo o máquina entre 448 ejercicios.</p></div></li>
-        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/rutina-objetivos.webp" alt="Objetivos del press de banca: 3 series, 8 a 12 repeticiones, RIR 1 a 2 y 120 segundos de descanso."><div><h4>Fijas el objetivo de cada uno</h4><p>Series, repeticiones, descanso y cuántas repeticiones dejas en reserva.</p></div></li>
+        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/rutina-objetivos.webp" alt="Objetivos del press de banca: 3 series, 8 a 12 repeticiones, RIR 1 a 2 y 120 segundos de descanso."><div><h4>Fijas el objetivo de cada uno</h4><p>Defines las series, las repeticiones, el descanso y cuántas repeticiones dejas en reserva (RIR).</p></div></li>
       </ol>
     </article>
 
     <article class="how rv" aria-labelledby="uso-descanso">
       <div class="how-head">
         <h3 id="uso-descanso">Anotas mientras descansas</h3>
-        <p>Desde la segunda vez, las series ya vienen con tu último peso.</p>
+        <p>Desde la segunda sesión, cada serie aparece con el último peso que usaste.</p>
       </div>
       <ol class="shots">
-        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/descanso-serie.webp" alt="Serie 1 lista para marcar: 92,5 kilos por 8 repeticiones, con la rueda de peso y el botón para completarla."><div><h4>Terminas la serie y la marcas</h4><p>Un toque. Si cambiaste el peso, lo ajustas antes con la rueda.</p></div></li>
-        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/descanso-rir.webp" alt="Serie 1 hecha, con la pregunta «¿Cuántas repeticiones te quedaban?», y la serie 2 abierta con el mismo peso."><div><h4>Dices cuántas te quedaban</h4><p>Con ese dato la app decide si la próxima vez subes el peso.</p></div></li>
+        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/descanso-serie.webp" alt="Serie 1 lista para marcar: 92,5 kilos por 8 repeticiones, con la rueda de peso y el botón para completarla."><div><h4>Terminas la serie y la marcas</h4><p>Basta un toque. Si cambiaste el peso, lo ajustas antes con la rueda.</p></div></li>
+        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/descanso-rir.webp" alt="Serie 1 hecha, con la pregunta «¿Cuántas repeticiones te quedaban?», y la serie 2 abierta con el mismo peso."><div><h4>Indicas cuántas repeticiones te quedaban</h4><p>Con ese dato, la app decide si en la próxima sesión te conviene subir el peso.</p></div></li>
         <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/descanso-reloj.webp" alt="Descanso corriendo en 1:56, con botones para quitarle o sumarle 15 segundos y para omitirlo."><div><h4>El descanso corre solo</h4><p>Le sumas o le quitas 15 segundos y te avisa cuando termina.</p></div></li>
       </ol>
     </article>
@@ -465,7 +482,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       </div>
       <ul class="shots">
         <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/tecnicas-lista.webp" alt="Hoja «Alargar la serie» con el dropset y el descanso-pausa explicados, cada uno con su botón «Añadir»."><div><h4>Cuatro técnicas explicadas</h4><p>Dropset, descanso-pausa, myo-reps y cluster. Cada una dice cómo se hace y cuándo conviene.</p></div></li>
-        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/tecnicas-dropset.webp" alt="Serie 1 hecha con 92,5 kilos y, debajo, la bajada 1 abierta con 72,5 kilos."><div><h4>La bajada viene calculada</h4><p>Hiciste la serie con 92,5 kg y el dropset se abre con 72,5.</p></div></li>
+        <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/tecnicas-dropset.webp" alt="Serie 1 hecha con 92,5 kilos y, debajo, la bajada 1 abierta con 72,5 kilos."><div><h4>La bajada viene calculada</h4><p>Si hiciste la serie con 92,5 kg, la bajada del dropset se abre con 72,5 kg ya calculados.</p></div></li>
         <li class="shot"><img loading="lazy" decoding="async" draggable="false" width="720" height="900" src="/web/img/uso/tecnicas-biserie.webp" alt="Biserie de extensión de tríceps y cruce de poleas: los dos ejercicios seguidos y el descanso al terminar la ronda."><div><h4>Biseries y triseries</h4><p>Arrastras un ejercicio sobre otro y quedan como una ronda, con el descanso al final.</p></div></li>
       </ul>
     </article>
@@ -476,10 +493,11 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
   <div class="wrap">
     <div class="head-row rv">
       <div class="section-head">
-        <h2 class="display">Todo lo que trae.</h2>
-        <p class="lead">Dieciséis funciones. Desliza para verlas.</p>
+        <h2 class="display">Todo lo que incluye.</h2>
+        <p class="lead">Dieciséis funciones para registrar, analizar y progresar.</p>
       </div>
       <div class="arrows">
+        <p class="fine">Desliza para verlas.</p>
         <button class="icon-btn" type="button" id="rail-prev" aria-label="Funciones anteriores"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
         <button class="icon-btn" type="button" id="rail-next" aria-label="Más funciones"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
@@ -491,20 +509,20 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
     </div>
     <ul class="rail rv" id="rail" tabindex="0" aria-label="Funciones de la app">
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg><h3>Recomendación de carga</h3><p>Te dice si subir, mantener o bajar el peso, y te muestra el motivo.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8v8"/><path d="M12 6v12"/><path d="M17 8v8"/></svg><h3>Rueda de peso</h3><p>Deslizas y la carga cambia, sin teclado y con una mano.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg><h3>Descanso con aviso</h3><p>La cuenta parte al marcar la serie y te avisa cuando toca volver.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg><h3>Discos por lado</h3><p>Con tu barra y los discos que tiene tu gimnasio.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4V10H4z"/><path d="M10 20h4V4h-4z"/><path d="M16 20h4v-7h-4z"/></svg><h3>Calentamiento calculado</h3><p>Las series previas con su peso, según la carga de trabajo.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 16h10"/></svg><h3>Repeticiones en reserva</h3><p>Después de cada serie anotas cuántas te quedaban.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h4a3 3 0 0 1 3 3v4"/></svg><h3>Biseries y técnicas</h3><p>Dos ejercicios como una ronda, dropset y descanso-pausa.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><h3>Ciclos con descarga</h3><p>Lleva la cuenta de las semanas y avisa cuándo bajar la carga.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/><path d="M12 9h5"/><path d="M12 14h5"/></svg><h3>Plan según tu perfil</h3><p>Genera una rutina con tu objetivo, experiencia y equipo disponible.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg><h3>Récords y 1RM estimado</h3><p>Tu mayor carga en cada ejercicio, siempre a la vista.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Mapa muscular en 3D</h3><p>Qué trabajaste en las últimas 48 horas y en la semana.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6"/><path d="M4 20h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-6"/></svg><h3>Niveles de fuerza</h3><p>Dónde estás en cada levantamiento principal.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m9 15 2 2 4-4"/></svg><h3>Racha y constancia</h3><p>Semanas seguidas entrenando y cuánto cumples de lo planificado.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5 15.4 6.5"/><path d="M8.6 13.5 15.4 17.5"/></svg><h3>Comparte tu progreso</h3><p>Tu sesión o tu semana como tarjeta, y tus rutinas por enlace.</p></li>
-      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg><h3>Respaldo y exportación</h3><p>Copia de seguridad completa y tus series en un archivo CSV.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8v8"/><path d="M12 6v12"/><path d="M17 8v8"/></svg><h3>Rueda de peso</h3><p>Cambias el peso deslizando la rueda, con una sola mano.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg><h3>Descanso con aviso</h3><p>El cronómetro empieza al marcar la serie y te avisa cuando termina el descanso.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg><h3>Discos por lado</h3><p>Te muestra qué discos cargar en cada lado, según tu barra y los discos de tu gimnasio.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4V10H4z"/><path d="M10 20h4V4h-4z"/><path d="M16 20h4v-7h-4z"/></svg><h3>Calentamiento calculado</h3><p>Calcula las series de calentamiento y el peso de cada una a partir de tu carga de trabajo.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 16h10"/></svg><h3>Repeticiones en reserva</h3><p>Después de cada serie indicas cuántas te quedaban, y con ese dato la app decide si te conviene subir el peso.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h4a3 3 0 0 1 3 3v4"/></svg><h3>Biseries y técnicas</h3><p>Unes dos o tres ejercicios en una ronda y sumas dropset, descanso-pausa, myo-reps o cluster.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><h3>Ciclos con descarga</h3><p>Lleva la cuenta de las semanas de tu ciclo y te avisa cuándo corresponde bajar la carga.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/><path d="M12 9h5"/><path d="M12 14h5"/></svg><h3>Plan según tu perfil</h3><p>Genera una rutina a partir de tu objetivo, tu experiencia y el equipo que tienes disponible.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg><h3>Récords y 1RM estimado</h3><p>Guarda tu mayor carga en cada ejercicio y estima tu 1RM.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Mapa muscular en 3D</h3><p>Muestra en un cuerpo 3D qué músculos trabajaste en las últimas 48 horas y en la semana.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6"/><path d="M4 20h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-6"/></svg><h3>Niveles de fuerza</h3><p>Compara tu 1RM estimado con tu peso corporal y te ubica en uno de cinco niveles, de inicial a élite.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m9 15 2 2 4-4"/></svg><h3>Racha y constancia</h3><p>Cuenta tus semanas seguidas de entrenamiento y cuánto cumples de lo planificado.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5 15.4 6.5"/><path d="M8.6 13.5 15.4 17.5"/></svg><h3>Comparte tu progreso</h3><p>Compartes tu sesión o tu semana como una tarjeta, y tus rutinas con un link.</p></li>
+      <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg><h3>Respaldo y exportación</h3><p>Haces una copia de seguridad completa y exportas tus series a un archivo CSV.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M6 13a9 9 0 0 1 12 0"/><path d="M9.5 16.5a4 4 0 0 1 5 0"/><path d="m3 3 18 18"/></svg><h3>Sin conexión</h3><p>Todo se guarda en el teléfono y se respalda cuando vuelve la señal.</p></li>
     </ul>
     <div class="railbar" aria-hidden="true"><i id="railbar"></i></div>
@@ -514,10 +532,10 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 <section class="section" id="aviso">
   <div class="wrap join">
     <div class="section-head rv">
-      <h2 class="display">Inscríbete y te aviso el día del lanzamiento.</h2>
-      <p class="lead">Pones tu correo y, cuando la app salga, te llega un mensaje con el link para descargarla. Es un solo correo.</p>
-      <p class="note">Tu correo se usa solo para ese aviso. No lo comparto y lo puedes borrar de la lista cuando quieras, desde esta misma página. Más detalle en la <a href="/privacidad.html">política de privacidad</a>.</p>
-      <p class="note" data-redes hidden>Mientras tanto, voy mostrando la app en <span></span>. Sígueme para estar atento al lanzamiento.</p>
+      <h2 class="display">Inscríbete y te llega el link el día del lanzamiento.</h2>
+      <p class="lead">Escribes tu correo y, cuando la app salga, te llega un mensaje con el link para descargarla. Es un solo correo.</p>
+      <p class="note">Tu correo se usa solo para ese aviso. No se comparte con nadie y puedes borrarlo de la lista cuando quieras, desde esta misma página. Más detalle en la <a href="/privacidad.html">política de privacidad</a>.</p>
+      <p class="note" data-redes hidden>Mientras tanto, puedes ver la app en <span></span>. Sigue la cuenta para estar atento al lanzamiento.</p>
     </div>
 
     <div class="rv">
@@ -544,7 +562,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       <div class="form done" id="aviso-listo" hidden tabindex="-1">
         <h3 class="display" style="font-size: 1.75rem">Listo, quedaste inscrito.</h3>
         <p class="lead">El día del lanzamiento te llega un correo con el link para descargar la app.</p>
-        <p class="note" data-redes hidden>Mientras tanto, voy mostrando la app en <span></span>. Sígueme para estar atento al lanzamiento.</p>
+        <p class="note" data-redes hidden>Mientras tanto, puedes ver la app en <span></span>. Sigue la cuenta para estar atento al lanzamiento.</p>
         <button class="btn btn-ghost" type="button" id="a-otro">Inscribir otro correo</button>
       </div>
     </div>
@@ -679,15 +697,15 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
     <div class="rv">
       <details class="qa">
         <summary>¿Cuánto cuesta?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Va a tener un plan gratis y un plan Pro que se paga por mes. El precio lo anuncio junto con el lanzamiento.</p>
+        <p>Va a tener un plan gratis y un plan Pro que se paga por mes. El precio se anunciará junto con el lanzamiento.</p>
       </details>
       <details class="qa">
         <summary>¿Cuándo se lanza?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Todavía no tengo fecha. Sale primero en Google Play, para Android. Si te inscribes, ese día te llega el link.</p>
+        <p>Todavía no hay fecha. Sale primero en Google Play, para Android. Si te inscribes, ese día te llega el link.</p>
       </details>
       <details class="qa">
         <summary>¿Funciona en iPhone?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Sí. En iPhone se abre en Safari y se agrega a la pantalla de inicio: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app. Todavía no está en la App Store.</p>
+        <p>Sí, aunque todavía no está en la App Store. En iPhone se abre en Safari y se agrega a la pantalla de inicio: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app.</p>
       </details>
       <details class="qa">
         <summary>¿Necesito internet en el gimnasio?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
@@ -698,8 +716,8 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
         <p>Tus entrenamientos, lo que decidas completar de tu perfil y, si creas una cuenta, tu correo. El peso corporal, las medidas y el registro de recuperación (sueño, fatiga) son opcionales. No pide fotos tuyas.</p>
       </details>
       <details class="qa">
-        <summary>¿Para qué usas mi correo?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
-        <p>Solo para avisarte del lanzamiento. No lo comparto ni lo uso para mandarte publicidad. Si quieres salir de la lista, escribe el mismo correo en el formulario y toca «Borrar mi correo de la lista».</p>
+        <summary>¿Para qué se usa mi correo?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
+        <p>Solo para avisarte del lanzamiento. No se comparte ni se usa para enviarte publicidad. Si quieres salir de la lista, escribe el mismo correo en el formulario y toca «Borrar mi correo de la lista».</p>
       </details>
       <details class="qa" data-testers hidden>
         <summary>¿Tengo que saber de programación para ser tester?<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></summary>
@@ -852,19 +870,19 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
   /* ---- Recorrido: pantallas en 3D ---- */
   safe(function () {
     var S = [
-      ['inicio', 'Inicio', 'Tu día de entrenamiento', 'La rutina que toca hoy, tu semana en tres números y el botón para empezar.'],
-      ['ejercicio-en-curso', 'Ejercicio', 'El ejercicio en curso', 'Objetivo, última sesión y la recomendación: mantener, subir o bajar la carga, con su motivo.'],
-      ['serie', 'Serie', 'La serie activa', 'Peso con la rueda, repeticiones, cuántas te quedaban y el descanso corriendo.'],
-      ['biserie', 'Biseries', 'Biseries y técnicas', 'Dos ejercicios seguidos como una ronda, además de dropset y descanso-pausa.'],
-      ['mapa', 'Mapa muscular', 'Qué trabajaste', 'Un cuerpo en 3D con lo que entrenaste en las últimas 48 horas y en la semana.'],
-      ['analisis', 'Análisis', 'La semana en números', 'Sesiones, series y carga movida, comparadas con la semana anterior.'],
-      ['volumen', 'Volumen', 'Series por grupo muscular', 'Directas e indirectas por músculo, para ver qué quedó corto.'],
-      ['progresion', 'Progresión', 'Cómo avanza cada ejercicio', 'Peso, repeticiones, volumen, RIR y 1RM estimado, sesión a sesión.'],
-      ['records', 'Récords', 'Tus mejores marcas', 'La mayor carga de cada ejercicio con su 1RM estimado.'],
-      ['historial', 'Historial', 'Cada sesión en el calendario', 'Los días entrenados del mes y el detalle de cada sesión.'],
-      ['biblioteca', 'Biblioteca', '448 ejercicios y 76 equipos', 'Filtra por músculo, equipo o tipo y busca por nombre o máquina.'],
-      ['ficha', 'Ficha', 'Cada ejercicio explicado', 'Figura en movimiento, músculos, indicaciones técnicas y errores frecuentes.'],
-      ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Créalas desde cero, desde una plantilla o genera un plan según tu perfil.']
+      ['inicio', 'Inicio', 'Tu día de entrenamiento', 'Ves la rutina que te toca hoy, tu semana resumida en tres números y el botón para empezar.'],
+      ['ejercicio-en-curso', 'Ejercicio', 'El ejercicio en curso', 'Ves tu objetivo, lo que hiciste en la última sesión y la recomendación de subir, mantener o bajar el peso, con su motivo.'],
+      ['serie', 'Serie', 'La serie activa', 'Ajustas el peso con la rueda, anotas las repeticiones y cuántas te quedaban, y el descanso empieza solo.'],
+      ['biserie', 'Biseries', 'Biseries y técnicas', 'Anotas dos ejercicios seguidos como una sola ronda y sumas dropset o descanso-pausa.'],
+      ['mapa', 'Mapa muscular', 'Qué trabajaste', 'Un cuerpo en 3D te muestra qué músculos entrenaste en las últimas 48 horas y en la semana.'],
+      ['analisis', 'Análisis', 'La semana en números', 'Compara tus sesiones, tus series y la carga que moviste con las de la semana anterior.'],
+      ['volumen', 'Volumen', 'Series por grupo muscular', 'Cuenta las series directas e indirectas de cada músculo, para que veas cuál recibió menos trabajo.'],
+      ['progresion', 'Progresión', 'Cómo avanza cada ejercicio', 'Sigues el peso, las repeticiones, el volumen, las repeticiones en reserva y el 1RM estimado, sesión a sesión.'],
+      ['records', 'Récords', 'Tus mejores marcas', 'Guarda la mayor carga de cada ejercicio junto con su 1RM estimado.'],
+      ['historial', 'Historial', 'Cada sesión en el calendario', 'Muestra los días que entrenaste en el mes y el detalle de cada sesión.'],
+      ['biblioteca', 'Biblioteca', '448 ejercicios y 76 equipos', 'Filtras por músculo, equipo o tipo, y buscas por nombre o por máquina.'],
+      ['ficha', 'Ficha', 'Cada ejercicio explicado', 'Cada ficha incluye la figura en movimiento, los músculos que trabajan, las indicaciones técnicas y los errores frecuentes.'],
+      ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Las creas desde cero o desde una plantilla, o generas un plan según tu perfil.']
     ];
     var flow = $('flow'), chips = $('chips'), slides = [], tabs = [], N = S.length;
     var active = 2, pos = 2, raf = 0, anim = null;
