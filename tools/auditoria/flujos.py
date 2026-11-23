@@ -127,7 +127,7 @@ with sync_playwright() as p:
     # ---------- E. Entrenamiento ----------
     def e1():
         go('/'); pg.wait_for_selector('text=Rutina de hoy'); pg.wait_for_selector('text=Empuje A'); shot('E_dashboard_programada')
-        pg.click('button:has-text("INICIAR ENTRENAMIENTO")'); pg.wait_for_selector('text=Entrenamiento en curso'); pg.wait_for_selector('text=0/10 series')
+        pg.click('button:has-text("INICIAR ENTRENAMIENTO")'); pg.wait_for_selector('[data-session-head]'); pg.wait_for_selector('text=0/10 series')
     step('Entrenar: iniciar la rutina programada desde el panel', e1)
     def e2():
         w=pg.locator('[aria-label="Peso serie 1"]'); w.click(); w.fill('22,5'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
@@ -164,7 +164,7 @@ with sync_playwright() as p:
         pg.click('text=Quitar este ejercicio de la sesión'); dlg().locator('button:has-text("Quitar")').click(); pg.wait_for_selector('text=2/10 series')
         pg.click('[aria-label="Pausar"]'); pg.wait_for_selector('text=En pausa'); a=pg.locator('[aria-label="Tiempo transcurrido"]').inner_text(); pg.wait_for_timeout(2200)
         assert pg.locator('[aria-label="Tiempo transcurrido"]').inner_text()==a, 'el cronómetro avanza en pausa'
-        pg.click('[aria-label="Reanudar"]'); pg.wait_for_selector('text=Entrenamiento en curso')
+        pg.click('[aria-label="Reanudar"]'); pg.wait_for_selector('[data-session-head] >> text=En curso')
     step('Entrenar: objetivo de hoy, añadir y quitar ejercicio, pausar y reanudar', e5)
     def finish_all(fill):
         ids=pg.locator('.no-scrollbar button[aria-pressed]').count()
@@ -177,7 +177,7 @@ with sync_playwright() as p:
                     pg.click(f'[aria-label="Completar serie {n}"]'); pg.wait_for_timeout(150)
                     if pg.locator('button:has-text("Omitir")').count(): pg.click('button:has-text("Omitir")')
                 n+=1
-        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Finalizar")').click(); pg.wait_for_selector('text=Eliminar sesión')
+        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Guardar entrenamiento")').click(); pg.wait_for_selector('text=Eliminar sesión')
     def e6():
         def fill(i,n):
             if pg.locator(f'[aria-label="Peso serie {n}"]').input_value()=='0':
@@ -188,7 +188,7 @@ with sync_playwright() as p:
     step('Entrenar: completar el resto y finalizar → detalle en historial', e6)
     def e7():
         for k in range(2):
-            pg.keyboard.press('Escape'); go('/entrenar'); pg.locator('main div.rounded-panel', has_text='Empuje A').locator('button:has-text("Iniciar")').click(); pg.wait_for_selector('text=Entrenamiento en curso'); pg.wait_for_timeout(300)
+            pg.keyboard.press('Escape'); go('/entrenar'); pg.locator('main div.rounded-panel', has_text='Empuje A').locator('button:has-text("Iniciar")').click(); pg.wait_for_selector('[data-session-head]'); pg.wait_for_timeout(300)
             if k==0:
                 pg.wait_for_selector('text=Última sesión:'); assert 'sin registros' not in pg.locator('text=Última sesión:').first.locator('..').inner_text(), 'no muestra la sesión anterior'
                 shot('E_segunda')
@@ -283,18 +283,18 @@ with sync_playwright() as p:
     def m1():
         pg.set_viewport_size({'width':1366,'height':820}); go('/'); pg.wait_for_timeout(500); shot('M_desktop_dashboard')
         assert pg.locator('aside').is_visible(); assert 'Sin cuenta' in pg.locator('aside').inner_text(), 'etiqueta de sincronización engañosa: '+pg.locator('aside').inner_text()[-60:]; pg.click('aside >> text=Análisis'); pg.wait_for_selector('text=Series por grupo muscular'); pg.wait_for_timeout(500); shot('M_desktop_analisis')
-        pg.click('aside >> text=Entrenar'); pg.locator('button:has-text("Iniciar")').first.click(); pg.wait_for_selector('text=Entrenamiento en curso'); pg.wait_for_timeout(400); shot('M_desktop_entrenar')
+        pg.click('aside >> text=Entrenar'); pg.locator('button:has-text("Iniciar")').first.click(); pg.wait_for_selector('[data-session-head]'); pg.wait_for_timeout(400); shot('M_desktop_entrenar')
         pg.set_viewport_size({'width':390,'height':844})
     step('Escritorio: barra lateral y pantallas', m1)
     def n1():
-        pg.wait_for_timeout(1500); ctx.set_offline(True); pg.reload(); pg.wait_for_selector('text=Entrenamiento en curso', timeout=10000)
+        pg.wait_for_timeout(1500); ctx.set_offline(True); pg.reload(); pg.wait_for_selector('[data-session-head]', timeout=10000)
         pg.click('[aria-label="RIR 3"]'); pg.wait_for_timeout(200); pg.click('[aria-label="Completar serie 1"]'); pg.wait_for_selector('[role=timer]')
         go('/historial'); pg.wait_for_selector('text=3 sesiones registradas'); go('/analisis'); pg.wait_for_selector('text=Series por grupo muscular')
         ctx.set_offline(False)
     step('Sin conexión: la app abre, registra series y carga pantallas con gráficos', n1)
     def n2():
         go('/entrenar'); pg.click('button:has-text("Omitir")') if pg.locator('button:has-text("Omitir")').count() else None
-        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Finalizar")').click(); pg.wait_for_selector('text=Eliminar sesión')
+        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Guardar entrenamiento")').click(); pg.wait_for_selector('text=Eliminar sesión')
         dlg().locator('button:has-text("Eliminar sesión")').click(); dlg().locator('button:has-text("Eliminar sesión")').last.click(); toast('Sesión eliminada')
         pg.wait_for_selector('text=3 sesiones registradas')
         go('/ejercicios'); pg.fill('[aria-label="Buscar ejercicio"]','Panatta'); pg.click('main >> text=Press Panatta 2'); dlg().locator('button:has-text("Editar ejercicio")').click(); dlg().locator('button:has-text("Eliminar")').click(); dlg().locator('button:has-text("Eliminar")').last.click(); pg.wait_for_timeout(500)
@@ -302,7 +302,7 @@ with sync_playwright() as p:
         go('/historial'); pg.locator('main button:has-text("Empuje A")').first.click(); pg.wait_for_selector('text=Ejercicio eliminado'); shot('N_ej_eliminado'); pg.keyboard.press('Escape')
         go('/entrenar'); pg.locator('main div.rounded-panel', has_text='Empuje A').locator('button:has-text("Iniciar")').click(); pg.wait_for_selector('text=0/7 series')
         assert pg.locator('.no-scrollbar button[aria-pressed]').count()==2, 'la sesión incluye un ejercicio eliminado'
-        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Descartar")').click(); toast('Sesión descartada')
+        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Anular entrenamiento")').click(); toast('Entrenamiento anulado')
     step('Eliminar sesión; eliminar ejercicio propio conserva el historial', n2)
     # ---------- P. Catálogo ampliado ----------
     def lbl(t): pg.wait_for_selector(f'main p[aria-live]:has-text("{t}")', timeout=5000)
@@ -346,7 +346,7 @@ with sync_playwright() as p:
         pg.wait_for_selector('text=Segundos'); pg.click('[aria-label="RIR 2"]'); pg.click('[aria-label="Completar serie 1"]'); pg.wait_for_selector('text=1/10 series')
         pg.click('button:has-text("Omitir")') if pg.locator('button:has-text("Omitir")').count() else None
         pg.wait_for_selector('[aria-label="Serie 1 completada, tocar para editar"] >> text=× 35 s'); shot('P_sesion_tiempo')
-        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Finalizar")').click(); pg.wait_for_selector('text=Eliminar sesión'); pg.keyboard.press('Escape')
+        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Guardar entrenamiento")').click(); pg.wait_for_selector('text=Eliminar sesión'); pg.keyboard.press('Escape')
     step('Tiempo y distancia: objetivos en segundos y metros, serie anotada en segundos', p3)
 
     # ---------- Q. Iconos por ejercicio y figura según el perfil ----------
@@ -458,7 +458,7 @@ with sync_playwright() as p:
         assert pg.locator('[aria-label="Sumar un ejercicio"]').is_disabled()
     step('Sesión: separar, arrastrar para unir y pasar a triserie con el botón', r5)
     def r6():
-        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Finalizar")').click(); pg.wait_for_selector('text=Eliminar sesión')
+        pg.click('button:has-text("Finalizar")'); dlg().locator('button:has-text("Guardar entrenamiento")').click(); pg.wait_for_selector('text=Eliminar sesión')
         dlg().locator('text=Bajada 1').wait_for(); assert dlg().locator('text=Pausa 1').count()==0, 'un tramo sin completar quedó en el historial'; shot('R_historial')
         n=dlg().locator('.grid >> text=Series').locator('xpath=..').inner_text(); errors.append('HIST '+n.replace('\n',' '))
         pg.keyboard.press('Escape'); go('/analisis'); pg.wait_for_selector('text=Series por grupo muscular')

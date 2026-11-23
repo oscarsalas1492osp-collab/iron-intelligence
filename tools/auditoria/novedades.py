@@ -46,13 +46,13 @@ with sync_playwright() as p:
     go('/recuperacion', 900); pg.locator('[aria-label="Cintura"]').fill('84,5'); pg.locator('[aria-label="Brazo"]').fill('38'); pg.locator('button:has-text("Guardar medidas de hoy")').tap(); toast('Medidas guardadas')
     ok('medidas: se guardan y se muestran', pg.locator('text=/Cintura 84.5/').count()>=1)
     # entrenamiento: ayudas y récord
-    go('/entrenar'); pg.locator('main button:has-text("Iniciar")').first.tap(); pg.wait_for_selector('text=Entrenamiento en curso'); pg.wait_for_timeout(900)
+    go('/entrenar'); pg.locator('main button:has-text("Iniciar")').first.tap(); pg.wait_for_selector('[data-session-head]'); pg.wait_for_timeout(900)
     pg.locator('[aria-label="Calentamiento y calculadora de discos"]').tap(); pg.wait_for_selector('[role=dialog] >> text=Calentamiento')
     ok('ayudas: series de calentamiento', dlg().locator('button[aria-pressed] .num').count()>=2)
     dlg().locator('button:has-text("Discos")').tap(); pg.wait_for_selector('text=Por cada lado'); pg.screenshot(path='/tmp/auditoria-out/n_discos.png'); ok('ayudas: discos por lado', True); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     w=pg.locator('main input[aria-label^="Peso serie 1"]'); w.tap(); pg.keyboard.type('400'); pg.locator('main [aria-label="Completar serie 1"]').tap(); toast('Nuevo récord de carga'); ok('récord: aviso al superar la carga', True)
     # valoración tras la sesión
-    pg.wait_for_timeout(700); pg.locator('button:has-text("Finalizar")').first.tap(); dlg().locator('button:has-text("Finalizar")').tap(); pg.wait_for_selector('text=¿Cuánto trabajo sintió cada músculo?')
+    pg.wait_for_timeout(700); pg.locator('button:has-text("Finalizar")').first.tap(); dlg().locator('button:has-text("Guardar entrenamiento")').tap(); pg.wait_for_selector('text=¿Cuánto trabajo sintió cada músculo?')
     g=pg.locator('[role=dialog] [role=group][aria-label^="Trabajo de"]').first; g.locator('button:has-text("Poco")').tap(); pg.wait_for_timeout(500)
     ok('valoración: se guarda la respuesta por músculo', g.locator('button:has-text("Poco")').get_attribute('aria-pressed')=='true')
     pg.screenshot(path='/tmp/auditoria-out/n_valoracion.png'); pg.keyboard.press('Escape')

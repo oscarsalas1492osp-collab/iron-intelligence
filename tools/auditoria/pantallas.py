@@ -175,7 +175,7 @@ with sync_playwright() as p:
         except Exception as e:
             print('SALTO', w, "go('/entrenar', 900); check(pg,'12_entrenar_inicio',w)", str(e).split(chr(10))[0][:90]); pg.keyboard.press('Escape')
         try:
-            pg.locator('main button:has-text("Iniciar")').first.click(); pg.wait_for_selector('text=Entrenamiento en curso'); pg.wait_for_timeout(1500); check(pg,'13_sesion',w)
+            pg.locator('main button:has-text("Iniciar")').first.click(); pg.wait_for_selector('[data-session-head]'); pg.wait_for_timeout(1500); check(pg,'13_sesion',w)
         except Exception as e:
             print('SALTO', w, 'pg.locator(\'main button:has-text("Iniciar")\').first.click();', str(e).split(chr(10))[0][:90]); pg.keyboard.press('Escape')
         try:

@@ -201,7 +201,12 @@ export function Stepper({ value, onChange, step = 1, min = 0, max = 9999, label,
   );
 }
 
-export function Sheet({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode; wide?: boolean }) {
+/**
+ * Hoja que sube desde abajo. Lo último que trae (casi siempre botones) queda separado del borde inferior, donde el
+ * teléfono tiene su zona de gestos y los toques se pierden. Con `float` es una tarjeta suelta, más arriba: para
+ * preguntas y decisiones, donde todo lo que hay son botones.
+ */
+export function Sheet({ open, onClose, title, children, wide, float }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode; wide?: boolean; float?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -210,10 +215,10 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal>
+    <div className={cx('fixed inset-0 z-50 flex items-end justify-center md:items-center', float && 'sheet-float')} role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[3px] animate-fade" onClick={onClose} />
-      <div className={cx('safe-b relative max-h-[92vh] w-full overflow-y-auto rounded-t-sheet glass-bar p-5 animate-sheet md:animate-pop md:rounded-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden />
+      <div className={cx('relative w-full overflow-y-auto glass-bar p-5 md:animate-pop md:rounded-sheet', float ? 'max-h-[78vh] rounded-sheet animate-rise' : 'sheet-pad max-h-[92vh] rounded-t-sheet animate-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
+        {!float && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden />}
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="wd-w min-w-0 truncate text-lg font-bold">{title}</h3>
           <button type="button" aria-label="Cerrar" onClick={onClose} className="-mr-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card2 text-mute hover:text-chalk"><Icon name="x" size={18} /></button>
@@ -223,6 +228,9 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
     </div>
   );
 }
+
+/** Botones de una decisión: uno bajo otro, a todo el ancho y altos, para acertarles con el pulgar sin mirar. */
+export const Choices = ({ children }: { children: ReactNode }) => <div className="flex flex-col gap-2.5 [&>button]:h-[52px] [&>button]:w-full [&>button]:text-base">{children}</div>;
 
 export function Bar({ value, max, color = '#58c7ff', height = 8 }: { value: number; max: number; color?: string; height?: number }) {
   return (
@@ -265,12 +273,12 @@ export function UiProvider({ children }: { children: ReactNode }) {
           <div key={t.id} role="status" className={cx('pointer-events-auto max-w-md rounded-ctl px-4 py-2.5 text-sm font-semibold shadow-[0_8px_24px_rgba(0,0,0,.4)] animate-pop', t.kind === 'error' ? 'bg-ember text-chalk' : 'bg-chalk text-ink')}>{t.text}</div>
         ))}
       </div>
-      <Sheet open={!!ask} onClose={() => close(false)} title="Confirmar">
-        <p className="text-sm text-mute mb-5">{ask?.text}</p>
-        <div className="flex gap-2">
-          <Btn className="flex-1" onClick={() => close(false)}>Cancelar</Btn>
-          <Btn className="flex-1" variant={ask?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>{ask?.confirmLabel}</Btn>
-        </div>
+      <Sheet open={!!ask} onClose={() => close(false)} title="Confirmar" float>
+        <p className="mb-5 text-[15px] leading-snug text-mute">{ask?.text}</p>
+        <Choices>
+          <Btn variant={ask?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>{ask?.confirmLabel}</Btn>
+          <Btn onClick={() => close(false)}>Cancelar</Btn>
+        </Choices>
       </Sheet>
     </UiCtx.Provider>
   );

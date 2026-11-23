@@ -125,7 +125,11 @@ a { text-underline-offset: 3px; }
 .thumb { background: radial-gradient(130% 100% at 50% 0%, rgb(120 190 205 / .20), rgb(10 24 28 / .55) 74%); box-shadow: inset 0 0 0 1px rgb(190 235 245 / .09); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
-.safe-b { padding-bottom: env(safe-area-inset-bottom); }
+/* Hojas: el borde de abajo de la pantalla es zona de gestos del teléfono y ahí los toques se pierden. Lo último de una
+   hoja queda al menos a 48 px de ese borde; las preguntas (tarjeta suelta) flotan sobre la zona de la barra de navegación. */
+.sheet-pad { padding-bottom: calc(1.25rem + max(env(safe-area-inset-bottom), 1.75rem)); }
+.sheet-float { padding: 0 12px calc(env(safe-area-inset-bottom) + 88px); }
+@media (min-width: 768px) { .sheet-pad { padding-bottom: 1.25rem; } .sheet-float { padding: 0; } }
 /* Discos de la calculadora: cada uno entra en su sitio al cambiar el peso. */
 @keyframes plate-in { from { opacity: 0; translate: 0 8px; } }
 .plate-in { animation: plate-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }

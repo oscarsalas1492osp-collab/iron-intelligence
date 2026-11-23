@@ -9,7 +9,7 @@ import { DELOAD_TAG } from '../domain/cycle';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addExerciseToSession, addExtension, addSet, completeSet, groupInSession, ungroupInSession, copyLastSession, deleteSet, elapsedMs, finishSession, getSessionSets, pauseSession, removeExerciseFromSession, resumeSession, startSession, uncompleteSet, updateSessionTarget, updateSet } from '../data/repo';
+import { addExerciseToSession, addExtension, addSet, completeSet, groupInSession, ungroupInSession, copyLastSession, deleteSession, deleteSet, elapsedMs, finishSession, getSessionSets, pauseSession, removeExerciseFromSession, resumeSession, startSession, uncompleteSet, updateSessionTarget, updateSet } from '../data/repo';
 import { fmtDate, fmtDuration, fmtKg, intensityOf } from '../domain/calc';
 import { MEASURE_UNIT, MUSCLE_LABEL, unitText } from '../domain/muscles';
 import { recommend, type Recommendation } from '../domain/progression';
@@ -21,7 +21,7 @@ import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Ses
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db } from '../data/db';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useUserId } from '../hooks';
-import { Bar, Btn, Card, Chip, cx, Empty, Field, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
+import { Bar, Btn, Card, Chip, Choices, cx, Empty, Field, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { ExerciseDetail, ExercisePicker } from './Library';
 import { useHoldDrag } from '../ui/useHoldDrag';
@@ -543,7 +543,7 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
 
 // ---------- Sesión en curso ----------
 function Active({ session }: { session: Session }) {
-  const nav = useNavigate(); const run = useAction(); const { confirm, toast } = useUi();
+  const nav = useNavigate(); const run = useAction(); const { toast } = useUi();
   const uid = useUserId();
   const ex = useExMap(); const profile = useProfile();
   const history = useDoneSets() ?? [];
@@ -632,13 +632,26 @@ function Active({ session }: { session: Session }) {
   const curEx = current ? ex.get(current) : undefined;
   const joinable = units.filter((u) => u !== unit && u.length < MAX_GROUP);
 
-  const finish = async () => {
-    const pending = mains.length - done;
-    const msg = done === 0 ? 'No completaste ninguna serie: la sesión se descartará.' : pending > 0 ? `Quedan ${pending} series sin completar; se descartarán. ¿Finalizar el entrenamiento?` : '¿Finalizar y guardar el entrenamiento?';
-    if (!(await confirm(msg, { confirmLabel: done === 0 ? 'Descartar' : 'Finalizar', danger: done === 0 }))) return;
+  // Cierre: una sola hoja con las tres salidas (guardar, seguir, anular). Anular lo ya anotado pide un segundo paso.
+  const [closing, setClosing] = useState<'ask' | 'void' | null>(null);
+  const [busy, setBusy] = useState(false);
+  const leave = () => { setRest(null); try { localStorage.removeItem(CUR_KEY); } catch { /* sin almacenamiento */ } };
+  const saveSession = async () => {
+    if (busy) return;
+    setBusy(true);
     const res = await run(() => finishSession(session.id));
-    setRest(null); try { localStorage.removeItem(CUR_KEY); } catch { /* sin almacenamiento */ }
-    if (res) { toast('Entrenamiento guardado'); nav(`/historial?s=${res.id}`); } else { toast('Sesión descartada'); nav('/'); }
+    setBusy(false);
+    if (res === undefined) return;                       // falló: el aviso ya se mostró y la sesión sigue abierta
+    leave();
+    if (res) { toast('Entrenamiento guardado'); nav(`/historial?s=${res.id}`); } else { toast('Entrenamiento anulado'); nav('/'); }
+  };
+  const voidSession = async () => {
+    if (busy) return;
+    setBusy(true);
+    const ok = await run(async () => { await deleteSession(session.id); return true; });
+    setBusy(false);
+    if (!ok) return;
+    leave(); toast('Entrenamiento anulado'); nav('/');
   };
 
   return (
@@ -646,13 +659,14 @@ function Active({ session }: { session: Session }) {
       <div data-session-head className="sticky top-0 z-20 -mx-4 mb-3 border-b border-line bg-ink/70 px-4 pb-3 pt-2 backdrop-blur-xl md:-mx-8 md:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="wd-w truncate font-bold leading-tight">{session.name}</div>
-            <div className="wd-c truncate text-sm font-semibold text-fire">{paused ? 'En pausa' : 'Entrenamiento en curso'}</div>
+            {/* El nombre completo, en hasta dos líneas: «Entrenamiento libre» no cabe en una al lado del reloj. */}
+            <div className="line-clamp-2 break-words font-bold leading-[1.15]">{session.name}</div>
+            <div className="wd-c truncate text-sm font-semibold text-fire">{paused ? 'En pausa' : 'En curso'}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="num text-xl" aria-label="Tiempo transcurrido">{fmtDuration(elapsedMs(session, now))}</span>
             <Btn size="sm" icon={paused ? 'play' : 'pause'} aria-label={paused ? 'Reanudar' : 'Pausar'} onClick={() => run(() => (paused ? resumeSession(session.id) : pauseSession(session.id)))} />
-            <Btn size="sm" variant="go" onClick={finish}>Finalizar</Btn>
+            <Btn size="sm" variant="go" onClick={() => setClosing('ask')}>Finalizar</Btn>
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -716,7 +730,42 @@ function Active({ session }: { session: Session }) {
 
       <ExercisePicker open={picker} onClose={() => setPicker(false)} exclude={ids} onPick={(e) => run(async () => { await addExerciseToSession(session.id, e.id); select(e.id); })} />
       {rest && <RestBar rest={rest} now={now} onChange={setRest} />}
+      <FinishSheet step={closing} done={done} total={mains.length} time={fmtDuration(elapsedMs(session, now))} busy={busy}
+        onClose={() => { if (!busy) setClosing(null); }} onSave={saveSession} onVoid={() => (done > 0 && closing === 'ask' ? setClosing('void') : void voidSession())} onBack={() => setClosing('ask')} />
     </div>
+  );
+}
+
+/**
+ * Cierre del entrenamiento. Tres salidas a la vista y con nombre propio: guardar, seguir entrenando o anular.
+ * Sin series anotadas no hay nada que guardar, así que solo queda seguir o anular.
+ */
+function FinishSheet({ step, done, total, time, busy, onClose, onSave, onVoid, onBack }: { step: 'ask' | 'void' | null; done: number; total: number; time: string; busy: boolean; onClose: () => void; onSave: () => void; onVoid: () => void; onBack: () => void }) {
+  const text = 'mb-5 text-[15px] leading-snug text-mute';
+  if (step === 'void') {
+    return (
+      <Sheet open onClose={onClose} title="Anular entrenamiento" float>
+        <p className={text}>Se borran las series que anotaste en este entrenamiento. No se puede deshacer.</p>
+        <Choices>
+          <Btn variant="danger" disabled={busy} onClick={onVoid}>Sí, anular</Btn>
+          <Btn disabled={busy} onClick={onBack}>Volver</Btn>
+        </Choices>
+      </Sheet>
+    );
+  }
+  return (
+    <Sheet open={step === 'ask'} onClose={onClose} title="Terminar entrenamiento" float>
+      {done > 0 ? (
+        <p className={text}>{done < total ? `Llevas ${done} de ${total} series en ${time}. Las series sin hacer no se guardan.` : `Llevas ${done} de ${total} series en ${time}.`}</p>
+      ) : (
+        <p className={text}>No anotaste ninguna serie, así que no hay nada que guardar.</p>
+      )}
+      <Choices>
+        {done > 0 && <Btn variant="go" disabled={busy} onClick={onSave}>Guardar entrenamiento</Btn>}
+        <Btn variant={done > 0 ? 'soft' : 'primary'} disabled={busy} onClick={onClose}>Seguir entrenando</Btn>
+        <Btn variant="danger" disabled={busy} onClick={onVoid}>Anular entrenamiento</Btn>
+      </Choices>
+    </Sheet>
   );
 }
 
