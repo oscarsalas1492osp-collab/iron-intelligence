@@ -2,14 +2,15 @@
 // Solo en español y solo para quien administra la app; el servidor rechaza a cualquier otra cuenta.
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useUserId } from '../hooks';
-import { Bar, Btn, Card, cx, Empty, Field, H2, Icon, Seg, Sheet, Stat, Title, useAction, useUi } from '../ui/components';
+import { Bar, Btn, Card, cx, Empty, Field, H2, Icon, Seg, Sheet, Stat, Stepper, Title, useAction, useUi } from '../ui/components';
+import { FEATURES, parseBilling, type Feature } from '../domain/plan';
 import * as api from './api';
 
 const APP = 'https://app.ironintelligence.app', WEB = 'https://ironintelligence.app';
 const TEL: Record<string, string> = { android: 'Android', iphone: 'iPhone' };
 const DIAS: Record<string, string> = { '1-2': '1 a 2 días', '3-4': '3 a 4 días', '5+': '5 días o más' };
 const ANOTA: Record<string, string> = { notas: 'notas del teléfono', papel: 'papel', otra_app: 'otra app', ninguna: 'en ninguna parte' };
-const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', plan_pro: 'Plan Pro de', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados', modo_de_acceso: 'Entrada a la app' };
+const ACCION: Record<string, string> = { dar_acceso: 'Acceso dado a', plan_pro: 'Plan Pro de', planes: 'Planes configurados', quitar_acceso: 'Acceso quitado a', borrar_del_aviso: 'Borrado del aviso', marcar_avisados: 'Marcados como avisados', modo_de_acceso: 'Entrada a la app' };
 const TIPO: Record<api.Kind, string> = { tester: 'Tester', guest: 'Invitado' };
 // Plan Pro que se le da a una persona con acceso: 0 no lleva Pro, -1 no vence, N son días desde hoy.
 const PRO_OPC = [{ value: '0', label: 'Sin Pro' }, { value: '14', label: '14 días' }, { value: '30', label: '30 días' }, { value: '90', label: '90 días' }, { value: '-1', label: 'Sin vencimiento' }];
@@ -535,8 +536,104 @@ function Cuentas() {
 }
 
 // ───────────────────────── Pantalla ─────────────────────────
-type Tab = 'resumen' | 'aviso' | 'accesos' | 'cuentas';
-const TABS: { value: Tab; label: string }[] = [{ value: 'resumen', label: 'Resumen' }, { value: 'aviso', label: 'Aviso' }, { value: 'accesos', label: 'Accesos' }, { value: 'cuentas', label: 'Cuentas' }];
+// Lo que cada función significa para quien usa la app. El orden es el de la lista de beneficios de Pro.
+const FUNCION: Record<Feature, { titulo: string; nota: string }> = {
+  supersets: { titulo: 'Biseries y triseries', nota: 'Unir dos o tres ejercicios en una ronda.' },
+  techniques: { titulo: 'Técnicas avanzadas', nota: 'Dropset, descanso-pausa, myo-reps y cluster.' },
+  suggestions: { titulo: 'Recomendación de carga', nota: 'El peso sugerido para la próxima sesión, con su motivo.' },
+  templates: { titulo: 'Plantillas de rutinas', nota: 'Crear una rutina desde una plantilla lista.' },
+  warmup: { titulo: 'Calentamiento calculado', nota: 'Las series previas con su peso.' },
+  recovery: { titulo: 'Recuperación por músculo', nota: 'Fatiga y recuperación de cada grupo muscular.' },
+  assistant: { titulo: 'Asistente', nota: 'Respuestas con el historial de la persona.' },
+};
+interface Borrador { rutinas: number; ejercicios: number; historial: number; prueba: number; pruebaTarjeta: number; soloPro: Feature[]; clpMes: number; clpAno: number; usdMes: number; usdAno: number }
+const aBorrador = (v: api.PlanCfg): Borrador => {
+  const b = parseBilling(v), n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+  const pr = (v.prices ?? {}) as Record<string, Record<string, unknown> | undefined>;
+  return {
+    rutinas: b?.freeRoutines ?? 2, ejercicios: b?.freeCustomExercises ?? 3, historial: b?.freeHistoryDays ?? 30, prueba: b?.trialDays ?? 7, pruebaTarjeta: b?.cardTrialDays ?? 21,
+    soloPro: b?.proOnly ?? [...FEATURES], clpMes: n(pr.CLP?.monthly), clpAno: n(pr.CLP?.yearly), usdMes: n(pr.USD?.monthly), usdAno: n(pr.USD?.yearly),
+  };
+};
+
+export function Planes() {
+  const { data, error, loading, reload } = useLoad(api.plans, []);
+  const [b, setB] = useState<Borrador | null>(null);
+  const run = useAction();
+  useEffect(() => { if (data) setB(aBorrador(data)); }, [data]);
+  if (!data || !b) return <Estado loading={loading} error={error} reload={reload} />;
+  const base = aBorrador(data), cambio = JSON.stringify(base) !== JSON.stringify(b);
+  const set = (x: Partial<Borrador>) => setB({ ...b, ...x });
+  const alternar = (f: Feature) => set({ soloPro: b.soloPro.includes(f) ? b.soloPro.filter((x) => x !== f) : FEATURES.filter((x) => x === f || b.soloPro.includes(x)) });
+  const preciosOk = b.clpMes > 0 && b.clpAno > 0 && b.usdMes > 0 && b.usdAno > 0;
+  const guardar = () => run(async () => {
+    await api.setPlans({
+      free_routines: b.rutinas, free_custom_exercises: b.ejercicios, free_history_days: b.historial, trial_days: b.prueba, card_trial_days: b.pruebaTarjeta, pro_only: b.soloPro,
+      prices: { CLP: { monthly: Math.round(b.clpMes), yearly: Math.round(b.clpAno) }, USD: { monthly: b.usdMes, yearly: b.usdAno } },
+    });
+    reload();
+  }, 'Planes guardados');
+  const encendido = data.enabled === true;
+
+  return (
+    <div>
+      <Card>
+        <p className="font-semibold">{encendido ? 'El cobro está encendido.' : 'El cobro está apagado.'}</p>
+        <p className="mt-1 text-sm text-mute">{encendido ? 'Lo que guardes aquí rige de inmediato para todas las cuentas.' : 'Hoy todo es gratis para todos. Lo que guardes aquí empieza a regir cuando se encienda el cobro; tu cuenta ya lo ve, para que puedas probarlo.'}</p>
+      </Card>
+
+      <H2>Plan gratis</H2>
+      <Card>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Stepper label="Rutinas propias" value={b.rutinas} min={1} max={50} onChange={(v) => set({ rutinas: Math.round(v) })} />
+          <Stepper label="Ejercicios propios" value={b.ejercicios} min={0} max={500} onChange={(v) => set({ ejercicios: Math.round(v) })} />
+          <Stepper label="Días de historial en el análisis" value={b.historial} min={7} max={3650} step={7} onChange={(v) => set({ historial: Math.round(v) })} />
+        </div>
+        <p className="mt-3 text-sm text-mute">Con Pro no hay límite en ninguno de los tres. Bajar un límite no borra nada: quien ya tiene más rutinas o ejercicios los conserva, pero no puede crear otros.</p>
+      </Card>
+
+      <H2 right={<span className="wd-c text-sm text-mute">{plural(b.soloPro.length, 'función solo Pro', 'funciones solo Pro')}</span>}>Qué funciones pide Pro</H2>
+      <Card className="divide-y divide-line !py-1">
+        {FEATURES.map((f) => (
+          <label key={f} className="flex min-h-[3.25rem] items-center justify-between gap-3 py-2.5">
+            <span className="min-w-0"><span className="block font-semibold">{FUNCION[f].titulo}</span><span className="block text-sm text-mute">{FUNCION[f].nota}</span></span>
+            <span className="flex shrink-0 items-center gap-2 text-sm text-mute"><span>{b.soloPro.includes(f) ? 'Solo Pro' : 'Gratis'}</span><input type="checkbox" aria-label={`${FUNCION[f].titulo}: solo Pro`} checked={b.soloPro.includes(f)} onChange={() => alternar(f)} /></span>
+          </label>
+        ))}
+      </Card>
+      <p className="mt-2 text-sm text-mute">Lo que alguien creó mientras tenía Pro no se le quita: una biserie ya armada sigue funcionando.</p>
+
+      <H2>Prueba gratis</H2>
+      <Card>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Stepper label="Días sin medio de pago" value={b.prueba} min={1} max={60} onChange={(v) => set({ prueba: Math.round(v) })} />
+          <Stepper label="Días al suscribirse con medio de pago" value={b.pruebaTarjeta} min={0} max={60} onChange={(v) => set({ pruebaTarjeta: Math.round(v) })} />
+        </div>
+        <p className="mt-3 text-sm text-mute">Los días ya usados sin medio de pago se descuentan de los segundos. El cambio vale para las pruebas que empiecen desde ahora.</p>
+      </Card>
+
+      <H2>Precio de Pro</H2>
+      <Card>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stepper label="Mensual en pesos" value={b.clpMes} min={0} max={1000000} step={500} onChange={(v) => set({ clpMes: Math.round(v) })} />
+          <Stepper label="Anual en pesos" value={b.clpAno} min={0} max={10000000} step={1000} onChange={(v) => set({ clpAno: Math.round(v) })} />
+          <Stepper label="Mensual en dólares" value={b.usdMes} min={0} max={10000} step={0.5} onChange={(v) => set({ usdMes: v })} />
+          <Stepper label="Anual en dólares" value={b.usdAno} min={0} max={100000} step={1} onChange={(v) => set({ usdAno: v })} />
+        </div>
+        <p className="mt-3 text-sm text-mute">Es el precio que muestra la app y el que cobra Mercado Pago en pesos a quien se suscriba desde ahora. Las suscripciones ya activas siguen con su precio.</p>
+      </Card>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Btn variant="primary" disabled={!cambio || !preciosOk} onClick={() => void guardar()}>Guardar planes</Btn>
+        {cambio && <Btn onClick={() => setB(base)}>Descartar cambios</Btn>}
+        {!preciosOk && <span className="text-sm text-ember">Los cuatro precios deben ser mayores que cero.</span>}
+      </div>
+    </div>
+  );
+}
+
+type Tab = 'resumen' | 'aviso' | 'accesos' | 'planes' | 'cuentas';
+const TABS: { value: Tab; label: string }[] = [{ value: 'resumen', label: 'Resumen' }, { value: 'aviso', label: 'Aviso' }, { value: 'accesos', label: 'Accesos' }, { value: 'planes', label: 'Planes' }, { value: 'cuentas', label: 'Cuentas' }];
 
 export default function Panel() {
   const uid = useUserId();
@@ -555,7 +652,7 @@ export default function Panel() {
     <div data-notr>
       <Title sub="Solo tú ves esta pantalla.">Panel</Title>
       <div className="mb-5"><Seg options={TABS} value={tab} onChange={setTab} /></div>
-      {tab === 'resumen' ? <Resumen mail={mail} /> : tab === 'aviso' ? <Aviso mail={mail} /> : tab === 'accesos' ? <Accesos mail={mail} /> : <Cuentas />}
+      {tab === 'resumen' ? <Resumen mail={mail} /> : tab === 'aviso' ? <Aviso mail={mail} /> : tab === 'accesos' ? <Accesos mail={mail} /> : tab === 'planes' ? <Planes /> : <Cuentas />}
     </div>
   );
 }

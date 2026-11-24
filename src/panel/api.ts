@@ -29,6 +29,7 @@ const MSG: Record<string, string> = {
   forbidden: 'Esta pantalla es solo para quien administra la app.',
   bad_email: 'Ese correo no parece válido.',
   not_found: 'Ese correo ya no está en la lista.',
+  bad_plans: 'Algún valor de los planes no es válido. Revísalos e inténtalo de nuevo.',
 };
 const MAIL_MSG: Record<string, string> = {
   forbidden: MSG.forbidden,
@@ -99,3 +100,13 @@ export const mailPreview = (which: 'invitacion' | 'lanzamiento', o: { email?: st
 export const mailTest = () => mail<{ sent: number; to: string }>({ action: 'test' });
 export const mailInvite = (email: string) => mail<{ sent: number; to: string }>({ action: 'invite', email });
 export const mailLaunch = (link: string) => mail<{ sent: number; remaining: number }>({ action: 'launch', link });
+
+// Planes: el ajuste `billing` es de lectura pública (la app lo lee igual); guardarlo pide administración.
+export type PlanCfg = Record<string, unknown>;
+export async function plans(): Promise<PlanCfg> {
+  if (!supabase) throw new Error('La app no está conectada al servidor.');
+  const r = await supabase.from('app_flags').select('value').eq('key', 'billing').maybeSingle();
+  if (r.error || !r.data) throw new Error('No se pudo cargar. Revisa tu conexión e inténtalo de nuevo.');
+  return r.data.value as PlanCfg;
+}
+export const setPlans = (cfg: PlanCfg) => call<PlanCfg>('admin_set_plans', { p_cfg: cfg });
