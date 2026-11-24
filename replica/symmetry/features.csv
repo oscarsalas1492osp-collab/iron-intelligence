@@ -1,0 +1,24 @@
+feature,area,priority,original,clone,notes
+Rango por ejercicio y por músculo con mapa corporal,motivación,should,yes,partial,IRON tiene niveles de fuerza solo en levantamientos principales y un mapa 3D de trabajo; falta progreso visible por ejercicio y por músculo
+Registro en 2 toques con el último peso a la vista,registro,must,yes,yes,IRON lo hace en tres toques con rueda de peso
+Tipo de serie (calentamiento / normal / fallo / dropset),registro,should,yes,partial,IRON tiene técnicas y calentamiento calculado; revisar si la serie se puede marcar como calentamiento o al fallo
+RPE por serie,registro,could,yes,yes,IRON usa RIR que es el dato que alimenta su recomendación
+Rangos de repeticiones,rutinas,must,yes,yes,
+Peso sugerido para la sesión,progresión,must,yes (Pro),yes,IRON además muestra el motivo
+Plan generado según perfil y equipo,rutinas,should,yes (Pro),yes,
+Cuestionario inicial que arma el primer plan,inicio,should,yes,no,IRON no tiene recorrido de bienvenida
+Video de cada ejercicio,biblioteca,should,yes,partial,IRON tiene figura animada e indicaciones; 448 ejercicios frente a más de 300
+Gráficas por ejercicio en mes / año / total,análisis,should,yes,partial,revisar los rangos de tiempo de IRON
+Calendario de constancia,análisis,should,yes,yes,
+Medidas corporales,seguimiento,could,yes,yes,
+Fotos de progreso,seguimiento,skip,yes,no,IRON no pide fotos por decisión de marca
+Escaneo corporal con IA,ia,skip,yes (Pro),no,choca con no pedir fotos
+Chat con IA sobre tus datos,ia,could,yes (Pro),yes,
+Feed social y comparar entrenamientos,social,could,yes,no,IRON solo comparte tarjetas y rutinas por link
+Importar desde otras apps,datos,should,yes,yes,IRON importa desde Hevy y Strong
+Exportar datos,datos,must,no,yes,ventaja de IRON
+Calculadora de discos,registro,should,no,yes,ventaja de IRON
+Funciona sin conexión,registro,must,partial,yes,ventaja de IRON
+Versión web,plataforma,could,no,yes,ventaja de IRON
+Reloj (Apple Watch / Wear OS),plataforma,could,no,no,lo piden en las reseñas visibles de Symmetry
+Modo entrenador,profesional,should,no,partial,IRON lo tiene planificado
