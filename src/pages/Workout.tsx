@@ -173,7 +173,7 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
   const tag = s.sub ? `${TECHNIQUE[s.technique as Exclude<Technique, ''>]?.tag ?? 'Tramo'} ${s.sub}` : null;
   const patch = (p: Partial<SetLog>) => run(() => updateSet(s.id, p));
 
-  const label = tag ?? `Serie ${n}`;
+  const label = tag ?? (s.warmup ? 'Calentamiento' : `Serie ${n}`);
   const Name = `${name[0].toUpperCase()}${name.slice(1)}`;
   const sum = `${fmtKg(s.weight)} kg × ${s.reps}${measure !== 'reps' ? ` ${unit}` : ''}`;
   const repsLabel = `${measure === 'reps' ? 'Repeticiones' : measure === 'time' ? 'Segundos' : 'Metros'} ${name}`;
@@ -216,6 +216,12 @@ function SetRow({ s, n, step, measure, open, prev, halfRir, title, ask, onAsked,
               <Stepper label={`Peso ${name}`} unit="kg" value={s.weight} step={step} max={1000} onChange={(v) => patch({ weight: v })} />
               <Stepper label={repsLabel} unit={unit} value={s.reps} step={measure === 'reps' ? 1 : 5} max={200} onChange={(v) => patch({ reps: Math.round(v) })} />
             </div>
+          )}
+          {!s.sub && (
+            <label className="flex min-h-[2.75rem] items-center justify-between gap-3">
+              <span className="min-w-0"><span className="block font-semibold">Serie de calentamiento</span><span className="block text-xs text-mute">Queda anotada, pero no cuenta en el volumen, los récords ni la recomendación de carga.</span></span>
+              <input type="checkbox" aria-label={`${Name}: serie de calentamiento`} checked={!!s.warmup} onChange={(e) => patch({ warmup: e.target.checked })} className="!w-6 h-6 shrink-0 accent-fire" />
+            </label>
           )}
           <Field label="¿Cómo terminó la serie?">
             <select value={s.endReason} onChange={(e) => patch({ endReason: e.target.value as EndReason })}>{REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
@@ -378,8 +384,8 @@ function ExerciseHead({ session, ex, history, readiness, compact, extra }: { ses
 /** Series principales de un ejercicio con sus tramos de técnica a continuación. */
 /** Aviso de récord al completar una serie: se compara con el historial y con lo ya hecho hoy. */
 function recordText(history: ASet[], today: SetLog[], s: SetLog): string | null {
-  if (s.sub) return null;
-  const before: ASet[] = [...history, ...today.filter((x) => x.done && x.id !== s.id && x.exerciseId === s.exerciseId && !x.sub).map((x) => ({ sessionId: x.sessionId, exerciseId: x.exerciseId, date: 0, order: x.order, weight: x.weight, reps: x.reps, rir: x.rir, failure: x.failure, endReason: x.endReason }))];
+  if (s.sub || s.warmup) return null;
+  const before: ASet[] = [...history, ...today.filter((x) => x.done && !x.warmup && x.id !== s.id && x.exerciseId === s.exerciseId && !x.sub).map((x) => ({ sessionId: x.sessionId, exerciseId: x.exerciseId, date: 0, order: x.order, weight: x.weight, reps: x.reps, rir: x.rir, failure: x.failure, endReason: x.endReason }))];
   const r = isRecord(before, s.exerciseId, s.weight, s.reps, s.rir);
   return r === 'weight' ? `Nuevo récord de carga: ${fmtKg(s.weight)} kg` : r === 'e1rm' ? 'Nuevo récord: tu mejor 1RM estimado en este ejercicio' : null;
 }

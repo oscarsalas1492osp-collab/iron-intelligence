@@ -44,7 +44,7 @@ export interface SyncResult { pulled: number; pushed: number }
 const LEGACY: Partial<Record<TableName, Record<string, unknown>>> = {
   profiles: { settings: {} },
   sessions: { supersets: [] },
-  sets: { technique: '', sub: 0 },
+  sets: { technique: '', sub: 0, warmup: false },
   routineItems: { superset: null },
   exercises: { focus: '', aka: '', measure: 'reps', category: 'strength' },
 };

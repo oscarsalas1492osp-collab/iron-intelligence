@@ -65,6 +65,7 @@ function SessionDetail({ session, onClose }: { session: Session; onClose: () => 
                       <span className={tag ? 'wd-c text-xs font-semibold text-fire' : 'w-5 text-xs text-mute'}>{tag ?? n}</span>
                       <span className="flex-1 font-bold tnum">{fmtKg(s.weight)} kg × {s.reps}</span>
                       <span className="text-xs font-semibold tnum" style={{ color: intensityOf(s.rir).color }}>{s.rir != null ? `RIR ${s.rir}` : 'sin RIR'}</span>
+                      {s.warmup && <span className="wd-c text-xs font-semibold text-mute">Calentamiento</span>}
                       {s.failure && <span className="text-[10px] font-bold text-ember">FALLO</span>}
                       <Icon name="edit" size={14} className="text-mute" />
                     </button>

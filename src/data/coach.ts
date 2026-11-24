@@ -70,7 +70,8 @@ export async function clientData(clientId: string, weeks = 8): Promise<ClientDat
     const r = await s.from('set_logs').select('*').eq('user_id', clientId).eq('deleted', 0).eq('done', true).in('session_id', ids.slice(i, i + 40)).limit(5000);
     if (r.error) fail(r.error.message);
     for (const raw of r.data ?? []) {
-      const x = fromRemote(raw) as unknown as { sessionId: string; exerciseId: string; order: number; weight: number; reps: number; rir: number | null; failure: boolean; endReason: ASet['endReason']; sub?: number };
+      const x = fromRemote(raw) as unknown as { sessionId: string; exerciseId: string; order: number; weight: number; reps: number; rir: number | null; failure: boolean; endReason: ASet['endReason']; sub?: number; warmup?: boolean };
+      if (x.warmup) continue;
       sets.push({ sessionId: x.sessionId, exerciseId: x.exerciseId, date: byId.get(x.sessionId)!.startedAt, order: x.order, weight: Number(x.weight), reps: x.reps, rir: x.rir == null ? null : Number(x.rir), failure: x.failure, endReason: x.endReason, ...(x.sub ? { ext: true } : {}) });
       if (!x.sub) setCount.set(x.sessionId, (setCount.get(x.sessionId) ?? 0) + 1);
     }

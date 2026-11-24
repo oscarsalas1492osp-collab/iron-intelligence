@@ -2,8 +2,9 @@ import { InsightCards } from '../ui/extras';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { openPlans, usePlan } from '../ui/plan';
-import { DAY, e1rm, weekStart } from '../domain/calc';
-import { hotTone, type Tones } from '../domain/heat';
+import { DAY, e1rm, fmtKg, weekStart } from '../domain/calc';
+import { hotTone, progressTone, type Tones } from '../domain/heat';
+import { exerciseProgress, fmtPct, muscleProgress, PROGRESS_COLOR, progressState } from '../domain/progress';
 import { MAIN_MUSCLES, MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
 import { trendOf } from '../domain/progression';
 import type { Muscle } from '../domain/types';
@@ -11,7 +12,7 @@ import { inWeek, mainSets, muscleVolume, rirDistribution, sessionsOf, tonnage, t
 import { useDoneSets, useExMap, useProfile } from '../hooks';
 import { BarC } from '../ui/charts';
 import { BodyFigure } from '../ui/BodyFigure';
-import { Btn, Card, Chip, Empty, H2, Icon, Stat, Title } from '../ui/components';
+import { Btn, Card, Chip, Empty, H2, Icon, Seg, Stat, Title } from '../ui/components';
 import { locale } from '../i18n';
 
 // Misma escala de incandescencia que el selector de RIR.
@@ -26,6 +27,7 @@ export default function Analysis() {
   const capped = !plan.pro && !!done && done.length > (sets?.length ?? 0);
   const [offset, setOffset] = useState(0);
   const [muscle, setMuscle] = useState<Muscle>('chest');
+  const [modo, setModo] = useState<'volumen' | 'progreso'>('volumen');
   const coef = profile.indirectCoef;
   const now = Date.now();
   const start = weekStart(now) - offset * 7 * DAY;
@@ -36,6 +38,10 @@ export default function Analysis() {
   const max = Math.max(1, ...vol.map((v) => v.fractional));
   // En el análisis el color indica solo volumen de la semana elegida: más claro, más series.
   const tones = useMemo(() => { const t: Tones = {}; for (const v of vol) if (v.fractional > 0) t[v.muscle] = hotTone(v.fractional / max); return t; }, [vol, max]);
+  // Progreso: cambio del 1RM estimado por ejercicio en todo lo que el plan deja ver, y su promedio por músculo.
+  const prog = useMemo(() => exerciseProgress(all, ex), [all, ex]);
+  const progM = useMemo(() => muscleProgress(prog), [prog]);
+  const tonesP = useMemo(() => { const t: Tones = {}; for (const m of progM) t[m.muscle] = progressTone(m.pct); return t; }, [progM]);
   const dist = useMemo(() => rirDistribution(week), [week]);
   const evo = useMemo(() => weeklySeries(all, ex, coef, muscle, 8, now), [all, ex, coef, muscle]); // eslint-disable-line react-hooks/exhaustive-deps
   const top = useMemo(() => topContributors(week, ex, coef, muscle), [week, ex, coef, muscle]);
@@ -77,11 +83,44 @@ export default function Analysis() {
       <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
           <div className="relative h-[320px] md:sticky md:top-6 md:h-[520px]">
-            <BodyFigure tones={tones} selected={muscle} onSelect={setMuscle} className="absolute inset-0" />
+            <BodyFigure tones={modo === 'progreso' ? tonesP : tones} selected={muscle} onSelect={setMuscle} className="absolute inset-0" />
           </div>
-          <p className="wd-c mt-1 text-center text-sm text-mute">Más claro, más series. Toca un músculo para elegirlo; arrastra para girar.</p>
+          <div className="mx-auto mt-2 max-w-xs"><Seg options={[{ value: 'volumen', label: 'Volumen' }, { value: 'progreso', label: 'Progreso' }]} value={modo} onChange={setModo} /></div>
+          <p className="wd-c mt-2 text-center text-sm text-mute">{modo === 'progreso' ? 'Verde: tu 1RM estimado subió. Naranja: bajó. Toca un músculo para ver sus ejercicios.' : 'Más claro, más series. Toca un músculo para elegirlo; arrastra para girar.'}</p>
         </div>
         <div>
+          {modo === 'progreso' && (
+            <>
+              <H2>Progreso por músculo</H2>
+              <Card>
+                {progM.length ? (
+                  <div className="space-y-1.5">
+                    {progM.map((m) => (
+                      <button type="button" key={m.muscle} onClick={() => setMuscle(m.muscle)} className="flex min-h-[2.25rem] w-full items-center justify-between gap-3 text-left text-sm" aria-label={`${MUSCLE_LABEL[m.muscle]}: ${fmtPct(m.pct)}`}>
+                        <span className={m.muscle === muscle ? 'font-bold text-chalk' : 'text-mute'}>{MUSCLE_LABEL[m.muscle]} <span className="text-xs text-mute">{m.exercises} {m.exercises === 1 ? 'ejercicio' : 'ejercicios'}</span></span>
+                        <span className="shrink-0 font-bold tnum" style={{ color: PROGRESS_COLOR[progressState(m.pct)] }}>{fmtPct(m.pct)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-mute">Se necesitan 2 o más sesiones de un mismo ejercicio.</p>}
+                <p className="mt-3 text-xs text-mute">Cambio del 1RM estimado entre tus primeras y tus últimas sesiones de cada ejercicio, promediado por músculo principal. Es una estimación para compararte contigo, no una medición.</p>
+              </Card>
+
+              <H2>{MUSCLE_LABEL[muscle]}, por ejercicio</H2>
+              <Card>
+                {prog.filter((x) => x.muscle === muscle).length ? (
+                  <div className="space-y-2">
+                    {prog.filter((x) => x.muscle === muscle).map((x) => (
+                      <div key={x.id} className="flex items-center justify-between gap-3 text-sm">
+                        <span className="min-w-0"><span className="block truncate">{x.name}</span><span className="block text-xs text-mute tnum">{fmtKg(x.from)} → {fmtKg(x.to)} kg de 1RM estimado, {x.sessions} sesiones</span></span>
+                        <span className="shrink-0 font-bold tnum" style={{ color: PROGRESS_COLOR[progressState(x.pct)] }}>{fmtPct(x.pct)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-mute">Aún no hay dos sesiones de un ejercicio de este músculo.</p>}
+              </Card>
+            </>
+          )}
           <H2>Series por grupo muscular</H2>
           <Card>
             <div className="space-y-2.5">

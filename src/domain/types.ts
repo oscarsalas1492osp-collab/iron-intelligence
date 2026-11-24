@@ -126,6 +126,8 @@ export interface SetLog extends Base {
   /** Tramo añadido con una técnica avanzada: comparte `order` con su serie principal y `sub` lo numera (0 = serie principal). */
   technique: Technique;
   sub: number;
+  /** Serie de calentamiento: queda registrada, pero no cuenta en el volumen, los récords ni la progresión. */
+  warmup?: boolean;
 }
 
 export interface RecoveryLog extends Base {
@@ -173,6 +175,8 @@ export interface Settings {
   plates?: number[];
   /** Aviso al terminar el descanso cuando la app no está en pantalla, y sonido. */
   restAlert?: boolean;
+  /** La persona ya pasó por la bienvenida o prefirió saltarla. */
+  welcomed?: boolean;
   restSound?: boolean;
   /** Valoración tras cada sesión, por músculo: 1 poco trabajo, 2 justo, 3 demasiado. Se conservan las más recientes. */
   ratings?: Record<string, { at: number; m: Record<string, number> }>;

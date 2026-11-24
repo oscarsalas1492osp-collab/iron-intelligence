@@ -51,6 +51,14 @@ export function weekHeat(week: ASet[], ex: ExMap, coef: number, now: number): We
   return { tones, state };
 }
 
+const UP = ['#1f7a5c', '#34e0a1'], DOWN = ['#9a4a1e', '#ff6a1a'];
+/** Progreso de un músculo: verde si su 1RM estimado subió, naranja si bajó, acero si se mantuvo. Satura a ±15 %. */
+export function progressTone(pct: number): Tone {
+  if (pct >= 1) return { color: ramp(UP, Math.min(1, pct / 15)), glow: 0.3 + 0.4 * Math.min(1, pct / 15) };
+  if (pct <= -1) return { color: ramp(DOWN, Math.min(1, -pct / 15)), glow: 0.25 };
+  return { color: '#5f89ad', glow: 0.1 };
+}
+
 /** Mapa de un ejercicio: músculo principal incandescente, secundarios en rojo oscuro. */
 export function exerciseTones(primary: Muscle, secondary: Muscle[]): Tones {
   const tones: Tones = {};

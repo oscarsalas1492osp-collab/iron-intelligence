@@ -1,10 +1,11 @@
 // Modo entrenador: el deportista invita con un código y decide cuándo cortar el acceso.
 import { useEffect, useMemo, useState } from 'react';
 import { acceptInvite, clientData, createInvite, myLinks, removeLink, sendRoutine, type ClientData, type CoachLink } from '../data/coach';
-import { DAY, fmtDate, weekStart } from '../domain/calc';
+import { DAY, fmtDate, fmtKg, weekStart } from '../domain/calc';
 import { LIBRARY, mergeExercises } from '../domain/exerciseLibrary';
 import { MUSCLE_LABEL } from '../domain/muscles';
-import { inWeek, muscleVolume, tonnage } from '../domain/volume';
+import { exerciseProgress, fmtPct, muscleProgress, PROGRESS_COLOR, progressState } from '../domain/progress';
+import { inWeek, mainSets, muscleVolume, tonnage } from '../domain/volume';
 import { useProfile, useRoutines, useUserId } from '../hooks';
 import { Btn, Card, Empty, Field, H2, Sheet, Title, useAction, useUi } from '../ui/components';
 import { shareText } from '../ui/shareCard';
@@ -16,6 +17,13 @@ function ClientView({ link, onClose }: { link: CoachLink; onClose: () => void })
   const ex = useMemo(() => new Map((data ? mergeExercises(data.custom) : LIBRARY).map((e) => [e.id, e])), [data]);
   const weeks = useMemo(() => { const cur = weekStart(Date.now()); return Array.from({ length: 8 }, (_, i) => { const st = cur - (7 - i) * 7 * DAY; return (data?.sessions ?? []).filter((s) => s.startedAt >= st && s.startedAt < st + 7 * DAY).length; }); }, [data]);
   const vol = useMemo(() => (data ? muscleVolume(inWeek(data.sets, weekStart(Date.now())), ex, 0.5).filter((v) => v.direct > 0).sort((a, b) => b.direct - a.direct).slice(0, 6) : []), [data, ex]);
+  // Semana en curso frente a la anterior, y progreso de las 8 semanas que el entrenador puede ver.
+  const cmp = useMemo(() => {
+    const cur = weekStart(Date.now()), a = inWeek(data?.sets ?? [], cur), b = inWeek(data?.sets ?? [], cur - 7 * DAY);
+    return { series: [mainSets(a).length, mainSets(b).length], carga: [tonnage(a), tonnage(b)] };
+  }, [data]);
+  const prog = useMemo(() => (data ? exerciseProgress(data.sets, ex) : []), [data, ex]);
+  const progM = useMemo(() => muscleProgress(prog), [prog]);
   return (
     <Sheet open onClose={onClose} title={link.client_name || 'Deportista'} wide>
       {!data ? <p className="py-6 text-center text-sm text-mute">Cargando…</p> : (
@@ -29,6 +37,31 @@ function ClientView({ link, onClose }: { link: CoachLink; onClose: () => void })
             <div className="label mb-1.5">Series directas esta semana</div>
             {vol.length ? <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">{vol.map((v) => <div key={v.muscle} className="flex justify-between gap-2"><span>{MUSCLE_LABEL[v.muscle]}</span><span className="font-semibold tnum">{v.direct}</span></div>)}</div> : <p className="text-sm text-mute">Aún no entrena esta semana.</p>}
           </div>
+          <div>
+            <div className="label mb-1.5">Esta semana frente a la anterior</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div className="flex justify-between gap-2"><span>Series</span><span className="font-semibold tnum">{cmp.series[0]} <span className="font-normal text-mute">antes {cmp.series[1]}</span></span></div>
+              <div className="flex justify-between gap-2"><span>Carga movida</span><span className="font-semibold tnum">{(cmp.carga[0] / 1000).toFixed(1)} t <span className="font-normal text-mute">antes {(cmp.carga[1] / 1000).toFixed(1)} t</span></span></div>
+            </div>
+          </div>
+          <div>
+            <div className="label mb-1.5">Progreso por músculo (8 semanas)</div>
+            {progM.length ? <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">{progM.map((m) => <div key={m.muscle} className="flex justify-between gap-2"><span>{MUSCLE_LABEL[m.muscle]}</span><span className="font-semibold tnum" style={{ color: PROGRESS_COLOR[progressState(m.pct)] }}>{fmtPct(m.pct)}</span></div>)}</div> : <p className="text-sm text-mute">Se necesitan 2 o más sesiones de un mismo ejercicio.</p>}
+          </div>
+          {prog.length > 0 && (
+            <div>
+              <div className="label mb-1.5">Progreso por ejercicio</div>
+              <div className="space-y-1.5">
+                {[...prog].sort((a, b) => b.sessions - a.sessions).slice(0, 8).map((x) => (
+                  <div key={x.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="min-w-0"><span className="block truncate">{x.name}</span><span className="block text-xs text-mute tnum">{fmtKg(x.from)} → {fmtKg(x.to)} kg de 1RM estimado, {x.sessions} sesiones</span></span>
+                    <span className="shrink-0 font-bold tnum" style={{ color: PROGRESS_COLOR[progressState(x.pct)] }}>{fmtPct(x.pct)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-mute">Cambio del 1RM estimado entre sus primeras y sus últimas sesiones. Las series de calentamiento no cuentan.</p>
+            </div>
+          )}
           <div>
             <div className="label mb-1.5">Últimos entrenamientos</div>
             <div className="space-y-1.5">

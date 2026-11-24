@@ -257,7 +257,7 @@ export async function getDoneSets(includeActive = false): Promise<ASet[]> {
   const sessions = mine(await db.sessions.toArray()).filter((s) => includeActive || s.status === 'done');
   const byId = new Map(sessions.map((s) => [s.id, s]));
   return mine(await db.sets.toArray())
-    .filter((s) => s.done && byId.has(s.sessionId))
+    .filter((s) => s.done && !s.warmup && byId.has(s.sessionId))
     .map((s) => ({ sessionId: s.sessionId, exerciseId: s.exerciseId, date: byId.get(s.sessionId)!.startedAt, order: s.order, weight: s.weight, reps: s.reps, rir: s.rir, failure: s.failure, endReason: s.endReason, ...(s.sub ? { ext: true } : {}), ...(byId.get(s.sessionId)!.notes?.includes(DELOAD_TAG) ? { deload: true } : {}) }));
 }
 

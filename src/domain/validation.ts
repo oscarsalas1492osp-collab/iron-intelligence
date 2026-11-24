@@ -27,7 +27,7 @@ export const schemas = {
     settings: z.object({
       cycle: z.object({ start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weeks: z.number().int().min(3).max(12), deload: z.boolean() }).nullable().optional(),
       bar: z.number().min(0).max(60).optional(), plates: z.array(z.number().min(0.25).max(50)).max(20).optional(),
-      restAlert: z.boolean().optional(), restSound: z.boolean().optional(),
+      restAlert: z.boolean().optional(), restSound: z.boolean().optional(), welcomed: z.boolean().optional(),
       ratings: z.record(z.object({ at: z.number(), m: z.record(z.number().int().min(1).max(3)) })).optional(),
     }).default({}),
   }),
@@ -56,7 +56,7 @@ export const schemas = {
     rir: z.number().min(0).max(10).refine(halfStep, 'El RIR admite pasos de 0,5').nullable(),
     rpe: z.number().min(1).max(10).nullable(), failure: z.boolean(), endReason: z.enum(['none', 'momentary', 'technical', 'voluntary', 'fatigue']),
     metTarget: z.boolean(), done: z.boolean(), completedAt: z.number().nullable(), restSec: z.number().min(0).nullable(), note: z.string().max(500),
-    technique: z.enum(['', 'drop', 'restpause', 'myo', 'cluster']).default(''), sub: z.number().int().min(0).max(12).default(0),
+    technique: z.enum(['', 'drop', 'restpause', 'myo', 'cluster']).default(''), sub: z.number().int().min(0).max(12).default(0), warmup: z.boolean().default(false),
   }),
   recovery: z.object({
     ...base, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), sleepHours: z.number().min(0).max(16),

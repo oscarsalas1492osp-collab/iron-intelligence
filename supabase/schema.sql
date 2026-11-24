@@ -1049,3 +1049,6 @@ begin
 end $$;
 revoke all on function public.admin_set_plans(jsonb) from public, anon;
 grant execute on function public.admin_set_plans(jsonb) to authenticated;
+
+-- Series de calentamiento (migración series_calentamiento)
+alter table public.set_logs add column if not exists warmup boolean not null default false;

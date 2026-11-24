@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db } from '../data/db';
-import { elapsedMs, mine, startSession } from '../data/repo';
+import { elapsedMs, mine, startSession, updateSettings } from '../data/repo';
 import { ago, DAY, fmtDate, fmtDuration, fmtKg, weekStart } from '../domain/calc';
 import { LEGEND, weekHeat } from '../domain/heat';
 import { MAIN_MUSCLES, MUSCLE_LABEL } from '../domain/muscles';
@@ -15,6 +15,7 @@ import { BodyFigure } from '../ui/BodyFigure';
 import { Btn, Icon, Ring, Spark, useAction } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { Logo } from '../ui/Layout';
+import { Welcome } from '../ui/welcome';
 import { locale } from '../i18n';
 
 const hello = () => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'; };
@@ -48,8 +49,10 @@ function RingStat({ value, max, color, figure, label, note, good }: { value: num
 
 export default function Dashboard() {
   const uid = useUserId(); const nav = useNavigate(); const run = useAction();
-  const profile = useProfile(); const routines = useRoutines() ?? []; const items = useAllItems() ?? [];
-  const active = useActiveSession(); const sessions = (useSessions() ?? []).filter((s) => s.status === 'done');
+  const profile = useProfile(); const routinesRaw = useRoutines(); const routines = routinesRaw ?? []; const items = useAllItems() ?? [];
+  const active = useActiveSession(); const sessionsRaw = useSessions(); const sessions = (sessionsRaw ?? []).filter((s) => s.status === 'done');
+  // Bienvenida: solo con la app recién abierta, sin rutinas ni sesiones, y hasta que se usa o se salta.
+  const nueva = !!routinesRaw && !!sessionsRaw && !routinesRaw.length && !sessionsRaw.length && !active && !profile.settings?.welcomed;
   const sets = useDoneSets() ?? []; const ex = useExMap();
   const weights = useLiveQuery(async () => mine(await db.bodyWeights.toArray()).sort((a, b) => a.date.localeCompare(b.date)), [uid]) ?? [];
   const logs = useLiveQuery(async () => mine(await db.recovery.toArray()), [uid]) ?? [];
@@ -101,6 +104,7 @@ export default function Dashboard() {
       </header>
 
       <IosInstallHint />
+      {nueva && <Welcome onSkip={() => { void updateSettings({ welcomed: true }); nav('/rutinas'); }} />}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-8 md:[grid-template-areas:'today_figure''week_figure''list_figure'] md:[grid-template-rows:auto_auto_1fr]">
         <section className="hero rounded-[28px] p-5 md:[grid-area:today]">
           <div className="relative z-[1]">
@@ -113,7 +117,7 @@ export default function Dashboard() {
                 {todayEx.length > 5 && <span className="wd-c ml-2 text-sm font-semibold text-chalk/75">+{todayEx.length - 5}</span>}
               </div>
             )}
-            <Btn variant="primary" size="lg" className="mt-5 w-full" icon={active || routines.length ? 'play' : 'plus'} onClick={() => (routines.length || active ? begin() : nav('/rutinas'))}>
+            <Btn variant={nueva ? 'soft' : 'primary'} size="lg" className="mt-5 w-full" icon={active || routines.length ? 'play' : 'plus'} onClick={() => (routines.length || active ? begin() : nav('/rutinas'))}>
               {active ? 'CONTINUAR ENTRENAMIENTO' : routines.length ? 'INICIAR ENTRENAMIENTO' : 'CREAR RUTINA'}
             </Btn>
           </div>
