@@ -17,10 +17,11 @@ import { recentReadiness } from '../domain/recovery';
 import { openPlans, useProGuard } from '../ui/plan';
 import { groupLabel, MAX_GROUP, unitsOf } from '../domain/superset';
 import { SUPERSET_INFO, TECHNIQUE, TECHNIQUES } from '../domain/techniques';
-import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Session, type SetLog, type Target, type Technique } from '../domain/types';
+import { defaultTarget, type EndReason, type ExerciseDef, type Measure, type Routine, type RoutineItem, type Session, type SetLog, type Target, type Technique } from '../domain/types';
 import { sessionsOf, type ASet } from '../domain/volume';
 import { db } from '../data/db';
-import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useUserId } from '../hooks';
+import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useSessions, useUserId } from '../hooks';
+import { lastDone, RoutineFigure, useRoutineSummary } from '../ui/routinePreview';
 import { Bar, Btn, Card, Chip, Choices, cx, Empty, Field, Icon, Seg, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { ExerciseDetail, ExercisePicker } from './Library';
@@ -76,7 +77,7 @@ function SuggestedLabel({ rec }: { rec: Recommendation }) {
 }
 
 function StartScreen() {
-  const routines = useRoutines(); const items = useAllItems(); const ex = useExMap();
+  const routines = useRoutines(); const items = useAllItems(); const sessions = useSessions();
   const nav = useNavigate(); const run = useAction();
   const dow = new Date().getDay();
   const sorted = [...(routines ?? [])].sort((a, b) => Number(b.days.includes(dow)) - Number(a.days.includes(dow)));
@@ -84,26 +85,42 @@ function StartScreen() {
     <div>
       <Title sub={fmtDate(Date.now())}>Entrenar</Title>
       <div className="space-y-3">
-        {sorted.map((r) => {
-          const its = items?.filter((i) => i.routineId === r.id) ?? [];
-          const today = r.days.includes(dow);
-          return (
-            <Card key={r.id}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="wd-w truncate text-lg font-bold leading-tight">{r.name}</div>
-                  {today && <div className="wd-c text-sm font-semibold text-fire">Programada para hoy</div>}
-                  <div className="wd-c truncate text-sm text-mute">{its.map((i) => ex.get(i.exerciseId)?.name).filter(Boolean).slice(0, 3).join(', ')}{its.length > 3 ? ` y ${its.length - 3} más` : ''}</div>
-                </div>
-                <Btn variant={today ? 'primary' : 'soft'} icon="play" disabled={!its.length} onClick={() => run(() => startSession(r.id))}>Iniciar</Btn>
-              </div>
-            </Card>
-          );
-        })}
+        {sorted.map((r) => <StartCard key={r.id} routine={r} items={items?.filter((i) => i.routineId === r.id) ?? []} today={r.days.includes(dow)} last={lastDone(sessions, r.id)} onStart={() => run(() => startSession(r.id))} />)}
         {routines && !routines.length && <Empty icon="list" title="No tienes rutinas" text="Crea una rutina para que la app prepare tus series y pesos, o entrena libre."><Btn variant="primary" onClick={() => nav('/rutinas')}>Crear rutina</Btn></Empty>}
         <Btn className="w-full" icon="plus" onClick={() => run(() => startSession(null))}>Entrenamiento libre (sin rutina)</Btn>
       </div>
     </div>
+  );
+}
+
+/** Tarjeta para iniciar una rutina. La de hoy va destacada, con la figura grande y el botón a lo ancho. */
+function StartCard({ routine: r, items, today, last, onStart }: { routine: Routine; items: RoutineItem[]; today: boolean; last: string | null; onStart: () => void }) {
+  const sum = useRoutineSummary(items);
+  const text = (
+    <div className="min-w-0 flex-1">
+      {today && <div className="wd-c text-sm font-semibold text-amber">Programada para hoy</div>}
+      <div className={cx('wd-w font-bold leading-tight', today ? 'text-[1.35rem]' : 'truncate text-lg')}>{r.name}</div>
+      {sum.focus && <div className="wd-c mt-1 text-[15px] font-semibold leading-snug text-chalk">{sum.focus}</div>}
+      <div className="wd-c mt-0.5 text-sm text-mute">{today ? sum.meta : sum.short}</div>
+      {last && <div className="wd-c text-sm text-mute">{last}</div>}
+    </div>
+  );
+  if (today) return (
+    <Card className="hero">
+      <div className="relative z-[1]">
+        <div className="flex items-start gap-3">{text}<RoutineFigure summary={sum} className="-mt-1 h-[112px] w-[88px] shrink-0" /></div>
+        <Btn variant="primary" icon="play" className="mt-4 w-full" disabled={!items.length} onClick={onStart}>Iniciar {r.name}</Btn>
+      </div>
+    </Card>
+  );
+  return (
+    <Card>
+      <div className="flex items-center gap-3">
+        <RoutineFigure summary={sum} className="-ml-1 h-[84px] w-[64px] shrink-0" />
+        {text}
+        <Btn variant="soft" icon="play" aria-label={`Iniciar ${r.name}`} className="h-12 w-12 shrink-0 !gap-0 !rounded-full !px-0" disabled={!items.length} onClick={onStart}><span className="sr-only">Iniciar</span></Btn>
+      </div>
+    </Card>
   );
 }
 

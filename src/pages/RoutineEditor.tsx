@@ -12,6 +12,7 @@ import type { Measure, RoutineItem, Target } from '../domain/types';
 import { useActiveSession, useAllItems, useExMap } from '../hooks';
 import { Btn, cx, Empty, Field, Icon, Sheet, Stepper, Title, useAction, useUi } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
+import { MuscleBars, RoutineFigure, useRoutineSummary } from '../ui/routinePreview';
 import { ExercisePicker } from './Library';
 import { DAY_LABEL, DAY_ORDER } from './Routines';
 
@@ -43,6 +44,7 @@ export default function RoutineEditor() {
   const routine = useLiveQuery(() => db.routines.get(id), [id]);
   const items = (useAllItems() ?? []).filter((i) => i.routineId === id);
   const ex = useExMap(); const active = useActiveSession();
+  const sum = useRoutineSummary(items);
   const [picker, setPicker] = useState(false);
   const [edit, setEdit] = useState<RoutineItem | null>(null);
   // Unidades en orden: un ejercicio suelto o los 2–3 de una biserie o triserie.
@@ -69,7 +71,7 @@ export default function RoutineEditor() {
   return (
     <div>
       <button type="button" onClick={() => nav('/rutinas')} className="mb-3 flex items-center gap-1 text-sm text-mute"><Icon name="left" size={16} />Rutinas</button>
-      <Title sub={`${items.length} ejercicios, ${items.reduce((a, i) => a + i.sets, 0)} series`}>{routine.name}</Title>
+      <Title sub={sum.meta}>{routine.name}</Title>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mb-4">
         <Field label="Nombre"><input defaultValue={routine.name} key={routine.id} onBlur={(e) => e.target.value !== routine.name && run(() => saveRoutine({ ...routine, name: e.target.value }))} /></Field>
@@ -80,6 +82,17 @@ export default function RoutineEditor() {
           <button type="button" key={d} aria-pressed={routine.days.includes(d)} onClick={() => toggleDay(d)} className={`h-10 flex-1 rounded-xl text-sm font-bold transition ${routine.days.includes(d) ? 'bg-fire text-ink' : 'bg-card2 text-mute'}`}>{DAY_LABEL[d]}</button>
         ))}</div>
       </Field>
+
+      {sum.focus && (
+        <section className="mt-5 rounded-panel bg-card p-4" aria-label="Qué trabaja esta rutina">
+          <h2 className="wd-w text-[15px] font-bold">Qué trabaja</h2>
+          <div className="mt-3 flex items-start gap-4">
+            <RoutineFigure summary={sum} className="h-[128px] w-[100px] shrink-0" />
+            <div className="min-w-0 flex-1"><MuscleBars summary={sum} limit={5} /></div>
+          </div>
+          <p className="mt-3 text-xs text-mute">Series en cada sesión de esta rutina. Naranja: directas. Rojo apagado: indirectas, de ejercicios donde ese músculo ayuda, con el coeficiente que elegiste en Perfil.</p>
+        </section>
+      )}
 
       <div className="mt-5 space-y-2">
         {units.map((u, ui) => {

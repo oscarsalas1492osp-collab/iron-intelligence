@@ -12,6 +12,7 @@ import type { Muscle } from '../domain/types';
 import { inWeek, mainSets, muscleVolume, personalRecords, tonnage } from '../domain/volume';
 import { useActiveSession, useAllItems, useDoneSets, useExMap, useNow, useProfile, useRoutines, useSessions, useUserId } from '../hooks';
 import { BodyFigure } from '../ui/BodyFigure';
+import { RoutineFigure, useRoutineSummary } from '../ui/routinePreview';
 import { Btn, Icon, Ring, Spark, useAction } from '../ui/components';
 import { ExerciseThumb } from '../ui/EquipmentArt';
 import { Logo } from '../ui/Layout';
@@ -62,6 +63,7 @@ export default function Dashboard() {
   const dow = new Date(now).getDay();
   const todayRoutine = routines.find((r) => r.days.includes(dow));
   const todayItems = todayRoutine ? items.filter((i) => i.routineId === todayRoutine.id) : [];
+  const todaySum = useRoutineSummary(todayItems);
   const last = sessions[0];
   const start = weekStart(now);
   const week = useMemo(() => inWeek(sets, start), [sets, start]);
@@ -85,7 +87,7 @@ export default function Dashboard() {
 
   const heading = active ? active.name : todayRoutine ? todayRoutine.name : routines.length ? 'Hoy no hay rutina programada' : 'Crea tu primera rutina';
   const detail = active ? `Entrenamiento en curso, ${fmtDuration(elapsedMs(active, now))} transcurridos. Tu sesión está guardada.`
-    : todayRoutine ? `${todayItems.length} ejercicios, ${todayItems.reduce((a, i) => a + i.sets, 0)} series.`
+    : todayRoutine ? `${todaySum.meta}.`
     : routines.length ? 'Puedes iniciar cualquier rutina o un entrenamiento libre.' : 'Parte de una plantilla o arma la tuya.';
 
   const nSessions = new Set(week.map((x) => x.sessionId)).size;
@@ -108,9 +110,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-8 md:[grid-template-areas:'today_figure''week_figure''list_figure'] md:[grid-template-rows:auto_auto_1fr]">
         <section className="hero rounded-[28px] p-5 md:[grid-area:today]">
           <div className="relative z-[1]">
-            <p className="wd-c text-sm font-semibold text-amber">{active ? 'En curso' : todayRoutine ? 'Rutina de hoy' : routines.length ? 'Día libre' : 'Para empezar'}</p>
-            <h2 className="wd-x mt-1 text-[1.7rem] font-extrabold leading-[1.05]">{heading}</h2>
-            <p className="mt-1.5 text-[15px] text-chalk/75">{detail}</p>
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="wd-c text-sm font-semibold text-amber">{active ? 'En curso' : todayRoutine ? 'Rutina de hoy' : routines.length ? 'Día libre' : 'Para empezar'}</p>
+                <h2 className="wd-x mt-1 text-[1.7rem] font-extrabold leading-[1.05]">{heading}</h2>
+                {!active && todaySum.focus && <p className="wd-c mt-1.5 text-[15px] font-semibold text-chalk">{todaySum.focus}</p>}
+                <p className="mt-1 text-[15px] text-chalk/75">{detail}</p>
+              </div>
+              {!active && todayRoutine && todaySum.focus && <RoutineFigure summary={todaySum} className="-mr-1 mt-1 h-[112px] w-[88px] shrink-0" />}
+            </div>
             {!active && todayEx.length > 0 && (
               <div className="mt-4 flex items-center" aria-hidden>
                 {todayEx.slice(0, 5).map((e, i) => <span key={e.id} className="rounded-2xl ring-2 ring-[#2b1a10]" style={{ marginLeft: i ? -10 : 0, zIndex: 9 - i }}><ExerciseThumb ex={e} size={46} /></span>)}

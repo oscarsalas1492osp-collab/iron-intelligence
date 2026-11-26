@@ -1,12 +1,12 @@
 feature,area,priority,original,clone,notes
-Rango por ejercicio y por músculo con mapa corporal,motivación,should,yes,partial,IRON tiene niveles de fuerza solo en levantamientos principales y un mapa 3D de trabajo; falta progreso visible por ejercicio y por músculo
+Rango por ejercicio y por músculo con mapa corporal,motivación,should,yes,partial,IRON muestra progreso del 1RM estimado por ejercicio y por músculo en la figura (24-11); sin rangos a propósito
 Registro en 2 toques con el último peso a la vista,registro,must,yes,yes,IRON lo hace en tres toques con rueda de peso
-Tipo de serie (calentamiento / normal / fallo / dropset),registro,should,yes,partial,IRON tiene técnicas y calentamiento calculado; revisar si la serie se puede marcar como calentamiento o al fallo
+Tipo de serie (calentamiento / normal / fallo / dropset),registro,should,yes,yes,IRON marca calentamiento (24-11) y registra fallo y dropset
 RPE por serie,registro,could,yes,yes,IRON usa RIR que es el dato que alimenta su recomendación
 Rangos de repeticiones,rutinas,must,yes,yes,
 Peso sugerido para la sesión,progresión,must,yes (Pro),yes,IRON además muestra el motivo
 Plan generado según perfil y equipo,rutinas,should,yes (Pro),yes,
-Cuestionario inicial que arma el primer plan,inicio,should,yes,no,IRON no tiene recorrido de bienvenida
+Cuestionario inicial que arma el primer plan,inicio,should,yes,yes,IRON lo hace en tres preguntas (24-11) frente a 38 pasos
 Video de cada ejercicio,biblioteca,should,yes,partial,IRON tiene figura animada e indicaciones; 448 ejercicios frente a más de 300
 Gráficas por ejercicio en mes / año / total,análisis,should,yes,partial,revisar los rangos de tiempo de IRON
 Calendario de constancia,análisis,should,yes,yes,
@@ -21,4 +21,12 @@ Calculadora de discos,registro,should,no,yes,ventaja de IRON
 Funciona sin conexión,registro,must,partial,yes,ventaja de IRON
 Versión web,plataforma,could,no,yes,ventaja de IRON
 Reloj (Apple Watch / Wear OS),plataforma,could,no,no,lo piden en las reseñas visibles de Symmetry
-Modo entrenador,profesional,should,no,partial,IRON lo tiene planificado
+Modo entrenador,profesional,should,no,yes,IRON compara semanas y progreso del cliente (24-11)
+Tarjeta de rutina con los músculos que trabaja,rutinas,must,sin confirmar,yes,IRON muestra figura frente y espalda con brasa según series y el foco en palabras (26-11)
+Duración estimada de la rutina,rutinas,should,sin confirmar,yes,IRON la calcula con series repeticiones descansos y biseries (26-11)
+Última vez que se hizo cada rutina,rutinas,could,sin confirmar,yes,IRON en Entrenar (26-11)
+Récords mostrados al terminar cada entrenamiento,motivación,should,yes,partial,IRON marca récords en la serie; falta un cierre de sesión que los junte
+Tarjetas y stickers para historias (racha rango progreso),social,should,yes,partial,IRON comparte semana y rutina; falta tarjeta del entrenamiento con la figura
+Biblioteca en la barra inferior,navegación,could,yes,no,IRON la tiene en Más
+Figura que se enciende durante la sesión,registro,should,no,no,propuesta propia de IRON: los músculos se calientan a medida que se completan series
+Animación al subir de rango,motivación,could,yes,no,no se copia; momento propio al batir un récord

@@ -41,3 +41,18 @@ Marca, nombres de rangos, textos, videos, capturas, el escaneo corporal desde un
 ## Tamaño
 
 No aplica: no se reconstruye la app. Ver `features.csv` para la comparación con IRON INTELLIGENCE.
+
+## Diseño e interfaz (26-11-2026)
+
+Fuentes nuevas, todas públicas y en texto: notas de versión 7.0 a 7.20 en la App Store de México, análisis de screensdesign (registro, rangos, muro de pago), resumen de capturas de mwm.ai, comparación de Hevy. Las capturas no se pudieron ver (Chrome no estaba conectado), así que colores, tipografía y disposición de Symmetry quedan sin medir. Pendiente: revisión visual con capturas.
+
+Lo que se sabe de su interfaz:
+
+- Registro en capas: video del ejercicio de fondo, peso y repeticiones abajo en dos toques, peso anterior a la vista, tipo de serie y RPE. Hevy lo considera más cargado que el suyo.
+- Pestañas Train (el plan), Library (programas en carpetas, desde la 7.12 en la barra inferior), inicio con racha y una página de rangos.
+- Rangos de Iron a Symmetric con tres divisiones, por ejercicio, músculo, grupo y global; animación al subir y calculadora de rangos.
+- Récords nuevos en cada entrenamiento (7.20), tarjetas y stickers para historias (7.20), widgets de racha (7.4), Live Activity (7.11).
+- Videos de técnica desde varios ángulos y sin conexión, con botón para silenciar.
+- Reseña visible: valoran que enseña qué músculos trabaja cada ejercicio y cuántas repeticiones hacer.
+
+Respuesta de IRON en esta fecha: tarjetas de rutina con figura de frente y espalda, foco en palabras, duración estimada y última vez, en Rutinas, Entrenar, la rutina de hoy del inicio y el bloque «Qué trabaja» del editor. Diseño propio: brasa sobre petróleo, sin rangos ni medallas.
