@@ -1,5 +1,6 @@
 // REGISTRO DE ENTRENAMIENTO — funcionalidad principal.
 // Cada cambio se escribe de inmediato en la base local: si la app se cierra, la sesión se recupera tal cual.
+import { createPortal } from 'react-dom';
 import { ADJ_KEY } from '../domain/feedback';
 import { ToolsButton } from '../ui/extras';
 import { WeightWheel } from '../ui/plates';
@@ -548,7 +549,7 @@ function GroupPanel({ session, exs, sets, history, readiness, halfRir, onRest, o
 function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (r: Rest | null) => void }) {
   const left = Math.max(0, rest.end - now);
   const pct = rest.total > 0 ? left / (rest.total * 1000) : 0;
-  return (
+  return createPortal(
     <div className="fixed inset-x-0 bottom-[108px] z-30 px-3 md:bottom-4 md:left-60" role="timer" aria-label="Descanso">
       <div className="mx-auto flex max-w-xl items-center gap-2 glass-bar rounded-panel p-3 animate-rise [&>button]:shrink-0">
         <svg width="46" height="46" viewBox="0 0 46 46" className="shrink-0 -rotate-90"><circle cx="23" cy="23" r="19" stroke="rgba(255,255,255,.12)" strokeWidth="5" fill="none" /><circle cx="23" cy="23" r="19" stroke="#58c7ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray={119.4} strokeDashoffset={119.4 * (1 - Math.min(1, pct))} /></svg>
@@ -560,7 +561,8 @@ function RestBar({ rest, now, onChange }: { rest: Rest; now: number; onChange: (
         <Btn size="sm" aria-label="Sumar 15 segundos" onClick={() => onChange({ end: rest.end + 15000, total: rest.total + 15 })}>+15</Btn>
         <Btn size="sm" variant="primary" onClick={() => onChange(null)}>Omitir</Btn>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -718,7 +720,7 @@ function Active({ session }: { session: Session }) {
       {hint && units.length > 1 && <p className="wd-c -mt-1 mb-3 text-sm text-mute">Desliza a los lados para cambiar de ejercicio. Mantén presionado uno y arrástralo sobre otro para unirlos en biserie.</p>}
       {drag.ghost}
       {/* En el teléfono caben pocos ejercicios en la fila: al arrastrar se muestran todos los destinos en una lista. */}
-      {drag.dragging && (
+      {drag.dragging && createPortal(
         <div className="fixed inset-x-0 bottom-[112px] z-50 px-3 md:bottom-4 md:left-60" data-drop-zone aria-hidden>
           <div className="glass-bar mx-auto max-w-xl rounded-panel p-2 animate-rise">
             <div className="label px-2 pb-1.5">Suelta sobre un ejercicio para unirlos</div>
@@ -730,7 +732,8 @@ function Active({ session }: { session: Session }) {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {session.notes?.includes(DELOAD_TAG) && <div className="mb-3 rounded-ctl bg-data/10 p-3 text-sm"><b className="text-data">Semana de descarga.</b> Menos series, menos carga y lejos del fallo: hoy toca recuperar.</div>}

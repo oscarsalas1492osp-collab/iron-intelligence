@@ -159,7 +159,7 @@ export default function Analysis() {
             {trends.length ? <div className="space-y-1.5">{trends.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-3 text-sm">
                 <span className="truncate">{t.name}</span>
-                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#34e0a1' : t.trend === 'declining' ? '#ff6a1a' : '#93a4ab' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
+                <span className="shrink-0 font-bold tnum" style={{ color: t.trend === 'improving' ? '#34e0a1' : t.trend === 'declining' ? '#ff6a1a' : '#949fb8' }}>{t.pct > 0 ? '+' : ''}{t.pct.toFixed(1)} % · {t.trend === 'improving' ? 'mejora' : t.trend === 'declining' ? 'baja' : 'estable'}</span>
               </div>
             ))}</div> : <p className="text-sm text-mute">Se necesitan 3 o más sesiones por ejercicio.</p>}
             <p className="mt-3 text-xs text-mute">Cambio del 1RM estimado: últimas 2 sesiones frente a las 3 anteriores.</p>

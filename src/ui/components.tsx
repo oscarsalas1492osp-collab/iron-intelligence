@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 const cx = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(' ');
@@ -140,7 +141,7 @@ export function Chip({ active, children, onClick, color }: { active?: boolean; c
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
       className={cx('hit wd-c h-9 shrink-0 rounded-full px-3.5 text-[15px] font-semibold transition-colors', active ? 'bg-chalk text-ink' : 'bg-card2 text-mute hover:text-chalk')}
-      style={active && color ? { background: color, color: '#070d10' } : undefined}>
+      style={active && color ? { background: color, color: '#060914' } : undefined}>
       {children}
     </button>
   );
@@ -214,10 +215,11 @@ export function Sheet({ open, onClose, title, children, wide, float }: { open: b
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // Se dibuja en el body: dentro de una tarjeta de vidrio, `position: fixed` quedaría atrapado en la tarjeta.
+  return createPortal(
     <div className={cx('fixed inset-0 z-50 flex items-end justify-center md:items-center', float && 'sheet-float')} role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[3px] animate-fade" onClick={onClose} />
-      <div className={cx('relative w-full overflow-y-auto glass-bar p-5 md:animate-pop md:rounded-sheet', float ? 'max-h-[78vh] rounded-sheet animate-rise' : 'sheet-pad max-h-[92vh] rounded-t-sheet animate-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
+      <div className={cx('relative w-full overflow-y-auto glass-bar glass-sheet p-5 md:animate-pop md:rounded-sheet', float ? 'max-h-[78vh] rounded-sheet animate-rise' : 'sheet-pad max-h-[92vh] rounded-t-sheet animate-sheet', wide ? 'md:max-w-2xl' : 'md:max-w-md')}>
         {!float && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line md:hidden" aria-hidden />}
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="wd-w min-w-0 truncate text-lg font-bold">{title}</h3>
@@ -225,7 +227,8 @@ export function Sheet({ open, onClose, title, children, wide, float }: { open: b
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

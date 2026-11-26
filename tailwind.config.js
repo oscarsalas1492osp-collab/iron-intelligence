@@ -1,17 +1,17 @@
 /** @type {import('tailwindcss').Config} */
-// Sistema visual "brasa y petróleo": una sala oscura azul verdosa con una fuente de luz. La luz es cálida cuando se entrena y
+// Sistema visual "acero nocturno": una sala azul noche con una fuente de luz. La luz es cálida cuando se entrena y
 // fría cuando se analiza; las superficies son vidrio que la deja pasar. El naranja queda para la acción y el esfuerzo.
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: '#070d10',                      // fondo de la sala
-        graphite: '#0c161a',                 // barras y hojas (base opaca bajo el desenfoque)
-        card: 'rgba(165,225,235,0.06)',     // vidrio: superficies
-        card2: 'rgba(170,228,238,0.10)',     // vidrio más denso: controles
-        line: 'rgba(185,232,242,0.13)',      // filetes
-        mute: '#93a4ab',                     // texto secundario
+        ink: '#060914',                      // fondo de la sala
+        graphite: '#0b1020',                 // barras y hojas (base opaca bajo el desenfoque)
+        card: 'rgba(160,190,255,0.035)',    // vidrio: superficies (con desenfoque, ver index.css)
+        card2: 'rgba(170,198,255,0.10)',     // vidrio más denso: controles
+        line: 'rgba(180,205,255,0.13)',      // filetes
+        mute: '#949fb8',                     // texto secundario
         chalk: '#f2f6f6',                    // texto
         fire: '#ff6a1a',                     // intensidad y acción principal
         amber: '#ffb054',                    // reflejo cálido

@@ -43,7 +43,7 @@ function RingStat({ value, max, color, figure, label, note, good }: { value: num
     <div className="flex min-w-0 flex-col items-center text-center">
       <Ring value={value} max={max} color={color}><span className="num text-[1.35rem] leading-none">{figure}</span></Ring>
       <div className="label mt-2">{label}</div>
-      {note && <div className="wd-c truncate text-xs" style={{ color: good ? '#34e0a1' : '#93a4ab' }}>{note}</div>}
+      {note && <div className="wd-c truncate text-xs" style={{ color: good ? '#34e0a1' : '#949fb8' }}>{note}</div>}
     </div>
   );
 }

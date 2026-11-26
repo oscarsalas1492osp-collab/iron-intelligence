@@ -4,6 +4,10 @@ import './index.css';
 import { initLang } from './i18n';
 import { translatePage } from './i18n/dom';
 
+// Teléfonos con 4 GB de memoria o menos: las tarjetas van sin desenfoque, que es lo caro al desplazarse (ver index.css).
+const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+if (memory !== undefined && memory <= 4) document.documentElement.classList.add('lite');
+
 // El idioma se resuelve antes de cargar la app: así los textos, las fechas y los números salen ya en ese idioma.
 void initLang().then(async () => {
   translatePage();

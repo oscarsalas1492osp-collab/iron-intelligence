@@ -329,7 +329,7 @@ export function InsightCards() {
         <H2>Constancia</H2>
         <Card>
           <div className="flex items-end justify-between gap-3"><div><div className="num text-3xl">{ad.pct} %</div><div className="label">del plan en 7 semanas</div></div>
-            <div className="flex h-14 items-end gap-1" aria-hidden>{ad.weeks.map((w) => <div key={w.start} className="w-3 rounded-sm" style={{ height: `${Math.max(8, Math.min(100, (w.done / Math.max(1, w.planned)) * 100))}%`, background: w.done >= w.planned ? '#34e0a1' : w.done ? '#ffb054' : 'rgba(185,232,242,.18)' }} />)}</div>
+            <div className="flex h-14 items-end gap-1" aria-hidden>{ad.weeks.map((w) => <div key={w.start} className="w-3 rounded-sm" style={{ height: `${Math.max(8, Math.min(100, (w.done / Math.max(1, w.planned)) * 100))}%`, background: w.done >= w.planned ? '#34e0a1' : w.done ? '#ffb054' : 'rgba(180,205,255,.18)' }} />)}</div>
           </div>
           <p className="mt-2 text-xs text-mute">Sesiones hechas contra tus {p.daysAvailable} días planificados por semana. La semana en curso se muestra, pero no cuenta en el porcentaje.</p>
         </Card>

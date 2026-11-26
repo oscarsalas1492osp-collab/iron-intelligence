@@ -48,7 +48,7 @@ export function Plate({ size = 48, active }: { size?: number; active?: boolean }
       <path d="M24 3.5A20.5 20.5 0 1 1 3.95 19.74" fill="none" stroke={`url(#${id})`} strokeWidth="5" strokeLinecap="round" />
       <circle cx="24" cy="24" r="14.2" fill="#2f505a" stroke="#d6f1f6" strokeOpacity=".28" strokeWidth=".6" />
       <circle cx="24" cy="24" r="6" fill="none" stroke="#d6f1f6" strokeOpacity=".34" strokeWidth=".9" />
-      <circle cx="24" cy="24" r="3.6" fill="#070d10" />
+      <circle cx="24" cy="24" r="3.6" fill="#060914" />
       {active && <circle cx="24" cy="24" r="1.8" fill="#ffb054" />}
     </svg>
   );
@@ -64,7 +64,7 @@ export default function Layout() {
   const uid = useUserId();
   const noAccount = cloudEnabled && uid === 'local';
   const syncLabel = noAccount ? 'Sin cuenta · solo este dispositivo' : { local: 'Modo local', idle: sync.lastSync ? 'Sincronizado' : 'Pendiente de sincronizar', syncing: 'Sincronizando…', error: 'Sin sincronizar', offline: 'Sin conexión' }[sync.status];
-  const dot = noAccount ? '#93a4ab' : { local: '#93a4ab', idle: sync.lastSync ? '#34e0a1' : '#f5c542', syncing: '#58c7ff', error: '#ff3b30', offline: '#f5c542' }[sync.status];
+  const dot = noAccount ? '#949fb8' : { local: '#949fb8', idle: sync.lastSync ? '#34e0a1' : '#f5c542', syncing: '#58c7ff', error: '#ff3b30', offline: '#f5c542' }[sync.status];
   return (
     <div className="min-h-full md:flex">
       <div className="ambient" data-tone={COOL.some((c) => pathname.startsWith(c)) ? 'cool' : 'warm'} aria-hidden />

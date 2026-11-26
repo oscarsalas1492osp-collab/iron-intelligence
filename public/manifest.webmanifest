@@ -4,8 +4,8 @@
   "description": "Registra tus entrenamientos de fuerza serie por serie, analiza tu volumen por músculo y progresa con cargas sugeridas a partir de tu historial.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#070d10",
-  "theme_color": "#070d10",
+  "background_color": "#060914",
+  "theme_color": "#060914",
   "icons": [
     {
       "src": "./icon-v2-192.png",

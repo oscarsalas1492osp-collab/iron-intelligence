@@ -30,7 +30,7 @@ function ClientView({ link, onClose }: { link: CoachLink; onClose: () => void })
         <div className="space-y-4">
           <div>
             <div className="label mb-1.5">Sesiones por semana (8 semanas)</div>
-            <div className="flex h-16 items-end gap-1.5" aria-hidden>{weeks.map((n, i) => <div key={i} className="flex-1 rounded-sm" style={{ height: `${Math.max(6, Math.min(100, n * 20))}%`, background: n ? '#34e0a1' : 'rgba(185,232,242,.18)' }} />)}</div>
+            <div className="flex h-16 items-end gap-1.5" aria-hidden>{weeks.map((n, i) => <div key={i} className="flex-1 rounded-sm" style={{ height: `${Math.max(6, Math.min(100, n * 20))}%`, background: n ? '#34e0a1' : 'rgba(180,205,255,.18)' }} />)}</div>
             <div className="mt-1 text-sm text-mute">Esta semana: {weeks[7]} {weeks[7] === 1 ? 'sesión' : 'sesiones'}.</div>
           </div>
           <div>

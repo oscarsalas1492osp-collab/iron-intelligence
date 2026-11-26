@@ -41,5 +41,5 @@ export function muscleProgress(list: ExProgress[]): MuscleProgress[] {
 
 /** Subió, bajó o se mantuvo: menos de 1 % en cualquier dirección se lee como estable. */
 export const progressState = (pct: number): 'up' | 'down' | 'flat' => (pct >= 1 ? 'up' : pct <= -1 ? 'down' : 'flat');
-export const PROGRESS_COLOR = { up: '#34e0a1', down: '#ff6a1a', flat: '#93a4ab' } as const;
+export const PROGRESS_COLOR = { up: '#34e0a1', down: '#ff6a1a', flat: '#949fb8' } as const;
 export const fmtPct = (pct: number) => `${pct > 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')} %`;

@@ -63,9 +63,9 @@ export function WeightWheel({ value, step, onChange, label }: { value: number; s
 // (25 rojo, 20 azul, 15 amarillo, 10 verde, 5 blanco) con la paleta de la app.
 const LOOK: Record<number, [number, number, string]> = {
   25: [128, 18, '#ff6a1a'], 20: [118, 18, '#58c7ff'], 15: [104, 16, '#ffb054'], 10: [90, 14, '#34e0a1'],
-  5: [72, 12, '#f2f6f6'], 2.5: [56, 10, '#93a4ab'], 1.25: [44, 8, '#5d7178'],
+  5: [72, 12, '#f2f6f6'], 2.5: [56, 10, '#949fb8'], 1.25: [44, 8, '#5d7178'],
 };
-const lookOf = (p: number): [number, number, string] => LOOK[p] ?? [Math.round(40 + Math.min(25, p) * 3.5), p >= 15 ? 18 : p >= 5 ? 13 : 9, '#93a4ab'];
+const lookOf = (p: number): [number, number, string] => LOOK[p] ?? [Math.round(40 + Math.min(25, p) * 3.5), p >= 15 ? 18 : p >= 5 ? 13 : 9, '#949fb8'];
 
 /** La barra cargada, vista de frente: los discos de cada lado en el orden en que se ponen. */
 export function PlateBar({ side, bar }: { side: number[]; bar: number }) {

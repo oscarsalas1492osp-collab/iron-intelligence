@@ -28,7 +28,7 @@ export function useRoutineSummary(items: RoutineItem[]) {
 /** Figura de frente y espalda con lo que trabaja la rutina. Lo no trabajado queda en petróleo oscuro. */
 export function RoutineFigure({ summary, className }: { summary: ReturnType<typeof useRoutineSummary>; className?: string }) {
   return (
-    <BodyMap tones={summary.tones} base="#26313a" skin="#1b242a" className={className}
+    <BodyMap tones={summary.tones} base="#222b45" skin="#171d30" className={className}
       label={summary.focus ? `Músculos que trabaja: ${summary.focus.toLowerCase()}` : 'Rutina sin ejercicios'} />
   );
 }

@@ -1,6 +1,7 @@
 // Mantener presionado y arrastrar un elemento sobre otro (para unir ejercicios en biserie).
 // Los destinos se marcan con `data-drop-id`. Funciona con dedo y con ratón; quien no pueda usar el gesto
 // tiene siempre un botón equivalente en pantalla.
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 
 const HOLD_MS = 380, SLOP = 10, EDGE = 44;
@@ -85,10 +86,11 @@ export function useHoldDrag(onDrop: (dragId: string, targetId: string) => void, 
 
   const guard: HoldDrag['guard'] = (fn) => (...a) => { if (Date.now() - lastDrag.current > 80) fn(...a); };
 
-  const ghost = state ? (
+  const ghost = state ? createPortal(
     <div aria-hidden className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-[140%] rounded-full bg-chalk px-3.5 py-2 text-sm font-bold text-ink shadow-[0_10px_30px_rgba(0,0,0,.6)]" style={{ left: state.x, top: state.y }}>
       {state.over ? 'Soltar para unir' : state.label}
-    </div>
+    </div>,
+    document.body,
   ) : null;
 
   return { bind, dragging: state?.id ?? null, over: state?.over ?? null, guard, ghost };
