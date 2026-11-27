@@ -15,3 +15,6 @@ tools/i18n/pendiente*
 
 # Python
 __pycache__/
+
+# Animación 3D: lo que genera tools/anim (se vuelve a crear con generar.py)
+tools/anim/salida/
