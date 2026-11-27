@@ -233,9 +233,16 @@ def render_animacion(carpeta, mp4, paso=1):
 
 
 def exportar_glb(ruta):
-    bpy.ops.export_scene.gltf(filepath=ruta, export_format='GLB', export_animations=True,
-                              export_apply=True, export_cameras=False, export_lights=False,
-                              export_force_sampling=True, export_animation_mode='SCENE')
+    """Maniquí y equipo con una sola animación en bucle, sin el suelo del estudio."""
+    for ob in bpy.context.scene.objects:
+        ob.select_set(ob.name != 'suelo' and ob.type in ('MESH', 'EMPTY'))
+    bpy.ops.export_scene.gltf(filepath=ruta, export_format='GLB', use_selection=True,
+                              export_animations=True, export_apply=True, export_cameras=False,
+                              export_lights=False, export_force_sampling=True,
+                              export_animation_mode='SCENE', export_anim_scene_split_object=False,
+                              export_anim_slide_to_zero=True)
+    for ob in bpy.context.scene.objects:
+        ob.select_set(False)
 
 
 def guardar_blend(ruta):
