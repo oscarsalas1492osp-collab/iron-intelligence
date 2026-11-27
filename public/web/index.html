@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>IRON INTELLIGENCE: la app de fuerza que te dice cuándo subir el peso</title>
 <meta name="description" content="Anota tus series en segundos y llega al gimnasio sabiendo qué peso te toca. Sale pronto: inscríbete y te llega el link el día del lanzamiento.">
-<meta name="theme-color" content="#070d10">
+<meta name="theme-color" content="#060914">
 <link rel="canonical" href="https://ironintelligence.app/">
 <script type="application/ld+json" id="ld">[{"@context": "https://schema.org", "@type": "WebSite", "name": "IRON INTELLIGENCE", "url": "https://ironintelligence.app/", "inLanguage": "es"}, {"@context": "https://schema.org", "@type": "Organization", "name": "IRON INTELLIGENCE", "url": "https://ironintelligence.app/", "logo": "https://ironintelligence.app/icon-v2-512.png", "email": "hola@ironintelligence.app"}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": {"@type": "Answer", "text": "Va a tener un plan gratis y un plan Pro que se paga por mes. El precio se anunciará junto con el lanzamiento."}}, {"@type": "Question", "name": "¿Cuándo se lanza?", "acceptedAnswer": {"@type": "Answer", "text": "Todavía no hay fecha. Sale primero en Google Play, para Android. Si te inscribes, ese día te llega el link."}}, {"@type": "Question", "name": "¿Funciona en iPhone?", "acceptedAnswer": {"@type": "Answer", "text": "Sí, aunque todavía no está en la App Store. En iPhone se abre en Safari y se agrega a la pantalla de inicio: Compartir y luego Añadir a pantalla de inicio. Queda con su ícono, como cualquier otra app."}}, {"@type": "Question", "name": "¿Necesito internet en el gimnasio?", "acceptedAnswer": {"@type": "Answer", "text": "No. Los entrenamientos se guardan en tu teléfono. Si creaste una cuenta, se respaldan cuando vuelve la conexión."}}, {"@type": "Question", "name": "¿Qué datos míos guarda?", "acceptedAnswer": {"@type": "Answer", "text": "Tus entrenamientos, lo que decidas completar de tu perfil y, si creas una cuenta, tu correo. El peso corporal, las medidas y el registro de recuperación (sueño, fatiga) son opcionales. No pide fotos tuyas."}}, {"@type": "Question", "name": "¿Para qué se usa mi correo?", "acceptedAnswer": {"@type": "Answer", "text": "Solo para avisarte del lanzamiento. No se comparte ni se usa para enviarte publicidad. Si quieres salir de la lista, escribe el mismo correo en el formulario y toca «Borrar mi correo de la lista»."}}]}]</script>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -29,8 +29,8 @@
 }
 :root {
   color-scheme: dark;
-  --ink: #070d10; --graphite: #0c161a; --line: rgba(185, 232, 242, .14); --line-strong: rgba(185, 232, 242, .26);
-  --chalk: #f2f6f6; --mute: #9fb0b6; --fire: #ff6a1a; --amber: #ffb054; --go: #34e0a1; --data: #58c7ff; --ember: #ff8f86;
+  --ink: #060914; --graphite: #0b1020; --line: rgba(180, 205, 255, .14); --line-strong: rgba(180, 205, 255, .26);
+  --chalk: #f2f6f6; --mute: #a3adc4; --fire: #ff6a1a; --amber: #ffb054; --go: #34e0a1; --data: #58c7ff; --ember: #ff8f86;
   --out: cubic-bezier(0.23, 1, 0.32, 1); --drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --edge: clamp(20px, 5vw, 64px);
   --nav: 68px;
@@ -75,16 +75,16 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 }
 .btn:active { scale: .97; }
 .btn-fire { color: #160a02; background: linear-gradient(180deg, #ff9148 0%, #ff6a1a 52%, #f0520a 100%); box-shadow: 0 14px 30px -12px rgb(255 106 26 / .7), inset 0 1px 0 rgb(255 255 255 / .38); }
-.btn-ghost { color: var(--chalk); background: rgb(190 240 245 / .07); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.btn-ghost { color: var(--chalk); background: rgb(180 205 255 / .07); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .btn-small { min-height: 44px; padding: 0 18px; border-radius: 14px; font-size: .9375rem; }
 .btn[disabled] { opacity: .5; cursor: default; }
-.icon-btn { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgb(190 240 245 / .08); box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--chalk); transition: scale 140ms var(--out), background-color 160ms var(--out); }
+.icon-btn { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgb(180 205 255 / .08); box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--chalk); transition: scale 140ms var(--out), background-color 160ms var(--out); }
 .icon-btn:active { scale: .94; }
 .icon-btn[disabled] { opacity: .35; cursor: default; }
 .link { text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 220ms var(--out), color 160ms var(--out); }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover { translate: 0 -2px; }
-  .btn-ghost:hover, .icon-btn:hover { background-color: rgb(190 240 245 / .14); }
+  .btn-ghost:hover, .icon-btn:hover { background-color: rgb(180 205 255 / .14); }
   .link:hover { background-size: 100% 1px; }
   .nav a.link:hover { color: var(--chalk); }
   .chip:hover { color: var(--chalk); }
@@ -93,7 +93,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 }
 
 /* Cabecera */
-.nav { position: sticky; top: 0; z-index: 30; height: var(--nav); background: rgb(7 13 16 / .78); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border-bottom: 1px solid var(--line); }
+.nav { position: sticky; top: 0; z-index: 30; height: var(--nav); background: rgb(6 9 20 / .58); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid var(--line); }
 .nav .wrap { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; min-height: 44px; min-width: 44px; flex: none; }
 .brand img { width: 36px; height: 36px; border-radius: 10px; }
@@ -109,8 +109,8 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .hero::before {
   content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(70% 60% at 4% -8%, rgb(255 110 30 / .34), transparent 62%),
-    radial-gradient(60% 55% at 104% 10%, rgb(18 190 170 / .20), transparent 66%);
+    radial-gradient(70% 60% at 4% -8%, rgb(255 110 30 / .42), transparent 62%),
+    radial-gradient(60% 55% at 104% 10%, rgb(40 95 255 / .30), transparent 66%);
 }
 .hero .wrap { display: grid; gap: 28px; padding-block: clamp(32px, 5vw, 64px) 0; }
 .hero-copy { display: flex; flex-direction: column; gap: 22px; align-self: center; padding-bottom: clamp(8px, 4vw, 56px); }
@@ -118,7 +118,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .9375rem; }
 .facts li { display: inline-flex; align-items: center; gap: 8px; }
 .facts svg { flex: none; color: var(--go); }
-.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); align-self: flex-start; max-width: 100%; }
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgb(180 205 255 / .06); box-shadow: inset 0 0 0 1px var(--line); align-self: flex-start; max-width: 100%; }
 .seg button { position: relative; overflow: hidden; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: none; cursor: pointer; font-stretch: 106%; font-weight: 700; font-size: .9375rem; color: var(--mute); transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
 .seg button:active { scale: .96; }
 .seg button[aria-selected='true'] { background: var(--chalk); color: var(--ink); }
@@ -128,7 +128,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 
 .stage { position: relative; justify-self: center; align-self: end; width: min(100%, 420px); height: 540px; margin-bottom: -70px; perspective: 1400px; }
 .tilt { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); will-change: transform; }
-.phone { aspect-ratio: 1 / 2; padding: 8px; border-radius: 46px; background: #0b1519; box-shadow: inset 0 0 0 1px var(--line-strong), 0 50px 90px -50px rgb(0 0 0 / .95), 0 0 0 1px rgb(0 0 0 / .6); }
+.phone { aspect-ratio: 1 / 2; padding: 8px; border-radius: 46px; background: #0a0f1f; box-shadow: inset 0 0 0 1px var(--line-strong), 0 50px 90px -50px rgb(0 0 0 / .95), 0 0 0 1px rgb(0 0 0 / .6); }
 .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 38px; -webkit-user-drag: none; user-select: none; }
 .stage .phone { position: absolute; right: 0; bottom: 0; height: 100%; transform: translateZ(40px); transform-style: preserve-3d; }
 .stage .phone .flip { width: 100%; height: 100%; backface-visibility: hidden; }
@@ -137,7 +137,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .plate { position: absolute; left: -4%; top: 2%; width: 56%; aspect-ratio: 1; transform-style: preserve-3d; transform: translateZ(-130px) rotateX(var(--px, 14deg)) rotateY(var(--py, -34deg)); cursor: grab; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 .plate:active { cursor: grabbing; }
 .plate > * { position: absolute; inset: 0; border-radius: 50%; }
-.plate i { background: #12272f; box-shadow: inset 0 0 0 2px rgb(0 0 0 / .35); transform: translateZ(calc(var(--k) * 2px)); }
+.plate i { background: #121b35; box-shadow: inset 0 0 0 2px rgb(0 0 0 / .35); transform: translateZ(calc(var(--k) * 2px)); }
 .plate .face { transform: translateZ(15px); }
 .plate .back { transform: translateZ(-15px) rotateY(180deg); }
 .plate .arc { inset: -17%; transform: translateZ(46px); pointer-events: none; }
@@ -165,7 +165,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 /* ---------- Recorrido: pantallas en pestañas 3D ---------- */
 .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-top: 30px; padding: 4px var(--edge); margin-inline: calc(var(--edge) * -1); scroll-behavior: smooth; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; background: rgb(190 240 245 / .06); box-shadow: inset 0 0 0 1px var(--line); color: var(--mute); font-weight: 700; font-size: .9375rem; transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
+.chip { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; background: rgb(180 205 255 / .06); box-shadow: inset 0 0 0 1px var(--line); color: var(--mute); font-weight: 700; font-size: .9375rem; transition: color 160ms var(--out), background-color 160ms var(--out), scale 140ms var(--out); }
 .chip:active { scale: .96; }
 .chip[aria-selected='true'] { background: var(--chalk); color: var(--ink); box-shadow: none; }
 .flow { position: relative; height: 470px; margin-top: 26px; perspective: 1500px; touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; outline-offset: 8px; }
@@ -173,7 +173,7 @@ h3 { font-stretch: 106%; font-weight: 800; font-size: 1.1875rem; line-height: 1.
 .slide { position: absolute; left: 50%; top: 10px; width: 215px; padding: 0; border: 0; background: none; cursor: inherit; transform-style: preserve-3d; will-change: transform, opacity; touch-action: pan-y; }
 .slide .phone { display: block; border-radius: 34px; padding: 6px; }
 .slide .phone img { border-radius: 28px; }
-.slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(7 13 16 / .5); opacity: var(--dim, 0); pointer-events: none; }
+.slide::after { content: ''; position: absolute; inset: 0; border-radius: 34px; background: rgb(6 9 20 / .5); opacity: var(--dim, 0); pointer-events: none; }
 .caption { display: grid; justify-items: center; text-align: center; gap: 8px; margin: 26px auto 0; max-width: 34rem; min-height: 6.4rem; align-content: start; }
 .caption p { color: var(--mute); }
 @media (max-width: 899px) { .caption { min-height: 8.6rem; } }
@@ -211,10 +211,10 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 .rail { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; margin-top: 36px; padding: 6px var(--edge) 10px; margin-inline: calc(var(--edge) * -1); cursor: grab; overscroll-behavior-x: contain; }
 .rail::-webkit-scrollbar { display: none; }
 .rail.drag { scroll-snap-type: none; cursor: grabbing; }
-.card { flex: 0 0 min(78vw, 280px); scroll-snap-align: start; display: grid; align-content: start; gap: 12px; min-height: 200px; padding: 24px; border-radius: 26px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); transition: translate 220ms var(--out); -webkit-user-select: none; user-select: none; }
+.card { flex: 0 0 min(78vw, 280px); scroll-snap-align: start; display: grid; align-content: start; gap: 12px; min-height: 200px; padding: 24px; border-radius: 26px; background: linear-gradient(180deg, rgb(180 205 255 / .085), rgb(180 205 255 / .03) 60%), var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(230 238 255 / .26); transition: translate 220ms var(--out); -webkit-user-select: none; user-select: none; }
 .card svg { color: var(--amber); }
 .card p { color: var(--mute); font-size: 1rem; line-height: 1.45; }
-.railbar { height: 4px; border-radius: 2px; background: rgb(190 240 245 / .1); margin-top: 18px; overflow: hidden; }
+.railbar { height: 4px; border-radius: 2px; background: rgb(180 205 255 / .1); margin-top: 18px; overflow: hidden; }
 .railbar i { display: block; height: 100%; width: 30%; border-radius: 2px; background: var(--fire); }
 
 /* ---------- La prueba ---------- */
@@ -224,10 +224,10 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 .steps li { counter-increment: paso; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 18px; padding-block: 24px; border-top: 1px solid var(--line); }
 .steps li::before { content: counter(paso); font-stretch: 118%; font-weight: 800; font-size: 2rem; line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; }
 .steps p { color: var(--mute); margin-top: 6px; }
-.slots { padding: 28px; border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
+.slots { padding: 28px; border-radius: 28px; background: linear-gradient(180deg, rgb(180 205 255 / .085), rgb(180 205 255 / .03) 60%), var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(230 238 255 / .26); }
 .discs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; max-width: 320px; margin-top: 22px; }
-.disc { aspect-ratio: 1; border-radius: 50%; border: 3px solid #4b5d63; display: grid; place-items: center; transition: background-color 360ms var(--out), border-color 360ms var(--out), scale 360ms var(--out); }
-.disc::after { content: ''; width: 28%; aspect-ratio: 1; border-radius: 50%; background: var(--graphite); border: 3px solid #4b5d63; transition: border-color 360ms var(--out); }
+.disc { aspect-ratio: 1; border-radius: 50%; border: 3px solid #4b5470; display: grid; place-items: center; transition: background-color 360ms var(--out), border-color 360ms var(--out), scale 360ms var(--out); }
+.disc::after { content: ''; width: 28%; aspect-ratio: 1; border-radius: 50%; background: var(--graphite); border: 3px solid #4b5470; transition: border-color 360ms var(--out); }
 .disc.on { background: var(--fire); border-color: var(--fire); scale: 1.04; }
 .disc.on::after { border-color: var(--fire); }
 .slots-count { margin-top: 22px; font-size: clamp(1.125rem, 4.6vw, 1.375rem); line-height: 1.2; }
@@ -236,10 +236,10 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 /* ---------- Inscripción por pasos ---------- */
 .join { display: grid; gap: 44px; }
 @media (min-width: 900px) { .join { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; } }
-.form { display: grid; gap: 22px; padding: clamp(22px, 3.2vw, 36px); border-radius: 28px; background: var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(220 248 250 / .12); }
+.form { display: grid; gap: 22px; padding: clamp(22px, 3.2vw, 36px); border-radius: 28px; background: linear-gradient(180deg, rgb(180 205 255 / .085), rgb(180 205 255 / .03) 60%), var(--graphite); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgb(230 238 255 / .26); }
 .wz-top { display: grid; gap: 10px; }
 .wz-top span { color: var(--mute); font-size: .9375rem; font-weight: 600; }
-.wz-bar { height: 6px; border-radius: 3px; background: rgb(190 240 245 / .1); overflow: hidden; }
+.wz-bar { height: 6px; border-radius: 3px; background: rgb(180 205 255 / .1); overflow: hidden; }
 .wz-bar i { display: block; height: 100%; border-radius: 3px; background: var(--fire); transform-origin: 0 50%; transform: scaleX(.25); transition: transform 360ms var(--out); }
 .wz-step { display: grid; gap: 18px; border: 0; min-width: 0; min-height: 232px; align-content: start; outline: none; }
 .wz-step > legend, .q { font-stretch: 106%; font-weight: 800; font-size: 1.375rem; line-height: 1.2; padding: 0; }
@@ -248,8 +248,8 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 .field { display: grid; gap: 8px; min-width: 0; }
 .field > label { font-weight: 700; font-size: 1rem; }
 .hint { color: var(--mute); font-size: .9375rem; font-weight: 400; }
-.input { width: 100%; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgb(190 240 245 / .06); color: var(--chalk); font: inherit; font-size: 1rem; outline: none; transition: border-color 160ms var(--out), box-shadow 160ms var(--out); }
-.input::placeholder { color: #7f9198; }
+.input { width: 100%; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgb(180 205 255 / .06); color: var(--chalk); font: inherit; font-size: 1rem; outline: none; transition: border-color 160ms var(--out), box-shadow 160ms var(--out); }
+.input::placeholder { color: #8590aa; }
 .input:focus { border-color: var(--fire); box-shadow: 0 0 0 4px rgb(255 106 26 / .18); }
 .input[aria-invalid='true'] { border-color: var(--ember); }
 .pills { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
@@ -304,7 +304,6 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 
 /* ---------- Entradas ---------- */
 @keyframes enter { from { opacity: 0; translate: 0 14px; } }
-.hero-copy > * { animation: enter 520ms var(--out) both; }
 .hero-copy > :nth-child(2) { animation-delay: 60ms; }
 .hero-copy > :nth-child(3) { animation-delay: 110ms; }
 .hero-copy > :nth-child(4) { animation-delay: 150ms; }
@@ -318,7 +317,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
 [data-motion='off'] .seg button.run i { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .hero-copy > *, .stage { animation: none; }
+  .stage { animation: none; }
   .js .rv { translate: none; transition: opacity 300ms ease-out; }
   .btn:active, .icon-btn:active, .chip:active, .seg button:active, .pill input:active + span { scale: 1; }
   .btn:hover, .card:hover { translate: none; }
@@ -377,32 +376,32 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
         <div class="plate" id="plate" role="img" aria-label="Disco de 20 kilos en 3D. Se puede girar arrastrándolo.">
           <svg class="face" viewBox="0 0 276 276" aria-hidden="true">
             <defs>
-              <linearGradient id="iron" x1="18%" y1="6%" x2="82%" y2="96%"><stop offset="0" stop-color="#3d6470"/><stop offset="1" stop-color="#16303a"/></linearGradient>
+              <linearGradient id="iron" x1="18%" y1="6%" x2="82%" y2="96%"><stop offset="0" stop-color="#3d4f7a"/><stop offset="1" stop-color="#17223f"/></linearGradient>
               <path id="rim" d="M17 138 a121 121 0 1 1 242 0 a121 121 0 1 1 -242 0"/>
             </defs>
-            <circle cx="138" cy="138" r="136" fill="url(#iron)" stroke="#d6f1f6" stroke-opacity=".3" stroke-width="3"/>
-            <text fill="#d6f1f6" fill-opacity=".55" font-family="Archivo, sans-serif" font-weight="800" font-size="12.5" letter-spacing="3.2"><textPath href="#rim" startOffset="0">IRON INTELLIGENCE     20 KG     IRON INTELLIGENCE     20 KG</textPath></text>
-            <g fill="none" stroke="#07131a" stroke-width="25" stroke-linecap="round">
+            <circle cx="138" cy="138" r="136" fill="url(#iron)" stroke="#d6e2fa" stroke-opacity=".3" stroke-width="3"/>
+            <text fill="#d6e2fa" fill-opacity=".55" font-family="Archivo, sans-serif" font-weight="800" font-size="12.5" letter-spacing="3.2"><textPath href="#rim" startOffset="0">IRON INTELLIGENCE     20 KG     IRON INTELLIGENCE     20 KG</textPath></text>
+            <g fill="none" stroke="#070c1c" stroke-width="25" stroke-linecap="round">
               <path d="M194.48 54.27 A101 101 0 0 1 238.75 130.95"/><path d="M182.28 228.78 A101 101 0 0 1 93.72 228.78"/><path d="M37.25 130.95 A101 101 0 0 1 81.52 54.27"/>
             </g>
-            <circle cx="138" cy="138" r="55" fill="none" stroke="#d6f1f6" stroke-opacity=".34" stroke-width="6"/>
-            <circle cx="138" cy="138" r="33" fill="#05090b"/>
+            <circle cx="138" cy="138" r="55" fill="none" stroke="#d6e2fa" stroke-opacity=".34" stroke-width="6"/>
+            <circle cx="138" cy="138" r="33" fill="#04060e"/>
           </svg>
           <svg class="back" viewBox="0 0 276 276" aria-hidden="true">
-            <circle cx="138" cy="138" r="136" fill="#16303a" stroke="#d6f1f6" stroke-opacity=".22" stroke-width="3"/>
-            <g fill="none" stroke="#07131a" stroke-width="25" stroke-linecap="round">
+            <circle cx="138" cy="138" r="136" fill="#17223f" stroke="#d6e2fa" stroke-opacity=".22" stroke-width="3"/>
+            <g fill="none" stroke="#070c1c" stroke-width="25" stroke-linecap="round">
               <path d="M194.48 54.27 A101 101 0 0 1 238.75 130.95"/><path d="M182.28 228.78 A101 101 0 0 1 93.72 228.78"/><path d="M37.25 130.95 A101 101 0 0 1 81.52 54.27"/>
             </g>
-            <circle cx="138" cy="138" r="33" fill="#05090b"/>
+            <circle cx="138" cy="138" r="33" fill="#04060e"/>
           </svg>
           <svg class="arc" viewBox="0 0 400 400" aria-hidden="true">
             <defs><linearGradient id="fire" x1="78%" y1="6%" x2="22%" y2="96%"><stop offset="0" stop-color="#ffc56e"/><stop offset=".45" stop-color="#ff7a22"/><stop offset="1" stop-color="#ff4a12"/></linearGradient></defs>
-            <circle cx="200" cy="200" r="182" fill="none" stroke="#b9e8f2" stroke-opacity=".12" stroke-width="22"/>
+            <circle cx="200" cy="200" r="182" fill="none" stroke="#b9cdf5" stroke-opacity=".12" stroke-width="22"/>
             <path d="M200 18 A182 182 0 1 1 199.9 18" pathLength="100" fill="none" stroke="url(#fire)" stroke-width="22" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="phone">
-          <div class="flip" id="hero-flip"><img id="hero-img" src="/web/img/serie.webp" width="702" height="1404" alt="Pantalla de entrenamiento: una serie hecha, la serie activa con la rueda de peso y el descanso corriendo." fetchpriority="high"></div>
+          <div class="flip" id="hero-flip"><img id="hero-img" src="/web/img/serie.webp" srcset="/web/img/serie-sm.webp 420w, /web/img/serie.webp 702w" sizes="(min-width: 900px) 340px, 270px" fetchpriority="high" width="702" height="1404" alt="Pantalla de entrenamiento: una serie hecha, la serie activa con la rueda de peso y el descanso corriendo." fetchpriority="high"></div>
         </div>
         <button class="icon-btn motion" type="button" id="motion" aria-pressed="false" aria-label="Pausar el movimiento de la página">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
@@ -495,7 +494,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
     <div class="head-row rv">
       <div class="section-head">
         <h2 class="display">Todo lo que incluye.</h2>
-        <p class="lead">Dieciséis funciones para registrar, analizar y progresar.</p>
+        <p class="lead">Dieciocho funciones para registrar, analizar y progresar.</p>
       </div>
       <div class="arrows">
         <p class="fine">Desliza para verlas.</p>
@@ -520,6 +519,8 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16"/><path d="M12 9h5"/><path d="M12 14h5"/></svg><h3>Plan según tu perfil</h3><p>Genera una rutina a partir de tu objetivo, tu experiencia y el equipo que tienes disponible.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg><h3>Récords y 1RM estimado</h3><p>Guarda tu mayor carga en cada ejercicio y estima tu 1RM.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Mapa muscular en 3D</h3><p>Muestra en un cuerpo 3D qué músculos trabajaste en las últimas 48 horas y en la semana.</p></li>
+<li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Qué trabaja cada rutina</h3><p>Antes de empezar ves en una figura los músculos que trabaja la rutina, cuántas series lleva y cuánto dura.</p></li>
+<li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7"/><path d="M6 11h12"/><path d="m9 21 3-6 3 6"/></svg><h3>Progreso por músculo</h3><p>La figura se pinta según cuánto subió tu 1RM estimado en cada músculo, y lo detalla por ejercicio.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6"/><path d="M4 20h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-6"/></svg><h3>Niveles de fuerza</h3><p>Compara tu 1RM estimado con tu peso corporal y te ubica en uno de cinco niveles, de inicial a élite.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m9 15 2 2 4-4"/></svg><h3>Racha y constancia</h3><p>Cuenta tus semanas seguidas de entrenamiento y cuánto cumples de lo planificado.</p></li>
       <li class="card"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5 15.4 6.5"/><path d="M8.6 13.5 15.4 17.5"/></svg><h3>Comparte tu progreso</h3><p>Compartes tu sesión o tu semana como una tarjeta, y tus rutinas con un link.</p></li>
@@ -834,7 +835,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
     loop();
 
     var tabs = [].slice.call($('hero-tabs').children), img = $('hero-img'), flip = $('hero-flip'), cur = 0, auto = null, turns = 0, busy = false;
-    tabs.forEach(function (t) { var pre = new Image(); pre.src = t.getAttribute('data-img'); });
+    tabs.forEach(function (t) { var pre = new Image(), u = t.getAttribute('data-img'); pre.sizes = img.sizes; pre.srcset = u.replace('.webp', '-sm.webp') + ' 420w, ' + u + ' 702w'; pre.src = u; });
     function mark() { if (motionOn && auto) { tabs[cur].classList.remove('run'); void tabs[cur].offsetWidth; tabs[cur].classList.add('run'); } }
     function stop() { if (auto) { clearInterval(auto); auto = null; } tabs.forEach(function (b) { b.classList.remove('run'); }); }
     function show(i, user) {
@@ -843,7 +844,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       var t = tabs[i];
       tabs.forEach(function (b, n) { b.setAttribute('aria-selected', n === i ? 'true' : 'false'); b.classList.remove('run'); });
       cur = i;
-      function swap() { img.src = t.getAttribute('data-img'); img.alt = t.getAttribute('data-alt'); }
+      function swap() { var u = t.getAttribute('data-img'); img.srcset = u.replace('.webp', '-sm.webp') + ' 420w, ' + u + ' 702w'; img.src = u; img.alt = t.getAttribute('data-alt'); }
       if (reduced || !flip.animate) { swap(); }
       else {
         busy = true;
@@ -872,7 +873,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
   /* ---- Recorrido: pantallas en 3D ---- */
   safe(function () {
     var S = [
-      ['inicio', 'Inicio', 'Tu día de entrenamiento', 'Ves la rutina que te toca hoy, tu semana resumida en tres números y el botón para empezar.'],
+      ['inicio', 'Inicio', 'Tu día de entrenamiento', 'Ves la rutina que te toca hoy con los músculos que trabaja, tu semana resumida en tres números y el botón para empezar.'],
       ['ejercicio-en-curso', 'Ejercicio', 'El ejercicio en curso', 'Ves tu objetivo, lo que hiciste en la última sesión y la recomendación de subir, mantener o bajar el peso, con su motivo.'],
       ['serie', 'Serie', 'La serie activa', 'Ajustas el peso con la rueda, anotas las repeticiones y cuántas te quedaban, y el descanso empieza solo.'],
       ['biserie', 'Biseries', 'Biseries y técnicas', 'Anotas dos ejercicios seguidos como una sola ronda y sumas dropset o descanso-pausa.'],
@@ -884,7 +885,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       ['historial', 'Historial', 'Cada sesión en el calendario', 'Muestra los días que entrenaste en el mes y el detalle de cada sesión.'],
       ['biblioteca', 'Biblioteca', '448 ejercicios y 76 equipos', 'Filtras por músculo, equipo o tipo, y buscas por nombre o por máquina.'],
       ['ficha', 'Ficha', 'Cada ejercicio explicado', 'Cada ficha incluye la figura en movimiento, los músculos que trabajan, las indicaciones técnicas y los errores frecuentes.'],
-      ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Las creas desde cero o desde una plantilla, o generas un plan según tu perfil.']
+      ['rutinas', 'Rutinas', 'Tus rutinas por día', 'Cada rutina muestra en una figura los músculos que trabaja y cuánto dura. Las creas desde cero, desde una plantilla o con un plan según tu perfil.']
     ];
     var flow = $('flow'), chips = $('chips'), slides = [], tabs = [], N = S.length;
     var active = 2, pos = 2, raf = 0, anim = null;
@@ -895,7 +896,7 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
       chips.appendChild(c); tabs.push(c);
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'slide'; b.setAttribute('aria-label', 'Ver ' + s[2]); b.tabIndex = -1; b.setAttribute('data-i', i);
-      b.innerHTML = '<span class="phone"><img loading="lazy" draggable="false" width="540" height="1080" alt="" src="/web/img/s/' + s[0] + '.webp"></span>';
+      b.innerHTML = '<span class="phone"><img loading="lazy" decoding="async" draggable="false" width="540" height="1080" alt="" sizes="(min-width: 900px) 262px, 190px" srcset="/web/img/s/' + s[0] + '-sm.webp 300w, /web/img/s/' + s[0] + '.webp 540w" src="/web/img/s/' + s[0] + '.webp"></span>';
       flow.appendChild(b); slides.push(b);
     });
     function gapOf() { return slides[0].offsetWidth * 0.74; }
@@ -914,11 +915,20 @@ ol.shots .shot > div::before { content: counter(paso); grid-row: span 2; font-st
         el.style.setProperty('--dim', (a <= 1 ? 0.45 * a : Math.min(0.75, 0.3 + a * 0.15)).toFixed(3));
       }
     }
+    // Centrar la pestaña activa mueve el carril; al cargar se espera a que la página termine de pintarse, porque un
+    // desplazamiento antes de eso hace que el navegador deje de medir el contenido principal de la portada.
+    var painted = false;
+    function center(t) {
+      var f = function () { chips.scrollLeft = t.offsetLeft - chips.clientWidth / 2 + t.offsetWidth / 2; };
+      if (painted) return f();
+      var later = function () { setTimeout(function () { painted = true; f(); }, 900); };
+      if (document.readyState === 'complete') later(); else addEventListener('load', later, { once: true });
+    }
     function mark(i) {
       if (i === active && tabs[i].getAttribute('aria-selected') === 'true') return;
       active = i;
       tabs.forEach(function (t, n) { t.setAttribute('aria-selected', n === i ? 'true' : 'false'); t.tabIndex = n === i ? 0 : -1; });
-      var t = tabs[i]; chips.scrollLeft = t.offsetLeft - chips.clientWidth / 2 + t.offsetWidth / 2;
+      center(tabs[i]);
       $('cap-t').textContent = S[i][2]; $('cap-d').textContent = S[i][3];
       $('flow-count').textContent = (i + 1) + ' / ' + N;
       $('flow-prev').disabled = i === 0; $('flow-next').disabled = i === N - 1;

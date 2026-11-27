@@ -13,26 +13,26 @@ OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'public')
 
 CSS = """:root{color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:#070d10;color:#e9e6df;font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{margin:0;background:#060914;color:#e6eaf2;font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
 main{max-width:42rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
 header{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
 header img{width:32px;height:32px}
-header a{color:#e9e6df;text-decoration:none;font-weight:800;letter-spacing:.03em}
+header a{color:#e6eaf2;text-decoration:none;font-weight:800;letter-spacing:.03em}
 h1{font-size:2rem;line-height:1.12;margin:0 0 .6rem;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
-h2{font-size:1.2rem;line-height:1.25;margin:2.2rem 0 .5rem;padding-top:1.1rem;border-top:1px solid #363b43}
-p,li{color:#c9c5bc}
-.bajada{font-size:1.1rem;color:#e9e6df}
-.fecha{color:#8d939c;font-size:.9rem;margin:0 0 1.5rem}
+h2{font-size:1.2rem;line-height:1.25;margin:2.2rem 0 .5rem;padding-top:1.1rem;border-top:1px solid #30384f}
+p,li{color:#c3c9d6}
+.bajada{font-size:1.1rem;color:#e6eaf2}
+.fecha{color:#8f98ad;font-size:.9rem;margin:0 0 1.5rem}
 a{color:#7fd6ff}
 a:focus-visible{outline:2px solid #ff6a1a;outline-offset:2px;border-radius:4px}
 ul,ol{padding-left:1.2rem}
 li{margin:.35rem 0}
-strong{color:#e9e6df}
-.caja{margin:2.4rem 0 0;padding:1.2rem 1.2rem 1.3rem;border-radius:1rem;background:#0c161a;border:1px solid #24323a}
+strong{color:#e6eaf2}
+.caja{margin:2.4rem 0 0;padding:1.2rem 1.2rem 1.3rem;border-radius:1rem;background:#0b1020;border:1px solid #222c48}
 .caja p{margin:.2rem 0 .8rem}
-.boton{display:inline-block;padding:.8rem 1.2rem;border-radius:.7rem;background:#ff6a1a;color:#070d10;font-weight:800;text-decoration:none}
+.boton{display:inline-block;padding:.8rem 1.2rem;border-radius:.7rem;background:#ff6a1a;color:#060914;font-weight:800;text-decoration:none}
 .fuentes{font-size:.92rem}
-footer{margin-top:3rem;padding-top:1rem;border-top:1px solid #363b43;font-size:.9rem;display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}"""
+footer{margin-top:3rem;padding-top:1rem;border-top:1px solid #30384f;font-size:.9rem;display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}"""
 
 AVISO = '<p class="fuentes">Esta guía es información general sobre entrenamiento y no reemplaza la indicación de un profesional. Consulta a uno antes de comenzar o cambiar un programa de ejercicio.</p>'
 
@@ -167,7 +167,7 @@ def pagina(g):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#070d10">
+<meta name="theme-color" content="#060914">
 <title>{html.escape(g['titulo'])} · IRON INTELLIGENCE</title>
 <meta name="description" content="{html.escape(g['desc'])}">
 <link rel="canonical" href="{url}">
@@ -226,7 +226,7 @@ def indice():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#070d10">
+<meta name="theme-color" content="#060914">
 <title>Guías de entrenamiento de fuerza · IRON INTELLIGENCE</title>
 <meta name="description" content="Guías cortas sobre entrenamiento de fuerza: cuándo subir el peso, qué es el RIR y cuántas series hacer por músculo.">
 <link rel="canonical" href="{BASE}/guia/">
